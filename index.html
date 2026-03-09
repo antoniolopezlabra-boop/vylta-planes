@@ -5,554 +5,524 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VYLTA — Planes y Precios</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --green: #10B981;
+      --green:      #10B981;
       --green-dark: #059669;
-      --green-light: #ECFDF5;
-      --dark: #0F172A;
-      --dark2: #1E293B;
-      --gold: #F59E0B;
-      --white: #FFFFFF;
-      --gray: #64748B;
-      --gray-light: #F1F5F9;
-      --border: #E2E8F0;
+      --dark:       #0F172A;
+      --dark2:      #1E293B;
+      --dark3:      #334155;
+      --gold:       #F59E0B;
+      --white:      #FFFFFF;
+      --gray:       #64748B;
+      --gray-light: #F8FAFC;
+      --border:     #E2E8F0;
+      --font:       'Plus Jakarta Sans', sans-serif;
     }
 
     html { scroll-behavior: smooth; }
-
     body {
-      font-family: 'DM Sans', sans-serif;
-      background: var(--dark);
-      color: var(--white);
+      font-family: var(--font);
+      background: #F8FAFC;
+      color: var(--dark);
       min-height: 100vh;
       overflow-x: hidden;
     }
 
-    /* Background mesh */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(16,185,129,0.15) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(245,158,11,0.08) 0%, transparent 60%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* NAV */
+    /* ── NAV ── */
     nav {
-      position: relative;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 24px 40px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; height: 64px;
     }
+    .logo { font-weight: 800; font-size: 22px; letter-spacing: -0.5px; color: var(--dark); display: flex; align-items: center; gap: 8px; }
+    .logo-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; display: inline-block; }
+    .nav-tag { font-size: 11px; font-weight: 600; color: var(--green); background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); padding: 5px 14px; border-radius: 100px; }
 
-    .logo {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: 24px;
-      letter-spacing: -0.5px;
-      color: var(--white);
-    }
-
-    .logo span { color: var(--green); }
-
-    .nav-tag {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--green);
-      background: rgba(16,185,129,0.12);
-      border: 1px solid rgba(16,185,129,0.3);
-      padding: 6px 14px;
-      border-radius: 100px;
-      letter-spacing: 0.5px;
-    }
-
-    /* HERO */
+    /* ── HERO ── */
     .hero {
-      position: relative;
-      z-index: 1;
-      text-align: center;
-      padding: 80px 24px 60px;
+      background: var(--dark);
+      position: relative; overflow: hidden;
+      padding: 96px 24px 108px; text-align: center;
     }
-
+    .hero::before {
+      content: ''; position: absolute;
+      width: 900px; height: 900px;
+      background: radial-gradient(circle, rgba(16,185,129,0.13) 0%, transparent 65%);
+      top: -250px; left: 50%; transform: translateX(-50%);
+      pointer-events: none;
+    }
     .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--gold);
-      background: rgba(245,158,11,0.1);
-      border: 1px solid rgba(245,158,11,0.25);
-      padding: 8px 16px;
-      border-radius: 100px;
-      margin-bottom: 28px;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 11px; font-weight: 600; color: var(--green);
+      background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
+      padding: 6px 16px; border-radius: 100px; margin-bottom: 32px; letter-spacing: 0.3px;
+      position: relative; z-index: 1;
     }
-
     .hero h1 {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: clamp(36px, 6vw, 64px);
-      line-height: 1.05;
-      letter-spacing: -1.5px;
-      margin-bottom: 20px;
+      position: relative; z-index: 1;
+      font-size: clamp(40px, 6vw, 72px); font-weight: 800;
+      line-height: 1.05; letter-spacing: -2px; color: var(--white); margin-bottom: 22px;
     }
-
-    .hero h1 em {
-      font-style: normal;
-      color: var(--green);
-    }
-
+    .hero h1 .accent { color: var(--green); }
     .hero p {
-      font-size: 18px;
-      color: rgba(255,255,255,0.55);
-      font-weight: 300;
-      max-width: 520px;
-      margin: 0 auto 16px;
-      line-height: 1.7;
+      position: relative; z-index: 1;
+      font-size: 17px; color: rgba(255,255,255,0.48); font-weight: 400;
+      max-width: 480px; margin: 0 auto 52px; line-height: 1.75;
+    }
+    .hero-stats { display: flex; justify-content: center; gap: 48px; flex-wrap: wrap; position: relative; z-index: 1; }
+    .hero-stat .num { font-size: 30px; font-weight: 800; color: var(--white); letter-spacing: -1px; }
+    .hero-stat .num span { color: var(--green); }
+    .hero-stat .lbl { font-size: 11px; color: rgba(255,255,255,0.38); margin-top: 4px; }
+
+    /* ── MOCKUPS ── */
+    .mockups-section {
+      background: var(--dark);
+      padding: 8px 24px 88px;
+      display: flex; justify-content: center; align-items: flex-end;
+      gap: 20px; flex-wrap: wrap;
     }
 
-    .hero-sub {
-      font-size: 13px !important;
-      color: rgba(255,255,255,0.35) !important;
-    }
-
-    /* PLANS GRID */
-    .plans {
-      position: relative;
-      z-index: 1;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 24px;
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: 0 24px 80px;
-    }
-
-    .plan-card {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 24px;
-      padding: 36px 32px;
-      position: relative;
-      transition: transform 0.3s ease, border-color 0.3s ease;
-    }
-
-    .plan-card:hover {
-      transform: translateY(-4px);
-      border-color: rgba(255,255,255,0.15);
-    }
-
-    .plan-card.featured {
-      background: rgba(16,185,129,0.08);
-      border-color: rgba(16,185,129,0.4);
-    }
-
-    .plan-card.featured:hover {
-      border-color: var(--green);
-    }
-
-    .plan-card.premium {
-      background: rgba(245,158,11,0.06);
-      border-color: rgba(245,158,11,0.3);
-    }
-
-    .plan-card.premium:hover {
-      border-color: var(--gold);
-    }
-
-    .popular-badge {
-      position: absolute;
-      top: -14px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--green);
-      color: var(--white);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 5px 16px;
-      border-radius: 100px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .plan-name {
-      font-family: 'Syne', sans-serif;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      margin-bottom: 16px;
-    }
-
-    .plan-card.free .plan-name { color: var(--gray); }
-    .plan-card.featured .plan-name { color: var(--green); }
-    .plan-card.premium .plan-name { color: var(--gold); }
-
-    .plan-price {
-      margin-bottom: 8px;
-    }
-
-    .plan-price .amount {
-      font-family: 'Syne', sans-serif;
-      font-size: 52px;
-      font-weight: 800;
-      letter-spacing: -2px;
-      line-height: 1;
-    }
-
-    .plan-price .currency {
-      font-size: 20px;
-      font-weight: 600;
-      vertical-align: super;
-      margin-right: 2px;
-      opacity: 0.7;
-    }
-
-    .plan-price .period {
-      font-size: 14px;
-      color: rgba(255,255,255,0.4);
-      font-weight: 300;
-    }
-
-    .plan-desc {
-      font-size: 13px;
-      color: rgba(255,255,255,0.4);
-      margin-bottom: 28px;
-      line-height: 1.6;
-      font-weight: 300;
-    }
-
-    .divider {
-      height: 1px;
-      background: rgba(255,255,255,0.07);
-      margin-bottom: 24px;
-    }
-
-    .features-list {
-      list-style: none;
-      margin-bottom: 32px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .features-list li {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      font-size: 14px;
-      color: rgba(255,255,255,0.75);
-      font-weight: 300;
-      line-height: 1.5;
-    }
-
-    .features-list li .icon {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-
-    .icon-check { background: rgba(16,185,129,0.2); color: var(--green); }
-    .icon-gold { background: rgba(245,158,11,0.2); color: var(--gold); }
-    .icon-x { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.3); }
-
-    .features-list li.disabled {
-      opacity: 0.4;
-    }
-
-    .cta-btn {
-      display: block;
-      width: 100%;
-      padding: 16px;
-      border-radius: 14px;
-      font-family: 'Syne', sans-serif;
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: 0.3px;
-      text-align: center;
-      text-decoration: none;
-      cursor: pointer;
-      border: none;
-      transition: all 0.2s ease;
-      position: relative;
+    .phone {
+      width: 210px; flex-shrink: 0;
+      background: var(--dark2);
+      border-radius: 36px;
+      border: 5px solid var(--dark3);
       overflow: hidden;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.55);
     }
-
-    .cta-btn::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: rgba(255,255,255,0);
-      transition: background 0.2s;
+    .phone.featured {
+      transform: scale(1.07);
+      border-color: var(--green);
+      box-shadow: 0 40px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(16,185,129,0.35), 0 0 60px rgba(16,185,129,0.18);
+      z-index: 2; position: relative;
     }
+    .notch { height: 26px; background: var(--dark); display: flex; align-items: center; justify-content: center; }
+    .notch-pill { width: 56px; height: 13px; background: var(--dark2); border-radius: 100px; }
+    .screen { background: #F8FAFC; min-height: 370px; padding: 12px; }
+    .screen.dark { background: #0F172A; }
 
-    .cta-btn:hover::after { background: rgba(255,255,255,0.08); }
+    /* Screen components */
+    .s-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .s-title { font-size: 13px; font-weight: 700; color: var(--dark); }
+    .s-sub { font-size: 8.5px; color: var(--gray); }
+    .s-avatar { width: 28px; height: 28px; background: linear-gradient(135deg, #10B981, #059669); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; color: white; font-weight: 700; }
+    .s-label { font-size: 8px; font-weight: 700; color: var(--gray); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 7px; }
+    .s-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 5px; margin-bottom: 12px; }
+    .s-stat { background: white; border-radius: 9px; padding: 7px 5px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .s-stat-n { font-size: 16px; font-weight: 800; color: var(--dark); }
+    .s-stat-l { font-size: 6.5px; color: var(--gray); margin-top: 1px; }
+    .appt { background: white; border-radius: 9px; padding: 9px 8px; margin-bottom: 5px; display: flex; align-items: center; gap: 7px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .appt-t { background: rgba(16,185,129,0.1); border-radius: 6px; padding: 4px 5px; text-align: center; min-width: 34px; }
+    .appt-time { font-size: 8.5px; font-weight: 700; color: var(--green); }
+    .appt-name { font-size: 9.5px; font-weight: 600; color: var(--dark); }
+    .appt-svc { font-size: 7.5px; color: var(--gray); }
+    .badge { margin-left: auto; font-size: 6.5px; font-weight: 600; padding: 2px 5px; border-radius: 100px; white-space: nowrap; }
+    .b-green { background: rgba(16,185,129,0.1); color: var(--green); }
+    .b-gold  { background: rgba(245,158,11,0.1);  color: var(--gold); }
+    .b-purple{ background: rgba(139,92,246,0.1);  color: #8B5CF6; }
+    .bottom-nav { display: flex; justify-content: space-around; align-items: center; padding: 8px 0; background: white; border-top: 1px solid #F1F5F9; }
+    .nav-ico { font-size: 14px; opacity: 0.3; }
+    .nav-ico.on { opacity: 1; }
 
-    .cta-free {
-      background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.6);
-      border: 1px solid rgba(255,255,255,0.1);
+    /* WA screen */
+    .wa-top { display: flex; align-items: center; gap: 8px; padding: 10px; background: #075E54; margin: -12px -12px 10px; }
+    .wa-av { width: 28px; height: 28px; background: #25D366; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+    .wa-cn { font-size: 9.5px; font-weight: 600; color: white; }
+    .wa-on { font-size: 7.5px; color: rgba(255,255,255,0.55); }
+    .wa-msg { display: inline-block; padding: 7px 9px; border-radius: 10px; font-size: 8px; line-height: 1.55; max-width: 86%; margin-bottom: 7px; }
+    .wa-recv { background: white; color: var(--dark); border-radius: 0 10px 10px 10px; }
+    .wa-sent { background: #DCF8C6; color: var(--dark); border-radius: 10px 0 10px 10px; display: block; margin-left: auto; }
+    .wa-note { text-align: center; font-size: 7.5px; color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.05); border-radius: 6px; padding: 5px; margin-top: 12px; }
+
+    /* Reports screen */
+    .r-card { background: white; border-radius: 9px; padding: 9px 10px; margin-bottom: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .r-lbl { font-size: 7.5px; color: var(--gray); margin-bottom: 3px; }
+    .r-amt { font-size: 20px; font-weight: 800; }
+    .r-green { color: var(--green); }
+    .r-gold  { color: var(--gold); }
+    .r-bar { height: 5px; background: #F1F5F9; border-radius: 100px; margin-top: 5px; overflow: hidden; }
+    .r-fill { height: 100%; border-radius: 100px; }
+
+    /* ── PLANS ── */
+    .plans-wrap { padding: 80px 24px; max-width: 1080px; margin: 0 auto; }
+    .eyebrow { text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--green); margin-bottom: 10px; }
+    .sec-title { text-align: center; font-size: clamp(28px,4vw,42px); font-weight: 800; letter-spacing: -1.5px; color: var(--dark); margin-bottom: 8px; }
+    .sec-sub { text-align: center; font-size: 15px; color: var(--gray); margin-bottom: 52px; }
+
+    .plans-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; align-items: start; }
+
+    .plan { background: white; border: 1.5px solid var(--border); border-radius: 20px; padding: 30px 26px; position: relative; transition: transform .22s, box-shadow .22s; }
+    .plan:hover { transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0,0,0,0.08); }
+    .plan.pop { border-color: var(--green); box-shadow: 0 0 0 4px rgba(16,185,129,0.08); }
+    .plan.prem { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(245,158,11,0.07); }
+
+    .pop-badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--green); color: white; font-size: 10px; font-weight: 700; padding: 4px 14px; border-radius: 100px; white-space: nowrap; }
+
+    .p-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 19px; margin-bottom: 14px; }
+    .ic-free { background: #F1F5F9; }
+    .ic-basic { background: rgba(16,185,129,0.1); }
+    .ic-prem  { background: rgba(245,158,11,0.1); }
+
+    .p-name { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gray); margin-bottom: 7px; }
+    .plan.pop  .p-name { color: var(--green); }
+    .plan.prem .p-name { color: var(--gold); }
+
+    .p-price { display: flex; align-items: baseline; gap: 3px; margin-bottom: 5px; }
+    .p-cur { font-size: 17px; font-weight: 700; color: var(--dark); }
+    .p-amt { font-size: 46px; font-weight: 800; letter-spacing: -2px; color: var(--dark); line-height: 1; }
+    .p-per { font-size: 12px; color: var(--gray); }
+    .p-desc { font-size: 12.5px; color: var(--gray); line-height: 1.65; margin-bottom: 22px; }
+    .p-div { height: 1px; background: var(--border); margin-bottom: 18px; }
+
+    .feats { list-style: none; margin-bottom: 26px; display: flex; flex-direction: column; gap: 9px; }
+    .feats li { display: flex; align-items: flex-start; gap: 9px; font-size: 12.5px; color: var(--dark); line-height: 1.5; }
+    .feats li.off { color: var(--gray); opacity: 0.5; }
+    .fi { width: 17px; height: 17px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8.5px; flex-shrink: 0; margin-top: 1px; }
+    .fi-g { background: rgba(16,185,129,0.12); color: var(--green); }
+    .fi-y { background: rgba(245,158,11,0.12); color: var(--gold); }
+    .fi-x { background: #F1F5F9; color: #CBD5E1; }
+    .f-tag { font-size: 9.5px; font-weight: 600; padding: 1px 6px; border-radius: 4px; background: rgba(16,185,129,0.1); color: var(--green); margin-left: 4px; }
+    .f-tag.g { background: rgba(245,158,11,0.1); color: var(--gold); }
+
+    .cta { display: block; width: 100%; padding: 13px; border-radius: 11px; font-family: var(--font); font-size: 13.5px; font-weight: 700; text-align: center; text-decoration: none; cursor: pointer; border: none; transition: all .2s; letter-spacing: 0.1px; }
+    .cta-free  { background: var(--gray-light); color: var(--gray); border: 1.5px solid var(--border); }
+    .cta-basic { background: var(--green); color: white; box-shadow: 0 4px 20px rgba(16,185,129,0.3); }
+    .cta-basic:hover { background: var(--green-dark); transform: translateY(-1px); box-shadow: 0 8px 28px rgba(16,185,129,0.38); }
+    .cta-prem  { background: linear-gradient(135deg,#F59E0B,#D97706); color: white; box-shadow: 0 4px 20px rgba(245,158,11,0.25); }
+    .cta-prem:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(245,158,11,0.38); }
+
+    /* ── COMPARISON ── */
+    .comp-wrap { background: var(--dark); padding: 80px 24px; }
+    .comp-wrap .sec-title { color: white; }
+    .comp-wrap .sec-sub { color: rgba(255,255,255,0.38); }
+
+    .comp-table { max-width: 780px; margin: 0 auto; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.07); }
+    .comp-hdr { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; background: rgba(255,255,255,0.04); padding: 15px 20px; gap: 8px; }
+    .ch { font-size: 11.5px; font-weight: 700; text-align: center; letter-spacing: 0.5px; }
+    .ch:first-child { text-align: left; color: rgba(255,255,255,0.35); }
+    .ch.cg { color: var(--green); }
+    .ch.cy { color: var(--gold); }
+    .ch.cm { color: rgba(255,255,255,0.28); }
+    .comp-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; padding: 13px 20px; gap: 8px; border-top: 1px solid rgba(255,255,255,0.05); align-items: center; }
+    .comp-row:hover { background: rgba(255,255,255,0.02); }
+    .cf { font-size: 12.5px; color: rgba(255,255,255,0.65); }
+    .cc { text-align: center; font-size: 14px; }
+    .ck { color: var(--green); }
+    .cy2 { color: var(--gold); }
+    .cn { color: rgba(255,255,255,0.14); }
+
+    /* ── TRUST ── */
+    .trust-wrap { background: white; padding: 56px 24px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .trust-items { display: flex; flex-wrap: wrap; justify-content: center; gap: 28px; max-width: 760px; margin: 0 auto; }
+    .trust-item { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--gray); font-weight: 500; }
+    .trust-ico { width: 36px; height: 36px; background: var(--gray-light); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+
+    /* ── FAQ ── */
+    .faq-wrap { padding: 80px 24px; max-width: 660px; margin: 0 auto; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 20px 0; }
+    .faq-q { font-size: 14.5px; font-weight: 600; color: var(--dark); margin-bottom: 8px; }
+    .faq-a { font-size: 13px; color: var(--gray); line-height: 1.75; }
+
+    /* ── FOOTER ── */
+    footer { background: var(--dark); padding: 44px 24px; text-align: center; }
+    .f-logo { font-size: 20px; font-weight: 800; color: white; margin-bottom: 6px; }
+    .f-tag2 { font-size: 11px; color: rgba(255,255,255,0.28); margin-bottom: 22px; }
+    .f-links { display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; margin-bottom: 22px; }
+    .f-links a { font-size: 11.5px; color: rgba(255,255,255,0.38); text-decoration: none; transition: color .2s; }
+    .f-links a:hover { color: var(--green); }
+    .f-copy { font-size: 10.5px; color: rgba(255,255,255,0.18); }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp { from { opacity:0; transform:translateY(22px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes floatC { 0%,100%{transform:scale(1.07) translateY(0)} 50%{transform:scale(1.07) translateY(-9px)} }
+    @keyframes floatL { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-13px)} }
+    @keyframes floatR { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+    .hero-content { animation: fadeUp .6s ease both; }
+    .phone.left    { animation: floatL 5s ease-in-out infinite; }
+    .phone.featured { animation: floatC 4s ease-in-out infinite; }
+    .phone.right   { animation: floatR 6s ease-in-out infinite; }
+    .plan:nth-child(1){ animation: fadeUp .5s .1s ease both; }
+    .plan:nth-child(2){ animation: fadeUp .5s .2s ease both; }
+    .plan:nth-child(3){ animation: fadeUp .5s .3s ease both; }
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:900px){
+      .plans-grid{ grid-template-columns:1fr; max-width:420px; margin:0 auto; }
+      .phone.left,.phone.right{ display:none; }
     }
-
-    .cta-basico {
-      background: var(--green);
-      color: var(--white);
-      box-shadow: 0 8px 32px rgba(16,185,129,0.35);
-    }
-
-    .cta-premium {
-      background: linear-gradient(135deg, #F59E0B, #D97706);
-      color: var(--dark);
-      box-shadow: 0 8px 32px rgba(245,158,11,0.3);
-    }
-
-    /* TRUST SECTION */
-    .trust {
-      position: relative;
-      z-index: 1;
-      text-align: center;
-      padding: 0 24px 80px;
-    }
-
-    .trust-items {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 32px;
-      max-width: 700px;
-      margin: 0 auto;
-    }
-
-    .trust-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 13px;
-      color: rgba(255,255,255,0.45);
-    }
-
-    .trust-item span:first-child { font-size: 18px; }
-
-    /* FAQ */
-    .faq {
-      position: relative;
-      z-index: 1;
-      max-width: 640px;
-      margin: 0 auto;
-      padding: 0 24px 80px;
-    }
-
-    .faq h2 {
-      font-family: 'Syne', sans-serif;
-      font-size: 28px;
-      font-weight: 700;
-      text-align: center;
-      margin-bottom: 32px;
-      letter-spacing: -0.5px;
-    }
-
-    .faq-item {
-      border-bottom: 1px solid rgba(255,255,255,0.07);
-      padding: 20px 0;
-    }
-
-    .faq-item h3 {
-      font-size: 15px;
-      font-weight: 500;
-      margin-bottom: 8px;
-      color: rgba(255,255,255,0.9);
-    }
-
-    .faq-item p {
-      font-size: 13px;
-      color: rgba(255,255,255,0.45);
-      line-height: 1.7;
-      font-weight: 300;
-    }
-
-    /* FOOTER */
-    footer {
-      position: relative;
-      z-index: 1;
-      text-align: center;
-      padding: 32px 24px;
-      border-top: 1px solid rgba(255,255,255,0.06);
-      font-size: 12px;
-      color: rgba(255,255,255,0.25);
-    }
-
-    footer a { color: var(--green); text-decoration: none; }
-
-    /* Animations */
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .hero { animation: fadeUp 0.6s ease both; }
-    .plan-card:nth-child(1) { animation: fadeUp 0.6s 0.1s ease both; }
-    .plan-card:nth-child(2) { animation: fadeUp 0.6s 0.2s ease both; }
-    .plan-card:nth-child(3) { animation: fadeUp 0.6s 0.3s ease both; }
-
-    @media (max-width: 640px) {
-      nav { padding: 20px 24px; }
-      .plans { grid-template-columns: 1fr; }
-      .plan-card { padding: 28px 24px; }
+    @media(max-width:640px){
+      nav{ padding:0 20px; }
+      .hero{ padding:60px 20px 72px; }
+      .comp-hdr,.comp-row{ padding:12px 14px; }
+      .cf{ font-size:11px; }
     }
   </style>
 </head>
 <body>
 
-  <nav>
-    <div class="logo">VYL<span>T</span>A</div>
-    <div class="nav-tag">✦ Cada cliente regresa</div>
-  </nav>
+<!-- NAV -->
+<nav>
+  <div class="logo"><span class="logo-dot"></span>VYLTA</div>
+  <div class="nav-tag">Cada cliente regresa</div>
+</nav>
 
-  <section class="hero">
-    <div class="hero-badge">✦ Sin comisiones · Sin contratos · Cancela cuando quieras</div>
-    <h1>El plan correcto para<br><em>hacer crecer</em> tu negocio</h1>
-    <p>Automatiza tus citas y recordatorios por WhatsApp. Más clientes, menos no-shows.</p>
-    <p class="hero-sub">Pago seguro con Stripe · Sin datos de tarjeta almacenados en VYLTA</p>
-  </section>
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-badge">🇲🇽 Hecho en México para negocios mexicanos</div>
+    <h1>Agenda inteligente<br>con <span class="accent">WhatsApp</span> incluido</h1>
+    <p>Automatiza confirmaciones y recordatorios. Reduce cancelaciones hasta un 75% desde el primer mes.</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="num"><span>75</span>%</div><div class="lbl">menos no-shows</div></div>
+      <div class="hero-stat"><div class="num"><span>2</span> min</div><div class="lbl">activación del plan</div></div>
+      <div class="hero-stat"><div class="num"><span>0</span>%</div><div class="lbl">comisión App Store</div></div>
+    </div>
+  </div>
+</section>
 
-  <section class="plans">
+<!-- MOCKUPS -->
+<section class="mockups-section">
 
-    <!-- GRATUITO -->
-    <div class="plan-card free">
-      <div class="plan-name">Gratuito</div>
-      <div class="plan-price">
-        <span class="amount">$0</span>
-        <span class="period"> / siempre</span>
+  <!-- LEFT: WhatsApp -->
+  <div class="phone left">
+    <div class="notch"><div class="notch-pill"></div></div>
+    <div class="screen" style="background:#ECE5DD; padding:0;">
+      <div class="wa-top">
+        <div class="wa-av">💇</div>
+        <div><div class="wa-cn">Estética Karen</div><div class="wa-on">en línea</div></div>
       </div>
-      <p class="plan-desc">Para explorar VYLTA y configurar tu negocio antes de activar tu agenda.</p>
-      <div class="divider"></div>
-      <ul class="features-list">
-        <li><span class="icon icon-check">✓</span> Registro de negocio y clientes</li>
-        <li><span class="icon icon-check">✓</span> Configuración de horarios</li>
-        <li><span class="icon icon-check">✓</span> Calendario en modo lectura</li>
-        <li><span class="icon icon-check">✓</span> Documentos legales incluidos</li>
-        <li class="disabled"><span class="icon icon-x">✕</span> Agendar citas</li>
-        <li class="disabled"><span class="icon icon-x">✕</span> WhatsApp automático</li>
-        <li class="disabled"><span class="icon icon-x">✕</span> Reportes e ingresos</li>
-      </ul>
-      <a href="#" class="cta-btn cta-free" onclick="return false;">Plan actual</a>
-    </div>
-
-    <!-- BÁSICO -->
-    <div class="plan-card featured">
-      <div class="popular-badge">⭐ Más popular</div>
-      <div class="plan-name">Básico</div>
-      <div class="plan-price">
-        <span class="currency">$</span><span class="amount">990</span>
-        <span class="period"> MXN / mes</span>
+      <div style="padding:10px;">
+        <div class="wa-msg wa-recv">👋 Hola Sofía, mañana tienes cita a las <b>10:00 am</b> para <b>Corte y color</b>.<br><br>¿Confirmas tu asistencia?</div>
+        <div class="wa-msg wa-sent">✅ Sí, ahí estaré!</div>
+        <div class="wa-msg wa-recv" style="margin-top:6px;">¡Perfecto! Te esperamos 😊<br>📍 Calle Reforma 45, Qro.</div>
+        <div class="wa-note">⚡ Mensaje automático por VYLTA</div>
       </div>
-      <p class="plan-desc">Todo lo que necesitas para gestionar tu agenda y automatizar recordatorios por WhatsApp.</p>
-      <div class="divider"></div>
-      <ul class="features-list">
-        <li><span class="icon icon-check">✓</span> Citas ilimitadas</li>
-        <li><span class="icon icon-check">✓</span> Selección de bloques de tiempo</li>
-        <li><span class="icon icon-check">✓</span> Calendario + agenda completa</li>
-        <li><span class="icon icon-check">✓</span> Reportes de ingresos</li>
-        <li><span class="icon icon-check">✓</span> WhatsApp automático <em style="font-size:11px;opacity:0.6">· número VYLTA</em></li>
-        <li><span class="icon icon-check">✓</span> Confirmaciones y recordatorios</li>
-        <li><span class="icon icon-check">✓</span> 1 usuario</li>
-      </ul>
-      <!-- TODO: reemplazar href con tu Payment Link de Stripe -->
-      <a href="STRIPE_LINK_BASICO" class="cta-btn cta-basico" id="btn-basico">Activar Plan Básico →</a>
     </div>
+    <div class="bottom-nav" style="background:#075E54; border:none; justify-content:center;">
+      <span style="font-size:10px; color:#25D366; font-weight:700;">WhatsApp Automático</span>
+    </div>
+  </div>
 
-    <!-- PREMIUM -->
-    <div class="plan-card premium">
-      <div class="plan-name">Premium</div>
-      <div class="plan-price">
-        <span class="currency">$</span><span class="amount">1,490</span>
-        <span class="period"> MXN / mes</span>
+  <!-- CENTER: Dashboard -->
+  <div class="phone featured">
+    <div class="notch"><div class="notch-pill"></div></div>
+    <div class="screen">
+      <div class="s-hdr">
+        <div><div class="s-sub">Buenos días 👋</div><div class="s-title">Estética Karen</div></div>
+        <div class="s-avatar">K</div>
       </div>
-      <p class="plan-desc">Para negocios en crecimiento con múltiples colaboradores y automatización avanzada.</p>
-      <div class="divider"></div>
-      <ul class="features-list">
-        <li><span class="icon icon-gold">✓</span> Todo lo del plan Básico</li>
-        <li><span class="icon icon-gold">✓</span> WhatsApp con <strong>número propio</strong></li>
-        <li><span class="icon icon-gold">✓</span> Citas simultáneas con confirmación</li>
-        <li><span class="icon icon-gold">✓</span> Hasta 5 colaboradores</li>
-        <li><span class="icon icon-gold">✓</span> Campañas WhatsApp marketing</li>
-        <li><span class="icon icon-gold">✓</span> Exportación CSV de reportes</li>
-        <li><span class="icon icon-gold">✓</span> Soporte prioritario</li>
+      <div class="s-label">📅 Resumen de hoy</div>
+      <div class="s-stats">
+        <div class="s-stat"><div class="s-stat-n" style="color:#10B981;">6</div><div class="s-stat-l">Citas hoy</div></div>
+        <div class="s-stat"><div class="s-stat-n" style="color:#10B981;">4</div><div class="s-stat-l">Confirmadas</div></div>
+        <div class="s-stat"><div class="s-stat-n" style="color:#F59E0B;">2</div><div class="s-stat-l">Pendientes</div></div>
+      </div>
+      <div class="s-label">Próximas citas</div>
+      <div class="appt">
+        <div class="appt-t"><div class="appt-time">10:00</div></div>
+        <div><div class="appt-name">Sofía García</div><div class="appt-svc">Corte y color · 2h</div></div>
+        <div class="badge b-green">✓ Confirmada</div>
+      </div>
+      <div class="appt">
+        <div class="appt-t"><div class="appt-time">12:30</div></div>
+        <div><div class="appt-name">María López</div><div class="appt-svc">Manicure · 1h</div></div>
+        <div class="badge b-gold">⏳ Pendiente</div>
+      </div>
+      <div class="appt">
+        <div class="appt-t"><div class="appt-time">14:00</div></div>
+        <div><div class="appt-name">Ana Martínez</div><div class="appt-svc">Peinado · 1.5h</div></div>
+        <div class="badge b-purple">⚡ En espera</div>
+      </div>
+    </div>
+    <div class="bottom-nav">
+      <span class="nav-ico on">🏠</span><span class="nav-ico">📅</span><span class="nav-ico">📊</span><span class="nav-ico">⚙️</span>
+    </div>
+  </div>
+
+  <!-- RIGHT: Reports -->
+  <div class="phone right">
+    <div class="notch"><div class="notch-pill"></div></div>
+    <div class="screen">
+      <div class="s-hdr">
+        <div class="s-title">Reportes del mes</div>
+        <div class="s-sub">Marzo 2026</div>
+      </div>
+      <div class="r-card">
+        <div class="r-lbl">💰 Cobrado este mes</div>
+        <div class="r-amt r-green">$12,450</div>
+        <div class="r-bar"><div class="r-fill" style="width:78%; background:linear-gradient(90deg,#10B981,#059669);"></div></div>
+      </div>
+      <div class="r-card">
+        <div class="r-lbl">⏳ Por cobrar</div>
+        <div class="r-amt r-gold">$3,200</div>
+        <div class="r-bar"><div class="r-fill" style="width:25%; background:linear-gradient(90deg,#F59E0B,#D97706);"></div></div>
+      </div>
+      <div class="r-card">
+        <div class="r-lbl">📊 Resumen del mes</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px;">
+          <div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:#0F172A;">42</div><div style="font-size:7px;color:#64748B;">Citas totales</div></div>
+          <div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:#10B981;">87%</div><div style="font-size:7px;color:#64748B;">Completadas</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-nav">
+      <span class="nav-ico">🏠</span><span class="nav-ico">📅</span><span class="nav-ico on">📊</span><span class="nav-ico">⚙️</span>
+    </div>
+  </div>
+
+</section>
+
+<!-- PLANS -->
+<section class="plans-wrap">
+  <div class="eyebrow">Planes y Precios</div>
+  <div class="sec-title">Elige tu plan</div>
+  <div class="sec-sub">Sin contratos. Sin permanencia. Cancela cuando quieras.</div>
+
+  <div class="plans-grid">
+
+    <div class="plan">
+      <div class="p-icon ic-free">🔍</div>
+      <div class="p-name">Gratuito</div>
+      <div class="p-price"><span class="p-cur">$</span><span class="p-amt">0</span><span class="p-per">/ siempre</span></div>
+      <p class="p-desc">Configura tu negocio, registra tus clientes y explora VYLTA sin compromiso.</p>
+      <div class="p-div"></div>
+      <ul class="feats">
+        <li><span class="fi fi-g">✓</span> Registro de negocio</li>
+        <li><span class="fi fi-g">✓</span> Clientes ilimitados</li>
+        <li><span class="fi fi-g">✓</span> Configuración de horarios</li>
+        <li><span class="fi fi-g">✓</span> Calendario en modo lectura</li>
+        <li class="off"><span class="fi fi-x">✕</span> Agendar citas</li>
+        <li class="off"><span class="fi fi-x">✕</span> WhatsApp automático</li>
+        <li class="off"><span class="fi fi-x">✕</span> Reportes e ingresos</li>
       </ul>
-      <!-- TODO: reemplazar href con tu Payment Link de Stripe -->
-      <a href="STRIPE_LINK_PREMIUM" class="cta-btn cta-premium" id="btn-premium">Activar Plan Premium →</a>
+      <a href="#" class="cta cta-free" onclick="return false;">Plan actual en app</a>
     </div>
 
-  </section>
-
-  <section class="trust">
-    <div class="trust-items">
-      <div class="trust-item"><span>🔒</span><span>Pago seguro con Stripe</span></div>
-      <div class="trust-item"><span>📱</span><span>Disponible en iOS y Android</span></div>
-      <div class="trust-item"><span>🇲🇽</span><span>Hecho en México</span></div>
-      <div class="trust-item"><span>💬</span><span>Soporte por WhatsApp</span></div>
-      <div class="trust-item"><span>🚫</span><span>Sin contratos de permanencia</span></div>
+    <div class="plan pop">
+      <div class="pop-badge">⭐ Más popular</div>
+      <div class="p-icon ic-basic">📅</div>
+      <div class="p-name">Básico</div>
+      <div class="p-price"><span class="p-cur">$</span><span class="p-amt">990</span><span class="p-per">MXN / mes</span></div>
+      <p class="p-desc">Agenda completa con WhatsApp automático desde número VYLTA. Todo lo que necesitas para arrancar.</p>
+      <div class="p-div"></div>
+      <ul class="feats">
+        <li><span class="fi fi-g">✓</span> Citas ilimitadas</li>
+        <li><span class="fi fi-g">✓</span> Bloques de tiempo flexibles</li>
+        <li><span class="fi fi-g">✓</span> Reportes + control de ingresos</li>
+        <li><span class="fi fi-g">✓</span> WhatsApp automático <span class="f-tag">Núm. VYLTA</span></li>
+        <li><span class="fi fi-g">✓</span> Confirmaciones y recordatorios</li>
+        <li><span class="fi fi-g">✓</span> 1 usuario incluido</li>
+      </ul>
+      <a href="https://buy.stripe.com/test_28EfZi6DH5eA0w16Zz7ok00" class="cta cta-basic" id="btn-basico">Activar Plan Básico →</a>
     </div>
-  </section>
 
-  <section class="faq">
-    <h2>Preguntas frecuentes</h2>
-    <div class="faq-item">
-      <h3>¿Puedo cancelar en cualquier momento?</h3>
-      <p>Sí. No hay contratos ni penalizaciones. Cancela cuando quieras y tu plan se mantiene activo hasta el fin del período pagado.</p>
+    <div class="plan prem">
+      <div class="p-icon ic-prem">⚡</div>
+      <div class="p-name">Premium</div>
+      <div class="p-price"><span class="p-cur">$</span><span class="p-amt">1,490</span><span class="p-per">MXN / mes</span></div>
+      <p class="p-desc">Para negocios en crecimiento. WhatsApp con tu número propio y hasta 5 colaboradores.</p>
+      <div class="p-div"></div>
+      <ul class="feats">
+        <li><span class="fi fi-y">✓</span> Todo lo del plan Básico</li>
+        <li><span class="fi fi-y">✓</span> WhatsApp con número propio <span class="f-tag g">Tu número</span></li>
+        <li><span class="fi fi-y">✓</span> Citas simultáneas con confirmación</li>
+        <li><span class="fi fi-y">✓</span> Hasta 5 colaboradores</li>
+        <li><span class="fi fi-y">✓</span> Campañas WhatsApp marketing</li>
+        <li><span class="fi fi-y">✓</span> Exportación CSV + soporte prioritario</li>
+      </ul>
+      <a href="https://buy.stripe.com/test_3cIcN65zD36semR1Ff7ok01" class="cta cta-prem" id="btn-premium">Activar Plan Premium →</a>
     </div>
-    <div class="faq-item">
-      <h3>¿Qué diferencia hay entre el número VYLTA y mi número propio?</h3>
-      <p>En el Plan Básico, los mensajes de WhatsApp salen desde un número compartido de VYLTA. En Premium, conectas tu propio número verificado para que tus clientes vean que el mensaje viene directamente de tu negocio.</p>
+
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section class="comp-wrap">
+  <div class="eyebrow">Comparativa</div>
+  <div class="sec-title">¿Qué incluye cada plan?</div>
+  <div class="sec-sub">Todo claro, sin sorpresas.</div>
+  <div class="comp-table">
+    <div class="comp-hdr">
+      <div class="ch">Feature</div>
+      <div class="ch cm">Gratis</div>
+      <div class="ch cg">Básico</div>
+      <div class="ch cy">Premium</div>
     </div>
-    <div class="faq-item">
-      <h3>¿Cómo se activa mi plan después del pago?</h3>
-      <p>Automáticamente. En menos de 2 minutos después de confirmar el pago, tu plan se actualiza en la app y desbloqueas todas las funciones.</p>
-    </div>
-    <div class="faq-item">
-      <h3>¿Mis datos de tarjeta quedan guardados en VYLTA?</h3>
-      <p>No. El pago lo procesa Stripe directamente. VYLTA nunca tiene acceso a los datos de tu tarjeta.</p>
-    </div>
-  </section>
+    <div class="comp-row"><div class="cf">Registro de clientes</div><div class="cc ck">✓</div><div class="cc ck">✓</div><div class="cc ck">✓</div></div>
+    <div class="comp-row"><div class="cf">Horarios de atención</div><div class="cc ck">✓</div><div class="cc ck">✓</div><div class="cc ck">✓</div></div>
+    <div class="comp-row"><div class="cf">Agendar citas</div><div class="cc cn">✕</div><div class="cc ck">✓</div><div class="cc ck">✓</div></div>
+    <div class="comp-row"><div class="cf">Reportes de ingresos</div><div class="cc cn">✕</div><div class="cc ck">✓</div><div class="cc ck">✓</div></div>
+    <div class="comp-row"><div class="cf">WhatsApp automático</div><div class="cc cn">✕</div><div class="cc ck">✓</div><div class="cc ck">✓</div></div>
+    <div class="comp-row"><div class="cf">Número WhatsApp propio</div><div class="cc cn">✕</div><div class="cc cn">✕</div><div class="cc cy2">✓</div></div>
+    <div class="comp-row"><div class="cf">Citas simultáneas</div><div class="cc cn">✕</div><div class="cc cn">✕</div><div class="cc cy2">✓</div></div>
+    <div class="comp-row"><div class="cf">Colaboradores (hasta 5)</div><div class="cc cn">✕</div><div class="cc cn">✕</div><div class="cc cy2">✓</div></div>
+    <div class="comp-row"><div class="cf">Campañas WhatsApp</div><div class="cc cn">✕</div><div class="cc cn">✕</div><div class="cc cy2">✓</div></div>
+    <div class="comp-row"><div class="cf">Exportación CSV</div><div class="cc cn">✕</div><div class="cc cn">✕</div><div class="cc cy2">✓</div></div>
+  </div>
+</section>
 
-  <footer>
-    <p>© 2025 VYLTA · Querétaro, México · <a href="#">Aviso de Privacidad</a> · <a href="#">Términos y Condiciones</a></p>
-    <p style="margin-top:8px">¿Dudas? Escríbenos a <a href="mailto:soporte@vylta.com">soporte@vylta.com</a></p>
-  </footer>
+<!-- TRUST -->
+<section class="trust-wrap">
+  <div class="trust-items">
+    <div class="trust-item"><div class="trust-ico">🔒</div>Pago seguro con Stripe</div>
+    <div class="trust-item"><div class="trust-ico">📱</div>iOS y Android</div>
+    <div class="trust-item"><div class="trust-ico">🇲🇽</div>Hecho en México</div>
+    <div class="trust-item"><div class="trust-ico">💬</div>Soporte por WhatsApp</div>
+    <div class="trust-item"><div class="trust-ico">🚫</div>Sin permanencia</div>
+    <div class="trust-item"><div class="trust-ico">⚡</div>Actívate en 2 minutos</div>
+  </div>
+</section>
 
-  <script>
-    // Append user_id from URL param to Stripe links for webhook matching
-    const params = new URLSearchParams(window.location.search);
-    const userId = params.get('user_id');
-    const email = params.get('email');
+<!-- FAQ -->
+<section class="faq-wrap">
+  <div class="eyebrow" style="text-align:center; margin-bottom:10px;">FAQ</div>
+  <div class="sec-title" style="font-size:32px; margin-bottom:40px;">Preguntas frecuentes</div>
+  <div class="faq-item">
+    <div class="faq-q">¿Puedo cancelar en cualquier momento?</div>
+    <div class="faq-a">Sí. Sin contratos ni penalizaciones. Tu plan se mantiene activo hasta el fin del período pagado.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">¿Qué diferencia hay entre número VYLTA y número propio?</div>
+    <div class="faq-a">En el Plan Básico, los mensajes salen desde un número compartido de VYLTA. En Premium conectas tu propio número verificado para que los clientes vean que el mensaje viene directamente de tu negocio.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">¿Cómo se activa mi plan después del pago?</div>
+    <div class="faq-a">Automáticamente. En menos de 2 minutos después del pago, tu plan se actualiza en la app y desbloqueas todas las funciones de inmediato.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">¿Mis datos de tarjeta quedan en VYLTA?</div>
+    <div class="faq-a">No. El pago lo procesa Stripe directamente. VYLTA nunca tiene acceso a los datos de tu tarjeta.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">¿Funciona para mi tipo de negocio?</div>
+    <div class="faq-a">VYLTA funciona para cualquier negocio basado en citas: estéticas, barberías, spas, consultorios dentales, estudios de fotografía, veterinarias y más.</div>
+  </div>
+</section>
 
-    if (userId) {
-      const basicBtn = document.getElementById('btn-basico');
-      const premiumBtn = document.getElementById('btn-premium');
-      const suffix = `?client_reference_id=${userId}${email ? `&prefilled_email=${encodeURIComponent(email)}` : ''}`;
-      if (basicBtn && basicBtn.href !== '#') basicBtn.href += suffix;
-      if (premiumBtn && premiumBtn.href !== '#') premiumBtn.href += suffix;
-    }
-  </script>
+<!-- FOOTER -->
+<footer>
+  <div class="f-logo">VYLTA</div>
+  <div class="f-tag2">Cada cliente regresa · Querétaro, México</div>
+  <div class="f-links">
+    <a href="#">Aviso de Privacidad</a>
+    <a href="#">Términos y Condiciones</a>
+    <a href="#">Política de Cancelación</a>
+    <a href="/cdn-cgi/l/email-protection#285b4758475a5c4d685e51445c49064b4745"><span class="__cf_email__" data-cfemail="e0938f908f929485a096998c9481ce838f8d">[email&#160;protected]</span></a>
+  </div>
+  <div class="f-copy">© 2025 VYLTA. Todos los derechos reservados.</div>
+</footer>
 
-</body>
-</html>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  const p = new URLSearchParams(window.location.search);
+  const uid = p.get('user_id');
+  const em  = p.get('email');
+  if (uid) {
+    const sfx = `?client_reference_id=${uid}${em ? `&prefill
