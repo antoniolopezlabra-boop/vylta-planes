@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VYLTA — Planes y Precios</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #10B981;
+      --green-dark: #059669;
+      --green-light: #ECFDF5;
+      --dark: #0F172A;
+      --dark2: #1E293B;
+      --gold: #F59E0B;
+      --white: #FFFFFF;
+      --gray: #64748B;
+      --gray-light: #F1F5F9;
+      --border: #E2E8F0;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--dark);
+      color: var(--white);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Background mesh */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(16,185,129,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(245,158,11,0.08) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* NAV */
+    nav {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 40px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 24px;
+      letter-spacing: -0.5px;
+      color: var(--white);
+    }
+
+    .logo span { color: var(--green); }
+
+    .nav-tag {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--green);
+      background: rgba(16,185,129,0.12);
+      border: 1px solid rgba(16,185,129,0.3);
+      padding: 6px 14px;
+      border-radius: 100px;
+      letter-spacing: 0.5px;
+    }
+
+    /* HERO */
+    .hero {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 80px 24px 60px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--gold);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.25);
+      padding: 8px 16px;
+      border-radius: 100px;
+      margin-bottom: 28px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(36px, 6vw, 64px);
+      line-height: 1.05;
+      letter-spacing: -1.5px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      color: var(--green);
+    }
+
+    .hero p {
+      font-size: 18px;
+      color: rgba(255,255,255,0.55);
+      font-weight: 300;
+      max-width: 520px;
+      margin: 0 auto 16px;
+      line-height: 1.7;
+    }
+
+    .hero-sub {
+      font-size: 13px !important;
+      color: rgba(255,255,255,0.35) !important;
+    }
+
+    /* PLANS GRID */
+    .plans {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    .plan-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px;
+      padding: 36px 32px;
+      position: relative;
+      transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+
+    .plan-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(255,255,255,0.15);
+    }
+
+    .plan-card.featured {
+      background: rgba(16,185,129,0.08);
+      border-color: rgba(16,185,129,0.4);
+    }
+
+    .plan-card.featured:hover {
+      border-color: var(--green);
+    }
+
+    .plan-card.premium {
+      background: rgba(245,158,11,0.06);
+      border-color: rgba(245,158,11,0.3);
+    }
+
+    .plan-card.premium:hover {
+      border-color: var(--gold);
+    }
+
+    .popular-badge {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--green);
+      color: var(--white);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 16px;
+      border-radius: 100px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .plan-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .plan-card.free .plan-name { color: var(--gray); }
+    .plan-card.featured .plan-name { color: var(--green); }
+    .plan-card.premium .plan-name { color: var(--gold); }
+
+    .plan-price {
+      margin-bottom: 8px;
+    }
+
+    .plan-price .amount {
+      font-family: 'Syne', sans-serif;
+      font-size: 52px;
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1;
+    }
+
+    .plan-price .currency {
+      font-size: 20px;
+      font-weight: 600;
+      vertical-align: super;
+      margin-right: 2px;
+      opacity: 0.7;
+    }
+
+    .plan-price .period {
+      font-size: 14px;
+      color: rgba(255,255,255,0.4);
+      font-weight: 300;
+    }
+
+    .plan-desc {
+      font-size: 13px;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 28px;
+      line-height: 1.6;
+      font-weight: 300;
+    }
+
+    .divider {
+      height: 1px;
+      background: rgba(255,255,255,0.07);
+      margin-bottom: 24px;
+    }
+
+    .features-list {
+      list-style: none;
+      margin-bottom: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .features-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.75);
+      font-weight: 300;
+      line-height: 1.5;
+    }
+
+    .features-list li .icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .icon-check { background: rgba(16,185,129,0.2); color: var(--green); }
+    .icon-gold { background: rgba(245,158,11,0.2); color: var(--gold); }
+    .icon-x { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.3); }
+
+    .features-list li.disabled {
+      opacity: 0.4;
+    }
+
+    .cta-btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0);
+      transition: background 0.2s;
+    }
+
+    .cta-btn:hover::after { background: rgba(255,255,255,0.08); }
+
+    .cta-free {
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.6);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .cta-basico {
+      background: var(--green);
+      color: var(--white);
+      box-shadow: 0 8px 32px rgba(16,185,129,0.35);
+    }
+
+    .cta-premium {
+      background: linear-gradient(135deg, #F59E0B, #D97706);
+      color: var(--dark);
+      box-shadow: 0 8px 32px rgba(245,158,11,0.3);
+    }
+
+    /* TRUST SECTION */
+    .trust {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 0 24px 80px;
+    }
+
+    .trust-items {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 32px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.45);
+    }
+
+    .trust-item span:first-child { font-size: 18px; }
+
+    /* FAQ */
+    .faq {
+      position: relative;
+      z-index: 1;
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    .faq h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 32px;
+      letter-spacing: -0.5px;
+    }
+
+    .faq-item {
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      padding: 20px 0;
+    }
+
+    .faq-item h3 {
+      font-size: 15px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: rgba(255,255,255,0.9);
+    }
+
+    .faq-item p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.45);
+      line-height: 1.7;
+      font-weight: 300;
+    }
+
+    /* FOOTER */
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 32px 24px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      font-size: 12px;
+      color: rgba(255,255,255,0.25);
+    }
+
+    footer a { color: var(--green); text-decoration: none; }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero { animation: fadeUp 0.6s ease both; }
+    .plan-card:nth-child(1) { animation: fadeUp 0.6s 0.1s ease both; }
+    .plan-card:nth-child(2) { animation: fadeUp 0.6s 0.2s ease both; }
+    .plan-card:nth-child(3) { animation: fadeUp 0.6s 0.3s ease both; }
+
+    @media (max-width: 640px) {
+      nav { padding: 20px 24px; }
+      .plans { grid-template-columns: 1fr; }
+      .plan-card { padding: 28px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="logo">VYL<span>T</span>A</div>
+    <div class="nav-tag">✦ Cada cliente regresa</div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-badge">✦ Sin comisiones · Sin contratos · Cancela cuando quieras</div>
+    <h1>El plan correcto para<br><em>hacer crecer</em> tu negocio</h1>
+    <p>Automatiza tus citas y recordatorios por WhatsApp. Más clientes, menos no-shows.</p>
+    <p class="hero-sub">Pago seguro con Stripe · Sin datos de tarjeta almacenados en VYLTA</p>
+  </section>
+
+  <section class="plans">
+
+    <!-- GRATUITO -->
+    <div class="plan-card free">
+      <div class="plan-name">Gratuito</div>
+      <div class="plan-price">
+        <span class="amount">$0</span>
+        <span class="period"> / siempre</span>
+      </div>
+      <p class="plan-desc">Para explorar VYLTA y configurar tu negocio antes de activar tu agenda.</p>
+      <div class="divider"></div>
+      <ul class="features-list">
+        <li><span class="icon icon-check">✓</span> Registro de negocio y clientes</li>
+        <li><span class="icon icon-check">✓</span> Configuración de horarios</li>
+        <li><span class="icon icon-check">✓</span> Calendario en modo lectura</li>
+        <li><span class="icon icon-check">✓</span> Documentos legales incluidos</li>
+        <li class="disabled"><span class="icon icon-x">✕</span> Agendar citas</li>
+        <li class="disabled"><span class="icon icon-x">✕</span> WhatsApp automático</li>
+        <li class="disabled"><span class="icon icon-x">✕</span> Reportes e ingresos</li>
+      </ul>
+      <a href="#" class="cta-btn cta-free" onclick="return false;">Plan actual</a>
+    </div>
+
+    <!-- BÁSICO -->
+    <div class="plan-card featured">
+      <div class="popular-badge">⭐ Más popular</div>
+      <div class="plan-name">Básico</div>
+      <div class="plan-price">
+        <span class="currency">$</span><span class="amount">990</span>
+        <span class="period"> MXN / mes</span>
+      </div>
+      <p class="plan-desc">Todo lo que necesitas para gestionar tu agenda y automatizar recordatorios por WhatsApp.</p>
+      <div class="divider"></div>
+      <ul class="features-list">
+        <li><span class="icon icon-check">✓</span> Citas ilimitadas</li>
+        <li><span class="icon icon-check">✓</span> Selección de bloques de tiempo</li>
+        <li><span class="icon icon-check">✓</span> Calendario + agenda completa</li>
+        <li><span class="icon icon-check">✓</span> Reportes de ingresos</li>
+        <li><span class="icon icon-check">✓</span> WhatsApp automático <em style="font-size:11px;opacity:0.6">· número VYLTA</em></li>
+        <li><span class="icon icon-check">✓</span> Confirmaciones y recordatorios</li>
+        <li><span class="icon icon-check">✓</span> 1 usuario</li>
+      </ul>
+      <!-- TODO: reemplazar href con tu Payment Link de Stripe -->
+      <a href="STRIPE_LINK_BASICO" class="cta-btn cta-basico" id="btn-basico">Activar Plan Básico →</a>
+    </div>
+
+    <!-- PREMIUM -->
+    <div class="plan-card premium">
+      <div class="plan-name">Premium</div>
+      <div class="plan-price">
+        <span class="currency">$</span><span class="amount">1,490</span>
+        <span class="period"> MXN / mes</span>
+      </div>
+      <p class="plan-desc">Para negocios en crecimiento con múltiples colaboradores y automatización avanzada.</p>
+      <div class="divider"></div>
+      <ul class="features-list">
+        <li><span class="icon icon-gold">✓</span> Todo lo del plan Básico</li>
+        <li><span class="icon icon-gold">✓</span> WhatsApp con <strong>número propio</strong></li>
+        <li><span class="icon icon-gold">✓</span> Citas simultáneas con confirmación</li>
+        <li><span class="icon icon-gold">✓</span> Hasta 5 colaboradores</li>
+        <li><span class="icon icon-gold">✓</span> Campañas WhatsApp marketing</li>
+        <li><span class="icon icon-gold">✓</span> Exportación CSV de reportes</li>
+        <li><span class="icon icon-gold">✓</span> Soporte prioritario</li>
+      </ul>
+      <!-- TODO: reemplazar href con tu Payment Link de Stripe -->
+      <a href="STRIPE_LINK_PREMIUM" class="cta-btn cta-premium" id="btn-premium">Activar Plan Premium →</a>
+    </div>
+
+  </section>
+
+  <section class="trust">
+    <div class="trust-items">
+      <div class="trust-item"><span>🔒</span><span>Pago seguro con Stripe</span></div>
+      <div class="trust-item"><span>📱</span><span>Disponible en iOS y Android</span></div>
+      <div class="trust-item"><span>🇲🇽</span><span>Hecho en México</span></div>
+      <div class="trust-item"><span>💬</span><span>Soporte por WhatsApp</span></div>
+      <div class="trust-item"><span>🚫</span><span>Sin contratos de permanencia</span></div>
+    </div>
+  </section>
+
+  <section class="faq">
+    <h2>Preguntas frecuentes</h2>
+    <div class="faq-item">
+      <h3>¿Puedo cancelar en cualquier momento?</h3>
+      <p>Sí. No hay contratos ni penalizaciones. Cancela cuando quieras y tu plan se mantiene activo hasta el fin del período pagado.</p>
+    </div>
+    <div class="faq-item">
+      <h3>¿Qué diferencia hay entre el número VYLTA y mi número propio?</h3>
+      <p>En el Plan Básico, los mensajes de WhatsApp salen desde un número compartido de VYLTA. En Premium, conectas tu propio número verificado para que tus clientes vean que el mensaje viene directamente de tu negocio.</p>
+    </div>
+    <div class="faq-item">
+      <h3>¿Cómo se activa mi plan después del pago?</h3>
+      <p>Automáticamente. En menos de 2 minutos después de confirmar el pago, tu plan se actualiza en la app y desbloqueas todas las funciones.</p>
+    </div>
+    <div class="faq-item">
+      <h3>¿Mis datos de tarjeta quedan guardados en VYLTA?</h3>
+      <p>No. El pago lo procesa Stripe directamente. VYLTA nunca tiene acceso a los datos de tu tarjeta.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2025 VYLTA · Querétaro, México · <a href="#">Aviso de Privacidad</a> · <a href="#">Términos y Condiciones</a></p>
+    <p style="margin-top:8px">¿Dudas? Escríbenos a <a href="mailto:soporte@vylta.com">soporte@vylta.com</a></p>
+  </footer>
+
+  <script>
+    // Append user_id from URL param to Stripe links for webhook matching
+    const params = new URLSearchParams(window.location.search);
+    const userId = params.get('user_id');
+    const email = params.get('email');
+
+    if (userId) {
+      const basicBtn = document.getElementById('btn-basico');
+      const premiumBtn = document.getElementById('btn-premium');
+      const suffix = `?client_reference_id=${userId}${email ? `&prefilled_email=${encodeURIComponent(email)}` : ''}`;
+      if (basicBtn && basicBtn.href !== '#') basicBtn.href += suffix;
+      if (premiumBtn && premiumBtn.href !== '#') premiumBtn.href += suffix;
+    }
+  </script>
+
+</body>
+</html>
