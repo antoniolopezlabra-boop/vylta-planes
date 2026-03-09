@@ -525,4 +525,12 @@
   const uid = p.get('user_id');
   const em  = p.get('email');
   if (uid) {
-    const sfx = `?client_reference_id=${uid}${em ? `&prefill
+    const sfx = `?client_reference_id=${uid}${em ? `&prefilled_email=${encodeURIComponent(em)}` : ''}`;
+    ['btn-basico','btn-premium'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.href = el.href.split('?')[0] + sfx;
+    });
+  }
+</script>
+</body>
+</html>
