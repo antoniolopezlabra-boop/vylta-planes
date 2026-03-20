@@ -28,10 +28,8 @@
     .biz-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #10B981; }
 
     .section-title { font-size: 13px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.8px; margin: 20px 0 10px; }
-
     .card { background: #fff; border-radius: 16px; border: 1px solid #F1F5F9; overflow: hidden; margin-bottom: 16px; }
 
-    /* Servicios */
     .service-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; transition: background 0.15s; border-bottom: 1px solid #F8FAFC; }
     .service-item:last-child { border-bottom: none; }
     .service-item:hover { background: #F8FAFC; }
@@ -44,7 +42,6 @@
     .service-price { font-size: 16px; font-weight: 800; color: #10B981; }
     .service-check { width: 22px; height: 22px; border-radius: 50%; background: #10B981; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; flex-shrink: 0; }
 
-    /* Fecha */
     .date-nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #F8FAFC; }
     .date-label { font-size: 15px; font-weight: 600; color: #0F172A; }
     .date-btn { width: 32px; height: 32px; border-radius: 10px; border: 1px solid #E2E8F0; background: #fff; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; color: #64748B; }
@@ -52,7 +49,6 @@
     .date-btn:disabled { opacity: 0.3; cursor: not-allowed; }
     .closed-banner { padding: 20px 16px; text-align: center; color: #94A3B8; font-size: 14px; }
 
-    /* Horarios */
     .slots-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 14px 16px; }
     .slot { padding: 10px 4px; border-radius: 10px; border: 1px solid #E2E8F0; text-align: center; font-size: 13px; font-weight: 600; color: #0F172A; cursor: pointer; transition: all 0.15s; }
     .slot:hover { border-color: #10B981; color: #10B981; }
@@ -60,14 +56,12 @@
     .slot.taken { background: #F8FAFC; color: #CBD5E1; cursor: not-allowed; text-decoration: line-through; }
     .slots-empty { padding: 20px 16px; text-align: center; color: #94A3B8; font-size: 14px; }
 
-    /* Formulario */
     .form-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
     .form-field label { display: block; font-size: 12px; font-weight: 600; color: #64748B; margin-bottom: 6px; }
     .form-field input, .form-field textarea { width: 100%; padding: 12px 14px; border: 1.5px solid #E2E8F0; border-radius: 12px; font-size: 15px; color: #0F172A; background: #fff; font-family: inherit; transition: border-color 0.15s; outline: none; }
     .form-field input:focus, .form-field textarea:focus { border-color: #10B981; }
     .form-field textarea { resize: none; height: 80px; }
 
-    /* Resumen */
     .summary { background: #0F172A; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
     .summary-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .summary-row:last-child { margin-bottom: 0; padding-top: 8px; border-top: 1px solid #1E293B; }
@@ -75,12 +69,10 @@
     .summary-val { font-size: 13px; font-weight: 600; color: #F8FAFC; }
     .summary-price { font-size: 18px; font-weight: 800; color: #10B981; }
 
-    /* Botón enviar */
     .submit-btn { width: 100%; padding: 18px; background: #10B981; color: #fff; border: none; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
     .submit-btn:hover { opacity: 0.9; }
     .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    /* Pantalla de éxito */
     .success-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 32px; text-align: center; gap: 16px; }
     .success-icon { width: 80px; height: 80px; border-radius: 50%; background: #ECFDF5; display: flex; align-items: center; justify-content: center; font-size: 36px; }
     .success-title { font-size: 24px; font-weight: 800; color: #0F172A; }
@@ -91,7 +83,6 @@
     .success-card-key { color: #94A3B8; }
     .success-card-val { font-weight: 600; color: #0F172A; }
     .whatsapp-hint { background: #F0FDF4; border-radius: 12px; padding: 14px 16px; font-size: 13px; color: #10B981; font-weight: 500; max-width: 360px; width: 100%; }
-
     .powered { text-align: center; padding: 24px; font-size: 12px; color: #CBD5E1; }
     .powered span { font-weight: 700; color: #10B981; }
   </style>
@@ -104,11 +95,10 @@
 
 <script>
 const SUPABASE_URL = 'https://nhjmwmkaduiaifgztymi.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oam13bWthZHVpYWlmZ3p0eW1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ2NDkwNDYsImV4cCI6MjA1MDIyNTA0Nn0.wMCsNjUd9HPNVU1fgCGKfv7XKXP87JlSFxqBtxbF1P4';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oam13bWthZHVpYWlmZ3p0eW1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1ODk3MTYsImV4cCI6MjA4ODE2NTcxNn0.p53BZPf6qygAYw29bIJ0bA5VwZ_lRxw-aocV8LuGB1c';
 
 const app = document.getElementById('app');
 
-// ─── Utilidades ──────────────────────────────────────────────────────────────
 async function supaFetch(path) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     headers: {
@@ -117,7 +107,10 @@ async function supaFetch(path) {
       'Content-Type': 'application/json',
     }
   });
-  if (!res.ok) throw new Error(`Supabase error: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Supabase error ${res.status}: ${body}`);
+  }
   return res.json();
 }
 
@@ -134,7 +127,7 @@ async function supaPost(path, body) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `Error ${res.status}`);
+    throw new Error(err.message || err.hint || `Error ${res.status}`);
   }
   return res.json();
 }
@@ -162,51 +155,35 @@ function durationLabel(min) {
   return `${Math.floor(min/60)}h${min%60 > 0 ? ` ${min%60}min` : ''}`;
 }
 
-// ─── Estado global ────────────────────────────────────────────────────────────
 let state = {
-  biz: null,
-  services: [],
-  hours: [],
-  selectedService: null,
-  selectedDate: new Date(),
-  selectedSlot: null,
-  takenSlots: [],
-  loadingSlots: false,
-  name: '',
-  phone: '',
-  notes: '',
-  submitting: false,
-  submitted: false,
-  appointmentId: null,
+  biz: null, services: [], hours: [],
+  selectedService: null, selectedDate: new Date(), selectedSlot: null,
+  takenSlots: [], loadingSlots: false,
+  name: '', phone: '', notes: '',
+  submitting: false, submitted: false,
 };
 
-// ─── Carga inicial ────────────────────────────────────────────────────────────
 async function init() {
   const slug = getSlug();
   if (!slug) { renderError('Link inválido', 'Este enlace no tiene un negocio asociado. Verifica que la URL esté completa.'); return; }
 
   try {
-    // 1. Buscar booking_link por slug
     const links = await supaFetch(`booking_links?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&select=*,business_profiles(*)`);
-    if (!links || links.length === 0) { renderError('Negocio no encontrado', 'El enlace que usaste no está activo o no existe. Contacta directamente al negocio.'); return; }
+    if (!links || links.length === 0) {
+      renderError('Negocio no encontrado', 'El enlace que usaste no está activo o no existe. Contacta directamente al negocio.');
+      return;
+    }
 
     const link = links[0];
     state.biz = { ...link.business_profiles, linkId: link.id, userId: link.user_id, requireApproval: link.require_approval };
-
-    // 2. Servicios activos
     state.services = await supaFetch(`services?user_id=eq.${link.user_id}&is_active=eq.true&order=name`);
-
-    // 3. Horarios de atención
     state.hours = await supaFetch(`business_hours?user_id=eq.${link.user_id}&order=day_of_week`);
-
-    // Avanzar al primer día disponible
     state.selectedDate = findNextOpenDay(new Date());
-
     await loadTakenSlots();
     render();
   } catch (e) {
-    console.error(e);
-    renderError('Error de conexión', 'No pudimos cargar la información del negocio. Intenta de nuevo en unos segundos.');
+    console.error('[VYLTA book]', e);
+    renderError('Error de conexión', `No pudimos cargar la información. Detalle: ${e.message}`);
   }
 }
 
@@ -234,7 +211,6 @@ async function loadTakenSlots() {
   state.loadingSlots = false;
 }
 
-// ─── Slots disponibles ────────────────────────────────────────────────────────
 function buildSlots() {
   const dow = state.selectedDate.getDay();
   const defaultHours = [
@@ -247,131 +223,97 @@ function buildSlots() {
     {day_of_week:6,is_open:false,start_time:'09:00',end_time:'18:00'},
   ];
   const cfg = state.hours.find(h => h.day_of_week === dow) || defaultHours.find(h => h.day_of_week === dow);
-  if (!cfg || !cfg.is_open) return null; // día cerrado
+  if (!cfg || !cfg.is_open) return null;
 
   const [sh, sm] = cfg.start_time.split(':').map(Number);
   const [eh, em] = cfg.end_time.split(':').map(Number);
   const dur = state.selectedService ? Math.ceil(state.selectedService.duration_minutes / 30) * 30 : 30;
-
   const now = new Date();
   const isToday = toDateStr(state.selectedDate) === toDateStr(now);
-
   const slots = [];
+
   for (let t = sh*60+sm; t + dur <= eh*60+em; t += 30) {
     const hh = Math.floor(t/60).toString().padStart(2,'0');
     const mm = (t%60).toString().padStart(2,'0');
     const label = `${hh}:${mm}`;
-
-    // Está tomado si alguna cita existente se solapa
     const taken = state.takenSlots.some(apt => {
       const [as,ams] = (apt.start_time||'00:00').split(':').map(Number);
       const [ae,ame] = (apt.end_time||'00:00').split(':').map(Number);
-      const aStart = as*60+ams, aEnd = ae*60+ame;
-      const sEnd = t + dur;
+      const aStart = as*60+ams, aEnd = ae*60+ame, sEnd = t + dur;
       return t < aEnd && sEnd > aStart;
     });
-
     const past = isToday && t <= now.getHours()*60 + now.getMinutes();
     slots.push({ label, taken: taken || past });
   }
   return slots;
 }
 
-// ─── Render principal ─────────────────────────────────────────────────────────
 function render() {
   if (state.submitted) { renderSuccess(); return; }
-
   const biz = state.biz;
   const initials = (biz.business_name || 'N').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
   const slots = buildSlots();
   const canSubmit = state.selectedService && state.selectedSlot && state.name.trim() && state.phone.trim();
-
-  const logoHtml = biz.logo_url
-    ? `<img src="${biz.logo_url}" alt="${biz.business_name}" />`
-    : initials;
+  const logoHtml = biz.logo_url ? `<img src="${biz.logo_url}" alt="${biz.business_name}" />` : initials;
 
   const servicesHtml = state.services.length === 0
     ? `<div style="padding:20px;text-align:center;color:#94A3B8;font-size:14px">Este negocio aún no tiene servicios publicados.</div>`
     : state.services.map(s => {
         const sel = state.selectedService?.id === s.id;
-        return `
-          <div class="service-item ${sel ? 'selected' : ''}" onclick="selectService('${s.id}')">
-            <div class="service-icon">✂️</div>
-            <div class="service-info">
-              <div class="service-name">${s.name}</div>
-              <div class="service-meta">${durationLabel(s.duration_minutes)}${s.description ? ' · ' + s.description : ''}</div>
-            </div>
-            <div class="service-price">$${Number(s.price).toLocaleString('es-MX')}</div>
-            ${sel ? '<div class="service-check">✓</div>' : ''}
-          </div>`;
+        return `<div class="service-item ${sel?'selected':''}" onclick="selectService('${s.id}')">
+          <div class="service-icon">✂️</div>
+          <div class="service-info">
+            <div class="service-name">${s.name}</div>
+            <div class="service-meta">${durationLabel(s.duration_minutes)}${s.description?' · '+s.description:''}</div>
+          </div>
+          <div class="service-price">$${Number(s.price).toLocaleString('es-MX')}</div>
+          ${sel?'<div class="service-check">✓</div>':''}
+        </div>`;
       }).join('');
 
   let slotsHtml = '';
   if (state.loadingSlots) {
     slotsHtml = `<div class="slots-empty">Cargando horarios...</div>`;
   } else if (!state.selectedService) {
-    slotsHtml = `<div class="slots-empty">Selecciona un servicio primero para ver los horarios disponibles.</div>`;
+    slotsHtml = `<div class="slots-empty">Selecciona un servicio primero.</div>`;
   } else if (slots === null) {
-    slotsHtml = `<div class="closed-banner">🚫 Este día el negocio no tiene atención. Prueba con otra fecha.</div>`;
-  } else if (slots.length === 0) {
-    slotsHtml = `<div class="slots-empty">No hay horarios disponibles este día.</div>`;
+    slotsHtml = `<div class="closed-banner">🚫 Este día no hay atención. Prueba otra fecha.</div>`;
+  } else if (slots.filter(s=>!s.taken).length === 0) {
+    slotsHtml = `<div class="slots-empty">Sin horarios disponibles este día.</div>`;
   } else {
-    const available = slots.filter(s => !s.taken);
-    if (available.length === 0) {
-      slotsHtml = `<div class="slots-empty">Este día está completamente ocupado. Selecciona otra fecha.</div>`;
-    } else {
-      slotsHtml = `<div class="slots-grid">
-        ${slots.map(s => `
-          <div class="slot ${s.taken ? 'taken' : ''} ${state.selectedSlot === s.label && !s.taken ? 'selected' : ''}"
-               onclick="${s.taken ? '' : `selectSlot('${s.label}')`}">
-            ${s.label}
-          </div>`).join('')}
-      </div>`;
-    }
+    slotsHtml = `<div class="slots-grid">${slots.map(s=>`
+      <div class="slot ${s.taken?'taken':''} ${state.selectedSlot===s.label&&!s.taken?'selected':''}"
+           onclick="${s.taken?'':` selectSlot('${s.label}')`}">${s.label}</div>`).join('')}
+    </div>`;
   }
 
   const summaryHtml = state.selectedService && state.selectedSlot ? `
     <div class="summary">
-      <div class="summary-row">
-        <span class="summary-key">Servicio</span>
-        <span class="summary-val">${state.selectedService.name}</span>
-      </div>
-      <div class="summary-row">
-        <span class="summary-key">Fecha</span>
-        <span class="summary-val">${formatDate(state.selectedDate)}</span>
-      </div>
-      <div class="summary-row">
-        <span class="summary-key">Hora</span>
-        <span class="summary-val">${state.selectedSlot} — ${endTime(state.selectedSlot, state.selectedService.duration_minutes)}</span>
-      </div>
-      <div class="summary-row">
-        <span class="summary-key">Total</span>
-        <span class="summary-price">$${Number(state.selectedService.price).toLocaleString('es-MX')} MXN</span>
-      </div>
+      <div class="summary-row"><span class="summary-key">Servicio</span><span class="summary-val">${state.selectedService.name}</span></div>
+      <div class="summary-row"><span class="summary-key">Fecha</span><span class="summary-val">${formatDate(state.selectedDate)}</span></div>
+      <div class="summary-row"><span class="summary-key">Hora</span><span class="summary-val">${state.selectedSlot} — ${endTime(state.selectedSlot, state.selectedService.duration_minutes)}</span></div>
+      <div class="summary-row"><span class="summary-key">Total</span><span class="summary-price">$${Number(state.selectedService.price).toLocaleString('es-MX')} MXN</span></div>
     </div>` : '';
 
   app.innerHTML = `
     <div class="container">
       <div class="biz-header">
         <div class="biz-logo">${logoHtml}</div>
-        <div class="biz-name">${biz.business_name || 'Negocio'}</div>
-        ${biz.business_type ? `<div class="biz-type">${biz.business_type}</div>` : ''}
+        <div class="biz-name">${biz.business_name||'Negocio'}</div>
+        ${biz.business_type?`<div class="biz-type">${biz.business_type}</div>`:''}
         <div class="biz-badge"><div class="biz-badge-dot"></div>Acepta citas en línea</div>
       </div>
-
       <div class="section-title">1. Elige un servicio</div>
       <div class="card">${servicesHtml}</div>
-
       <div class="section-title">2. Elige fecha y hora</div>
       <div class="card">
         <div class="date-nav">
-          <button class="date-btn" id="btnPrev" onclick="changeDate(-1)" ${isBeforeToday(addDays(state.selectedDate,-1)) ? 'disabled' : ''}>‹</button>
+          <button class="date-btn" onclick="changeDate(-1)" ${isBeforeToday(addDays(state.selectedDate,-1))?'disabled':''}>‹</button>
           <span class="date-label" style="text-transform:capitalize">${formatDate(state.selectedDate)}</span>
           <button class="date-btn" onclick="changeDate(1)">›</button>
         </div>
         ${slotsHtml}
       </div>
-
       <div class="section-title">3. Tus datos</div>
       <div class="card">
         <div class="form-body">
@@ -385,17 +327,14 @@ function render() {
           </div>
           <div class="form-field">
             <label>Notas adicionales (opcional)</label>
-            <textarea placeholder="Ej: Primera vez, cabello corto, alergia a tinte..." oninput="state.notes=this.value">${state.notes}</textarea>
+            <textarea placeholder="Primera vez, cabello corto..." oninput="state.notes=this.value">${state.notes}</textarea>
           </div>
         </div>
       </div>
-
       ${summaryHtml}
-
-      <button class="submit-btn" onclick="submitBooking()" ${(!canSubmit || state.submitting) ? 'disabled' : ''}>
-        ${state.submitting ? 'Enviando solicitud...' : 'Solicitar cita →'}
+      <button class="submit-btn" onclick="submitBooking()" ${(!canSubmit||state.submitting)?'disabled':''}>
+        ${state.submitting?'Enviando...':'Solicitar cita →'}
       </button>
-
       <div class="powered">Agendas gestionadas con <span>VYLTA</span></div>
     </div>`;
 }
@@ -412,7 +351,6 @@ function endTime(start, durMin) {
   return `${Math.floor(e/60).toString().padStart(2,'0')}:${(e%60).toString().padStart(2,'0')}`;
 }
 
-// ─── Acciones ─────────────────────────────────────────────────────────────────
 async function selectService(id) {
   state.selectedService = state.services.find(s => s.id === id) || null;
   state.selectedSlot = null;
@@ -433,50 +371,41 @@ async function changeDate(delta) {
 function selectSlot(label) {
   state.selectedSlot = label;
   render();
-  // scroll suave al formulario
   setTimeout(() => {
-    const el = document.querySelector('.section-title:last-of-type');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const el = document.querySelectorAll('.section-title');
+    if (el.length >= 3) el[2].scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 100);
 }
 
 async function submitBooking() {
   if (state.submitting) return;
-  const { selectedService: svc, selectedSlot: slot, selectedDate: date, name, phone, notes, biz } = state;
+  const { selectedService:svc, selectedSlot:slot, selectedDate:date, name, phone, notes, biz } = state;
   if (!svc || !slot || !name.trim() || !phone.trim()) return;
-
   state.submitting = true;
   render();
-
-  const dateStr = toDateStr(date);
-  const eTime = endTime(slot, svc.duration_minutes);
-
   try {
-    const result = await supaPost('appointments', {
+    await supaPost('appointments', {
       user_id: biz.userId,
-      client_name_temp: name.trim(),     // campo temporal para clientes sin cuenta
+      client_name_temp: name.trim(),
       service_name: svc.name,
-      date: dateStr,
+      date: toDateStr(date),
       start_time: slot,
-      end_time: eTime,
+      end_time: endTime(slot, svc.duration_minutes),
       status: biz.requireApproval ? 'Solicitud' : 'Confirmada',
       notes: notes.trim() || null,
       service_cost: svc.price,
       source: 'public_link',
       whatsapp_notification: true,
     });
-
-    state.appointmentId = result?.[0]?.id || null;
     state.submitted = true;
     render();
   } catch(e) {
     state.submitting = false;
     render();
-    alert('Error al enviar la solicitud: ' + e.message + '\n\nIntenta de nuevo o contacta al negocio directamente.');
+    alert('Error al enviar: ' + e.message);
   }
 }
 
-// ─── Pantallas especiales ─────────────────────────────────────────────────────
 function renderError(title, desc) {
   app.innerHTML = `
     <div class="error-screen">
@@ -487,46 +416,28 @@ function renderError(title, desc) {
 }
 
 function renderSuccess() {
-  const { selectedService: svc, selectedSlot: slot, selectedDate: date, name, biz } = state;
-  const isPending = biz.requireApproval;
-
+  const { selectedService:svc, selectedSlot:slot, selectedDate:date, name, biz } = state;
   app.innerHTML = `
     <div class="success-screen">
-      <div class="success-icon">${isPending ? '⏳' : '✅'}</div>
-      <div class="success-title">${isPending ? 'Solicitud enviada' : '¡Cita confirmada!'}</div>
+      <div class="success-icon">${biz.requireApproval?'⏳':'✅'}</div>
+      <div class="success-title">${biz.requireApproval?'Solicitud enviada':'¡Cita confirmada!'}</div>
       <div class="success-desc">
-        ${isPending
+        ${biz.requireApproval
           ? `Tu solicitud fue enviada a <strong>${biz.business_name}</strong>. Te contactarán para confirmar.`
           : `Tu cita con <strong>${biz.business_name}</strong> está confirmada. ¡Te esperamos!`}
       </div>
       <div class="success-card">
-        <div class="success-card-row">
-          <span class="success-card-key">Nombre</span>
-          <span class="success-card-val">${name}</span>
-        </div>
-        <div class="success-card-row">
-          <span class="success-card-key">Servicio</span>
-          <span class="success-card-val">${svc.name}</span>
-        </div>
-        <div class="success-card-row">
-          <span class="success-card-key">Fecha</span>
-          <span class="success-card-val" style="text-transform:capitalize">${formatDate(date)}</span>
-        </div>
-        <div class="success-card-row">
-          <span class="success-card-key">Hora</span>
-          <span class="success-card-val">${slot}</span>
-        </div>
-        <div class="success-card-row">
-          <span class="success-card-key">Total</span>
-          <span class="success-card-val" style="color:#10B981;font-size:18px">$${Number(svc.price).toLocaleString('es-MX')} MXN</span>
-        </div>
+        <div class="success-card-row"><span class="success-card-key">Nombre</span><span class="success-card-val">${name}</span></div>
+        <div class="success-card-row"><span class="success-card-key">Servicio</span><span class="success-card-val">${svc.name}</span></div>
+        <div class="success-card-row"><span class="success-card-key">Fecha</span><span class="success-card-val" style="text-transform:capitalize">${formatDate(date)}</span></div>
+        <div class="success-card-row"><span class="success-card-key">Hora</span><span class="success-card-val">${slot}</span></div>
+        <div class="success-card-row"><span class="success-card-key">Total</span><span class="success-card-val" style="color:#10B981;font-size:18px">$${Number(svc.price).toLocaleString('es-MX')} MXN</span></div>
       </div>
-      ${biz.phone ? `<div class="whatsapp-hint">📱 Guarda el número del negocio: <strong>${biz.phone}</strong></div>` : ''}
+      ${biz.phone?`<div class="whatsapp-hint">📱 Guarda el número del negocio: <strong>${biz.phone}</strong></div>`:''}
       <div class="powered">Agendas gestionadas con <span>VYLTA</span></div>
     </div>`;
 }
 
-// ─── Arrancar ─────────────────────────────────────────────────────────────────
 init();
 </script>
 </body>
