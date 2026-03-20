@@ -8,14 +8,15 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F8FAFC; color: #0F172A; min-height: 100vh; }
 
-    .loader { display: flex; align-items: center; justify-content: center; height: 100vh; }
-    .spinner { width: 32px; height: 32px; border: 3px solid #E2E8F0; border-top-color: #10B981; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    .loader { display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column; gap: 16px; }
+    .spinner { width: 36px; height: 36px; border: 3px solid #E2E8F0; border-top-color: #10B981; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    .loader-text { font-size: 14px; color: #94A3B8; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .error-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 32px; text-align: center; gap: 12px; }
     .error-icon { font-size: 48px; }
     .error-title { font-size: 20px; font-weight: 700; color: #0F172A; }
-    .error-desc { font-size: 14px; color: #64748B; line-height: 1.6; }
+    .error-desc { font-size: 14px; color: #64748B; line-height: 1.7; max-width: 320px; }
 
     .container { max-width: 480px; margin: 0 auto; padding: 0 16px 80px; }
 
@@ -88,112 +89,83 @@
   </style>
 </head>
 <body>
-
 <div id="app">
-  <div class="loader"><div class="spinner"></div></div>
+  <div class="loader"><div class="spinner"></div><span class="loader-text">Cargando...</span></div>
 </div>
 
 <script>
 const SUPABASE_URL = 'https://nhjmwmkaduiaifgztymi.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oam13bWthZHVpYWlmZ3p0eW1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1ODk3MTYsImV4cCI6MjA4ODE2NTcxNn0.p53BZPf6qygAYw29bIJ0bA5VwZ_lRxw-aocV8LuGB1c';
-
 const app = document.getElementById('app');
 
 async function supaFetch(path) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'Content-Type': 'application/json',
-    }
+    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
   });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`Supabase error ${res.status}: ${body}`);
-  }
+  if (!res.ok) { const b = await res.text().catch(()=>''); throw new Error(`${res.status}: ${b}`); }
   return res.json();
 }
 
 async function supaPost(path, body) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     method: 'POST',
-    headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation',
-    },
+    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || err.hint || `Error ${res.status}`);
-  }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.message || e.hint || `Error ${res.status}`); }
   return res.json();
 }
 
-function getSlug() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('n') || params.get('slug') || '';
-}
-
-function formatDate(d) {
-  return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
-}
-
-function toDateStr(d) {
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-
-function addDays(d, n) {
-  const r = new Date(d); r.setDate(r.getDate() + n); return r;
-}
-
-function durationLabel(min) {
-  if (min < 60) return `${min} min`;
-  if (min === 60) return '1 hora';
-  return `${Math.floor(min/60)}h${min%60 > 0 ? ` ${min%60}min` : ''}`;
-}
+const getSlug = () => new URLSearchParams(window.location.search).get('n') || new URLSearchParams(window.location.search).get('slug') || '';
+const formatDate = d => d.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
+const toDateStr = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const addDays = (d,n) => { const r=new Date(d); r.setDate(r.getDate()+n); return r; };
+const durationLabel = min => min<60?`${min} min`:min===60?'1 hora':`${Math.floor(min/60)}h${min%60>0?` ${min%60}min`:''}`;
 
 let state = {
   biz: null, services: [], hours: [],
   selectedService: null, selectedDate: new Date(), selectedSlot: null,
   takenSlots: [], loadingSlots: false,
-  name: '', phone: '', notes: '',
-  submitting: false, submitted: false,
+  name: '', phone: '', notes: '', submitting: false, submitted: false,
 };
 
 async function init() {
   const slug = getSlug();
-  if (!slug) { renderError('Link inválido', 'Este enlace no tiene un negocio asociado. Verifica que la URL esté completa.'); return; }
-
+  if (!slug) { renderError('Link inválido', 'Este enlace no tiene un negocio asociado.'); return; }
   try {
-    const links = await supaFetch(`booking_links?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&select=*,business_profiles(*)`);
-    if (!links || links.length === 0) {
-      renderError('Negocio no encontrado', 'El enlace que usaste no está activo o no existe. Contacta directamente al negocio.');
-      return;
-    }
-
+    // ── Query 1: booking_links sin JOIN ──────────────────────────────────────
+    const links = await supaFetch(`booking_links?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&select=id,user_id,require_approval`);
+    if (!links || links.length === 0) { renderError('Negocio no encontrado', 'El enlace no está activo o no existe.'); return; }
     const link = links[0];
-    state.biz = { ...link.business_profiles, linkId: link.id, userId: link.user_id, requireApproval: link.require_approval };
-    state.services = await supaFetch(`services?user_id=eq.${link.user_id}&is_active=eq.true&order=name`);
-    state.hours = await supaFetch(`business_hours?user_id=eq.${link.user_id}&order=day_of_week`);
+
+    // ── Query 2: business_profiles por user_id ───────────────────────────────
+    const profiles = await supaFetch(`business_profiles?user_id=eq.${link.user_id}&select=business_name,business_type,logo_url,phone`);
+    const profile = profiles?.[0] || {};
+
+    state.biz = { ...profile, linkId: link.id, userId: link.user_id, requireApproval: link.require_approval };
+
+    // ── Queries paralelas: servicios + horarios ──────────────────────────────
+    const [services, hours] = await Promise.all([
+      supaFetch(`services?user_id=eq.${link.user_id}&is_active=eq.true&order=name`),
+      supaFetch(`business_hours?user_id=eq.${link.user_id}&order=day_of_week`),
+    ]);
+    state.services = services || [];
+    state.hours = hours || [];
     state.selectedDate = findNextOpenDay(new Date());
     await loadTakenSlots();
     render();
   } catch (e) {
-    console.error('[VYLTA book]', e);
-    renderError('Error de conexión', `No pudimos cargar la información. Detalle: ${e.message}`);
+    console.error('[VYLTA]', e);
+    renderError('Error de conexión', `No pudimos cargar la información. ${e.message}`);
   }
 }
 
 function findNextOpenDay(from) {
   let d = new Date(from);
-  for (let i = 0; i < 14; i++) {
+  for (let i=0; i<14; i++) {
     const dow = d.getDay();
-    const config = state.hours.find(h => h.day_of_week === dow);
-    const defaultOpen = dow !== 0 && dow !== 6;
-    if (config ? config.is_open : defaultOpen) return d;
+    const cfg = state.hours.find(h => h.day_of_week === dow);
+    if (cfg ? cfg.is_open : (dow!==0 && dow!==6)) return d;
     d = addDays(d, 1);
   }
   return from;
@@ -201,11 +173,8 @@ function findNextOpenDay(from) {
 
 async function loadTakenSlots() {
   state.loadingSlots = true;
-  const dateStr = toDateStr(state.selectedDate);
   try {
-    const apts = await supaFetch(
-      `appointments?user_id=eq.${state.biz.userId}&date=eq.${dateStr}&status=not.in.(Cancelada,No-show,Rechazada)&select=start_time,end_time`
-    );
+    const apts = await supaFetch(`appointments?user_id=eq.${state.biz.userId}&date=eq.${toDateStr(state.selectedDate)}&status=not.in.(Cancelada,No-show,Rechazada)&select=start_time,end_time`);
     state.takenSlots = apts || [];
   } catch(e) { state.takenSlots = []; }
   state.loadingSlots = false;
@@ -213,54 +182,45 @@ async function loadTakenSlots() {
 
 function buildSlots() {
   const dow = state.selectedDate.getDay();
-  const defaultHours = [
-    {day_of_week:0,is_open:false,start_time:'09:00',end_time:'18:00'},
-    {day_of_week:1,is_open:true, start_time:'09:00',end_time:'18:00'},
-    {day_of_week:2,is_open:true, start_time:'09:00',end_time:'18:00'},
-    {day_of_week:3,is_open:true, start_time:'09:00',end_time:'18:00'},
-    {day_of_week:4,is_open:true, start_time:'09:00',end_time:'18:00'},
-    {day_of_week:5,is_open:true, start_time:'09:00',end_time:'18:00'},
-    {day_of_week:6,is_open:false,start_time:'09:00',end_time:'18:00'},
-  ];
-  const cfg = state.hours.find(h => h.day_of_week === dow) || defaultHours.find(h => h.day_of_week === dow);
+  const def = [{day_of_week:0,is_open:false},{day_of_week:1,is_open:true},{day_of_week:2,is_open:true},{day_of_week:3,is_open:true},{day_of_week:4,is_open:true},{day_of_week:5,is_open:true},{day_of_week:6,is_open:false}].map(d=>({...d,start_time:'09:00',end_time:'18:00'}));
+  const cfg = state.hours.find(h=>h.day_of_week===dow) || def.find(h=>h.day_of_week===dow);
   if (!cfg || !cfg.is_open) return null;
-
-  const [sh, sm] = cfg.start_time.split(':').map(Number);
-  const [eh, em] = cfg.end_time.split(':').map(Number);
-  const dur = state.selectedService ? Math.ceil(state.selectedService.duration_minutes / 30) * 30 : 30;
-  const now = new Date();
-  const isToday = toDateStr(state.selectedDate) === toDateStr(now);
+  const [sh,sm] = cfg.start_time.split(':').map(Number);
+  const [eh,em] = cfg.end_time.split(':').map(Number);
+  const dur = state.selectedService ? Math.ceil(state.selectedService.duration_minutes/30)*30 : 30;
+  const now = new Date(), isToday = toDateStr(state.selectedDate)===toDateStr(now);
   const slots = [];
-
-  for (let t = sh*60+sm; t + dur <= eh*60+em; t += 30) {
-    const hh = Math.floor(t/60).toString().padStart(2,'0');
-    const mm = (t%60).toString().padStart(2,'0');
-    const label = `${hh}:${mm}`;
-    const taken = state.takenSlots.some(apt => {
-      const [as,ams] = (apt.start_time||'00:00').split(':').map(Number);
-      const [ae,ame] = (apt.end_time||'00:00').split(':').map(Number);
-      const aStart = as*60+ams, aEnd = ae*60+ame, sEnd = t + dur;
-      return t < aEnd && sEnd > aStart;
+  for (let t=sh*60+sm; t+dur<=eh*60+em; t+=30) {
+    const label = `${Math.floor(t/60).toString().padStart(2,'0')}:${(t%60).toString().padStart(2,'0')}`;
+    const taken = state.takenSlots.some(a => {
+      const [as,ams]=(a.start_time||'00:00').split(':').map(Number);
+      const [ae,ame]=(a.end_time||'00:00').split(':').map(Number);
+      return t < ae*60+ame && t+dur > as*60+ams;
     });
-    const past = isToday && t <= now.getHours()*60 + now.getMinutes();
-    slots.push({ label, taken: taken || past });
+    slots.push({ label, taken: taken || (isToday && t <= now.getHours()*60+now.getMinutes()) });
   }
   return slots;
 }
 
+function endTime(start, dur) {
+  const [h,m]=start.split(':').map(Number), e=h*60+m+dur;
+  return `${Math.floor(e/60).toString().padStart(2,'0')}:${(e%60).toString().padStart(2,'0')}`;
+}
+const isBeforeToday = d => { const t=new Date(); t.setHours(0,0,0,0); const c=new Date(d); c.setHours(0,0,0,0); return c<t; };
+
 function render() {
   if (state.submitted) { renderSuccess(); return; }
   const biz = state.biz;
-  const initials = (biz.business_name || 'N').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const initials = (biz.business_name||'N').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
   const slots = buildSlots();
   const canSubmit = state.selectedService && state.selectedSlot && state.name.trim() && state.phone.trim();
-  const logoHtml = biz.logo_url ? `<img src="${biz.logo_url}" alt="${biz.business_name}" />` : initials;
+  const logoHtml = biz.logo_url ? `<img src="${biz.logo_url}" alt="" />` : initials;
 
   const servicesHtml = state.services.length === 0
-    ? `<div style="padding:20px;text-align:center;color:#94A3B8;font-size:14px">Este negocio aún no tiene servicios publicados.</div>`
+    ? `<div style="padding:20px;text-align:center;color:#94A3B8;font-size:14px">Sin servicios publicados aún.</div>`
     : state.services.map(s => {
         const sel = state.selectedService?.id === s.id;
-        return `<div class="service-item ${sel?'selected':''}" onclick="selectService('${s.id}')">
+        return `<div class="service-item${sel?' selected':''}" onclick="selectService('${s.id}')">
           <div class="service-icon">✂️</div>
           <div class="service-info">
             <div class="service-name">${s.name}</div>
@@ -271,21 +231,12 @@ function render() {
         </div>`;
       }).join('');
 
-  let slotsHtml = '';
-  if (state.loadingSlots) {
-    slotsHtml = `<div class="slots-empty">Cargando horarios...</div>`;
-  } else if (!state.selectedService) {
-    slotsHtml = `<div class="slots-empty">Selecciona un servicio primero.</div>`;
-  } else if (slots === null) {
-    slotsHtml = `<div class="closed-banner">🚫 Este día no hay atención. Prueba otra fecha.</div>`;
-  } else if (slots.filter(s=>!s.taken).length === 0) {
-    slotsHtml = `<div class="slots-empty">Sin horarios disponibles este día.</div>`;
-  } else {
-    slotsHtml = `<div class="slots-grid">${slots.map(s=>`
-      <div class="slot ${s.taken?'taken':''} ${state.selectedSlot===s.label&&!s.taken?'selected':''}"
-           onclick="${s.taken?'':` selectSlot('${s.label}')`}">${s.label}</div>`).join('')}
-    </div>`;
-  }
+  let slotsHtml;
+  if (state.loadingSlots) slotsHtml = `<div class="slots-empty">Cargando...</div>`;
+  else if (!state.selectedService) slotsHtml = `<div class="slots-empty">Selecciona un servicio primero.</div>`;
+  else if (!slots) slotsHtml = `<div class="closed-banner">🚫 Este día no hay atención. Prueba otra fecha.</div>`;
+  else if (!slots.some(s=>!s.taken)) slotsHtml = `<div class="slots-empty">Sin horarios disponibles este día.</div>`;
+  else slotsHtml = `<div class="slots-grid">${slots.map(s=>`<div class="slot${s.taken?' taken':''}${state.selectedSlot===s.label&&!s.taken?' selected':''}" onclick="${s.taken?'':'selectSlot(\''+s.label+'\')'}">${s.label}</div>`).join('')}</div>`;
 
   const summaryHtml = state.selectedService && state.selectedSlot ? `
     <div class="summary">
@@ -295,147 +246,85 @@ function render() {
       <div class="summary-row"><span class="summary-key">Total</span><span class="summary-price">$${Number(state.selectedService.price).toLocaleString('es-MX')} MXN</span></div>
     </div>` : '';
 
-  app.innerHTML = `
-    <div class="container">
-      <div class="biz-header">
-        <div class="biz-logo">${logoHtml}</div>
-        <div class="biz-name">${biz.business_name||'Negocio'}</div>
-        ${biz.business_type?`<div class="biz-type">${biz.business_type}</div>`:''}
-        <div class="biz-badge"><div class="biz-badge-dot"></div>Acepta citas en línea</div>
+  app.innerHTML = `<div class="container">
+    <div class="biz-header">
+      <div class="biz-logo">${logoHtml}</div>
+      <div class="biz-name">${biz.business_name||'Negocio'}</div>
+      ${biz.business_type?`<div class="biz-type">${biz.business_type}</div>`:''}
+      <div class="biz-badge"><div class="biz-badge-dot"></div>Acepta citas en línea</div>
+    </div>
+    <div class="section-title">1. Elige un servicio</div>
+    <div class="card">${servicesHtml}</div>
+    <div class="section-title">2. Elige fecha y hora</div>
+    <div class="card">
+      <div class="date-nav">
+        <button class="date-btn" onclick="changeDate(-1)" ${isBeforeToday(addDays(state.selectedDate,-1))?'disabled':''}>‹</button>
+        <span class="date-label" style="text-transform:capitalize">${formatDate(state.selectedDate)}</span>
+        <button class="date-btn" onclick="changeDate(1)">›</button>
       </div>
-      <div class="section-title">1. Elige un servicio</div>
-      <div class="card">${servicesHtml}</div>
-      <div class="section-title">2. Elige fecha y hora</div>
-      <div class="card">
-        <div class="date-nav">
-          <button class="date-btn" onclick="changeDate(-1)" ${isBeforeToday(addDays(state.selectedDate,-1))?'disabled':''}>‹</button>
-          <span class="date-label" style="text-transform:capitalize">${formatDate(state.selectedDate)}</span>
-          <button class="date-btn" onclick="changeDate(1)">›</button>
-        </div>
-        ${slotsHtml}
-      </div>
-      <div class="section-title">3. Tus datos</div>
-      <div class="card">
-        <div class="form-body">
-          <div class="form-field">
-            <label>Tu nombre *</label>
-            <input type="text" placeholder="Ej: María López" value="${state.name}" oninput="state.name=this.value" />
-          </div>
-          <div class="form-field">
-            <label>Tu WhatsApp / teléfono *</label>
-            <input type="tel" placeholder="Ej: 442 123 4567" value="${state.phone}" oninput="state.phone=this.value" />
-          </div>
-          <div class="form-field">
-            <label>Notas adicionales (opcional)</label>
-            <textarea placeholder="Primera vez, cabello corto..." oninput="state.notes=this.value">${state.notes}</textarea>
-          </div>
-        </div>
-      </div>
-      ${summaryHtml}
-      <button class="submit-btn" onclick="submitBooking()" ${(!canSubmit||state.submitting)?'disabled':''}>
-        ${state.submitting?'Enviando...':'Solicitar cita →'}
-      </button>
-      <div class="powered">Agendas gestionadas con <span>VYLTA</span></div>
-    </div>`;
+      ${slotsHtml}
+    </div>
+    <div class="section-title">3. Tus datos</div>
+    <div class="card"><div class="form-body">
+      <div class="form-field"><label>Tu nombre *</label><input type="text" placeholder="Ej: María López" value="${state.name}" oninput="state.name=this.value" /></div>
+      <div class="form-field"><label>Tu WhatsApp / teléfono *</label><input type="tel" placeholder="Ej: 442 123 4567" value="${state.phone}" oninput="state.phone=this.value" /></div>
+      <div class="form-field"><label>Notas (opcional)</label><textarea placeholder="Primera vez, cabello corto..." oninput="state.notes=this.value">${state.notes}</textarea></div>
+    </div></div>
+    ${summaryHtml}
+    <button class="submit-btn" onclick="submitBooking()" ${(!canSubmit||state.submitting)?'disabled':''}>${state.submitting?'Enviando...':'Solicitar cita →'}</button>
+    <div class="powered">Agendas gestionadas con <span>VYLTA</span></div>
+  </div>`;
 }
 
-function isBeforeToday(d) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  const check = new Date(d); check.setHours(0,0,0,0);
-  return check < today;
-}
-
-function endTime(start, durMin) {
-  const [h,m] = start.split(':').map(Number);
-  const e = h*60+m+durMin;
-  return `${Math.floor(e/60).toString().padStart(2,'0')}:${(e%60).toString().padStart(2,'0')}`;
-}
-
-async function selectService(id) {
-  state.selectedService = state.services.find(s => s.id === id) || null;
-  state.selectedSlot = null;
-  render();
-}
-
+async function selectService(id) { state.selectedService=state.services.find(s=>s.id===id)||null; state.selectedSlot=null; render(); }
 async function changeDate(delta) {
   const next = addDays(state.selectedDate, delta);
   if (isBeforeToday(next)) return;
-  state.selectedDate = next;
-  state.selectedSlot = null;
-  state.loadingSlots = true;
-  render();
-  await loadTakenSlots();
-  render();
+  state.selectedDate=next; state.selectedSlot=null; state.loadingSlots=true; render();
+  await loadTakenSlots(); render();
 }
-
 function selectSlot(label) {
-  state.selectedSlot = label;
-  render();
-  setTimeout(() => {
-    const el = document.querySelectorAll('.section-title');
-    if (el.length >= 3) el[2].scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 100);
+  state.selectedSlot=label; render();
+  setTimeout(()=>{ const els=document.querySelectorAll('.section-title'); if(els[2]) els[2].scrollIntoView({behavior:'smooth',block:'start'}); },100);
 }
 
 async function submitBooking() {
   if (state.submitting) return;
-  const { selectedService:svc, selectedSlot:slot, selectedDate:date, name, phone, notes, biz } = state;
-  if (!svc || !slot || !name.trim() || !phone.trim()) return;
-  state.submitting = true;
-  render();
+  const {selectedService:svc,selectedSlot:slot,selectedDate:date,name,phone,notes,biz} = state;
+  if (!svc||!slot||!name.trim()||!phone.trim()) return;
+  state.submitting=true; render();
   try {
     await supaPost('appointments', {
-      user_id: biz.userId,
-      client_name_temp: name.trim(),
-      service_name: svc.name,
-      date: toDateStr(date),
-      start_time: slot,
-      end_time: endTime(slot, svc.duration_minutes),
-      status: biz.requireApproval ? 'Solicitud' : 'Confirmada',
-      notes: notes.trim() || null,
-      service_cost: svc.price,
-      source: 'public_link',
-      whatsapp_notification: true,
+      user_id: biz.userId, client_name_temp: name.trim(),
+      service_name: svc.name, date: toDateStr(date),
+      start_time: slot, end_time: endTime(slot, svc.duration_minutes),
+      status: biz.requireApproval?'Solicitud':'Confirmada',
+      notes: notes.trim()||null, service_cost: svc.price,
+      source: 'public_link', whatsapp_notification: true,
     });
-    state.submitted = true;
-    render();
-  } catch(e) {
-    state.submitting = false;
-    render();
-    alert('Error al enviar: ' + e.message);
-  }
+    state.submitted=true; render();
+  } catch(e) { state.submitting=false; render(); alert('Error al enviar: '+e.message); }
 }
 
 function renderError(title, desc) {
-  app.innerHTML = `
-    <div class="error-screen">
-      <div class="error-icon">🔍</div>
-      <div class="error-title">${title}</div>
-      <div class="error-desc">${desc}</div>
-    </div>`;
+  app.innerHTML=`<div class="error-screen"><div class="error-icon">🔍</div><div class="error-title">${title}</div><div class="error-desc">${desc}</div></div>`;
 }
-
 function renderSuccess() {
-  const { selectedService:svc, selectedSlot:slot, selectedDate:date, name, biz } = state;
-  app.innerHTML = `
-    <div class="success-screen">
-      <div class="success-icon">${biz.requireApproval?'⏳':'✅'}</div>
-      <div class="success-title">${biz.requireApproval?'Solicitud enviada':'¡Cita confirmada!'}</div>
-      <div class="success-desc">
-        ${biz.requireApproval
-          ? `Tu solicitud fue enviada a <strong>${biz.business_name}</strong>. Te contactarán para confirmar.`
-          : `Tu cita con <strong>${biz.business_name}</strong> está confirmada. ¡Te esperamos!`}
-      </div>
-      <div class="success-card">
-        <div class="success-card-row"><span class="success-card-key">Nombre</span><span class="success-card-val">${name}</span></div>
-        <div class="success-card-row"><span class="success-card-key">Servicio</span><span class="success-card-val">${svc.name}</span></div>
-        <div class="success-card-row"><span class="success-card-key">Fecha</span><span class="success-card-val" style="text-transform:capitalize">${formatDate(date)}</span></div>
-        <div class="success-card-row"><span class="success-card-key">Hora</span><span class="success-card-val">${slot}</span></div>
-        <div class="success-card-row"><span class="success-card-key">Total</span><span class="success-card-val" style="color:#10B981;font-size:18px">$${Number(svc.price).toLocaleString('es-MX')} MXN</span></div>
-      </div>
-      ${biz.phone?`<div class="whatsapp-hint">📱 Guarda el número del negocio: <strong>${biz.phone}</strong></div>`:''}
-      <div class="powered">Agendas gestionadas con <span>VYLTA</span></div>
-    </div>`;
+  const {selectedService:svc,selectedSlot:slot,selectedDate:date,name,biz}=state;
+  app.innerHTML=`<div class="success-screen">
+    <div class="success-icon">${biz.requireApproval?'⏳':'✅'}</div>
+    <div class="success-title">${biz.requireApproval?'Solicitud enviada':'¡Cita confirmada!'}</div>
+    <div class="success-desc">${biz.requireApproval?`Tu solicitud fue enviada a <strong>${biz.business_name}</strong>. Te contactarán para confirmar.`:`Tu cita con <strong>${biz.business_name}</strong> está confirmada.`}</div>
+    <div class="success-card">
+      <div class="success-card-row"><span class="success-card-key">Nombre</span><span class="success-card-val">${name}</span></div>
+      <div class="success-card-row"><span class="success-card-key">Servicio</span><span class="success-card-val">${svc.name}</span></div>
+      <div class="success-card-row"><span class="success-card-key">Fecha</span><span class="success-card-val" style="text-transform:capitalize">${formatDate(date)}</span></div>
+      <div class="success-card-row"><span class="success-card-key">Hora</span><span class="success-card-val">${slot}</span></div>
+      <div class="success-card-row"><span class="summary-key">Total</span><span class="success-card-val" style="color:#10B981;font-size:18px">$${Number(svc.price).toLocaleString('es-MX')} MXN</span></div>
+    </div>
+    ${biz.phone?`<div class="whatsapp-hint">📱 Guarda el número: <strong>${biz.phone}</strong></div>`:''}
+    <div class="powered">Agendas gestionadas con <span>VYLTA</span></div>
+  </div>`;
 }
 
 init();
