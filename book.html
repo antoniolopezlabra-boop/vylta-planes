@@ -42,13 +42,12 @@
     .date-btn:hover { background: #F8FAFC; }
     .date-btn:disabled { opacity: 0.3; cursor: not-allowed; }
     .closed-banner { padding: 20px 16px; text-align: center; color: #94A3B8; font-size: 14px; }
-    /* SLOTS: grid limpio, solo disponibles — sin tachados */
     .slots-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 14px 16px; }
     .slot { padding: 10px 4px; border-radius: 10px; border: 1.5px solid #E2E8F0; text-align: center; font-size: 13px; font-weight: 600; color: #0F172A; cursor: pointer; transition: all 0.15s; background: #fff; }
     .slot:hover { border-color: #10B981; color: #10B981; background: #F0FDF4; }
     .slot.selected { background: #10B981; border-color: #10B981; color: #fff; box-shadow: 0 2px 8px rgba(16,185,129,0.3); }
     .slots-empty { padding: 20px 16px; text-align: center; color: #94A3B8; font-size: 14px; }
-    .slots-count { padding: 4px 16px 0; font-size: 11px; color: #94A3B8; }
+    .slots-count { padding: 8px 16px 0; font-size: 11px; color: #94A3B8; }
     .form-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
     .form-field label { display: block; font-size: 12px; font-weight: 600; color: #64748B; margin-bottom: 6px; }
     .form-field input, .form-field textarea { width: 100%; padding: 12px 14px; border: 1.5px solid #E2E8F0; border-radius: 12px; font-size: 15px; color: #0F172A; background: #fff; font-family: inherit; transition: border-color 0.15s; outline: none; }
@@ -75,6 +74,14 @@
     .whatsapp-hint { background: #F0FDF4; border-radius: 12px; padding: 14px 16px; font-size: 13px; color: #10B981; font-weight: 500; max-width: 360px; width: 100%; }
     .powered { text-align: center; padding: 24px; font-size: 12px; color: #CBD5E1; }
     .powered span { font-weight: 700; color: #10B981; }
+    /* Modal de error — reemplaza alert() nativo */
+    .error-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 24px; }
+    .error-modal { background: #fff; border-radius: 20px; padding: 28px 24px; max-width: 360px; width: 100%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .error-modal-icon { font-size: 40px; margin-bottom: 12px; }
+    .error-modal-title { font-size: 17px; font-weight: 700; color: #0F172A; margin-bottom: 8px; }
+    .error-modal-msg { font-size: 14px; color: #64748B; line-height: 1.6; margin-bottom: 20px; }
+    .error-modal-btn { width: 100%; padding: 14px; background: #0F172A; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; }
+    .error-modal-btn:hover { background: #1E293B; }
   </style>
 </head>
 <body>
@@ -86,6 +93,27 @@ const SUPABASE_URL = 'https://nhjmwmkaduiaifgztymi.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oam13bWthZHVpYWlmZ3p0eW1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1ODk3MTYsImV4cCI6MjA4ODE2NTcxNn0.p53BZPf6qygAYw29bIJ0bA5VwZ_lRxw-aocV8LuGB1c';
 const app = document.getElementById('app');
 
+// ── Modal de error elegante — reemplaza alert() nativo ──────────────────────
+// Los errores quedan en el DOM, legibles, sin popups del browser
+let lastErrorMessage = '';
+function showError(msg) {
+  lastErrorMessage = msg;
+  // Remover modal previo si existe
+  const prev = document.getElementById('vylta-error-modal');
+  if (prev) prev.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'vylta-error-modal';
+  overlay.className = 'error-modal-overlay';
+  overlay.innerHTML = `
+    <div class="error-modal">
+      <div class="error-modal-icon">⚠️</div>
+      <div class="error-modal-title">Ocurrió un problema</div>
+      <div class="error-modal-msg" id="vylta-error-text">${msg}</div>
+      <button class="error-modal-btn" onclick="document.getElementById('vylta-error-modal').remove()">Entendido</button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
 async function supaFetch(path) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
@@ -95,7 +123,14 @@ async function supaFetch(path) {
 }
 
 const getSlug = () => new URLSearchParams(window.location.search).get('n') || '';
-const formatDate = d => d.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
+
+// FIX: capitalizar solo la primera letra del string, no cada palabra
+// Evita "Viernes, 20 De Marzo" → correcto: "Viernes, 20 de marzo"
+const formatDate = d => {
+  const str = d.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
 const toDateStr = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const addDays = (d,n) => { const r=new Date(d); r.setDate(r.getDate()+n); return r; };
 const durationLabel = min => min<60?`${min} min`:min===60?'1 hora':`${Math.floor(min/60)}h${min%60>0?` ${min%60}min`:''}`;
@@ -170,7 +205,6 @@ function buildSlots() {
       return t<ae*60+ame && t+dur>as*60+ams;
     });
     const past = isToday && t <= now.getHours()*60+now.getMinutes();
-    // MEJORA: solo incluir slots disponibles — no mostrar los tomados
     if (!taken && !past) slots.push({ label });
   }
   return slots;
@@ -209,7 +243,6 @@ function render() {
   } else if(slots.length === 0) {
     slotsHtml=`<div class="slots-empty">Sin horarios disponibles este día. Prueba con otra fecha.</div>`;
   } else {
-    // Solo mostrar slots disponibles — sin tachados, interfaz limpia
     slotsHtml=`
       <div class="slots-count">${slots.length} horario${slots.length!==1?'s':''} disponible${slots.length!==1?'s':''}</div>
       <div class="slots-grid">${slots.map(s=>`
@@ -238,7 +271,7 @@ function render() {
     <div class="card">
       <div class="date-nav">
         <button class="date-btn" onclick="changeDate(-1)" ${isBeforeToday(addDays(state.selectedDate,-1))?'disabled':''}>‹</button>
-        <span class="date-label" style="text-transform:capitalize">${formatDate(state.selectedDate)}</span>
+        <span class="date-label">${formatDate(state.selectedDate)}</span>
         <button class="date-btn" onclick="changeDate(1)">›</button>
       </div>
       ${slotsHtml}
@@ -255,11 +288,9 @@ function render() {
   </div>`;
 }
 
-// MEJORA: al cambiar servicio, limpiar slot y forzar recálculo de disponibilidad
 async function selectService(id) {
   state.selectedService = state.services.find(s=>s.id===id) || null;
   state.selectedSlot = null;
-  // Recargar slots ocupados para recalcular con la nueva duración del servicio
   state.loadingSlots = true;
   render();
   await loadTakenSlots();
@@ -308,7 +339,12 @@ async function submitBooking() {
     const data = await res.json();
     if(!res.ok || data.error) throw new Error(data.error || `Error ${res.status}`);
     state.submitted=true; render();
-  } catch(e) { state.submitting=false; render(); alert('Error al confirmar: '+e.message); }
+  } catch(e) {
+    state.submitting=false; render();
+    // Modal elegante en lugar de alert() nativo — detectable por Claude in Chrome
+    showError(e.message);
+    console.error('[VYLTA submit]', e.message);
+  }
 }
 
 function renderError(title,desc){
@@ -317,7 +353,6 @@ function renderError(title,desc){
 
 function renderSuccess(){
   const{selectedService:svc, selectedSlot:slot, selectedDate:date, name, biz}=state;
-  // MEJORA: siempre mostrar ✅ — la cita se confirma automáticamente
   app.innerHTML=`<div class="success-screen">
     <div class="success-icon">✅</div>
     <div class="success-title">¡Cita confirmada!</div>
@@ -325,7 +360,7 @@ function renderSuccess(){
     <div class="success-card">
       <div class="success-card-row"><span class="success-card-key">Nombre</span><span class="success-card-val">${name}</span></div>
       <div class="success-card-row"><span class="success-card-key">Servicio</span><span class="success-card-val">${svc.name}</span></div>
-      <div class="success-card-row"><span class="success-card-key">Fecha</span><span class="success-card-val" style="text-transform:capitalize">${formatDate(date)}</span></div>
+      <div class="success-card-row"><span class="success-card-key">Fecha</span><span class="success-card-val">${formatDate(date)}</span></div>
       <div class="success-card-row"><span class="success-card-key">Hora</span><span class="success-card-val">${slot} — ${endTime(slot, svc.duration_minutes)}</span></div>
       <div class="success-card-row"><span class="success-card-key">Total</span><span class="success-card-val" style="color:#10B981;font-size:18px">$${Number(svc.price).toLocaleString('es-MX')} MXN</span></div>
     </div>
