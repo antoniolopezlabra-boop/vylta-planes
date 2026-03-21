@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <script>
-    // Redirige /karen-nails → book.html?n=karen-nails
+    // GitHub Pages SPA redirect — captura rutas limpias como /karen-nails
     const slug = window.location.pathname.replace(/^\//, '').replace(/\/$/, '');
-    if (slug && slug !== 'index.html' && slug !== 'book.html') {
+    if (slug && slug !== 'book.html') {
       window.location.replace('/book.html?n=' + encodeURIComponent(slug));
     } else {
       window.location.replace('/book.html');
