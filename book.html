@@ -74,7 +74,6 @@
     .whatsapp-hint { background: #F0FDF4; border-radius: 12px; padding: 14px 16px; font-size: 13px; color: #10B981; font-weight: 500; max-width: 360px; width: 100%; }
     .powered { text-align: center; padding: 24px; font-size: 12px; color: #CBD5E1; }
     .powered span { font-weight: 700; color: #10B981; }
-    /* Modal de error — reemplaza alert() nativo */
     .error-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 24px; }
     .error-modal { background: #fff; border-radius: 20px; padding: 28px 24px; max-width: 360px; width: 100%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
     .error-modal-icon { font-size: 40px; margin-bottom: 12px; }
@@ -93,12 +92,7 @@ const SUPABASE_URL = 'https://nhjmwmkaduiaifgztymi.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oam13bWthZHVpYWlmZ3p0eW1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1ODk3MTYsImV4cCI6MjA4ODE2NTcxNn0.p53BZPf6qygAYw29bIJ0bA5VwZ_lRxw-aocV8LuGB1c';
 const app = document.getElementById('app');
 
-// ── Modal de error elegante — reemplaza alert() nativo ──────────────────────
-// Los errores quedan en el DOM, legibles, sin popups del browser
-let lastErrorMessage = '';
 function showError(msg) {
-  lastErrorMessage = msg;
-  // Remover modal previo si existe
   const prev = document.getElementById('vylta-error-modal');
   if (prev) prev.remove();
   const overlay = document.createElement('div');
@@ -108,7 +102,7 @@ function showError(msg) {
     <div class="error-modal">
       <div class="error-modal-icon">⚠️</div>
       <div class="error-modal-title">Ocurrió un problema</div>
-      <div class="error-modal-msg" id="vylta-error-text">${msg}</div>
+      <div class="error-modal-msg">${msg}</div>
       <button class="error-modal-btn" onclick="document.getElementById('vylta-error-modal').remove()">Entendido</button>
     </div>`;
   document.body.appendChild(overlay);
@@ -124,8 +118,6 @@ async function supaFetch(path) {
 
 const getSlug = () => new URLSearchParams(window.location.search).get('n') || '';
 
-// FIX: capitalizar solo la primera letra del string, no cada palabra
-// Evita "Viernes, 20 De Marzo" → correcto: "Viernes, 20 de marzo"
 const formatDate = d => {
   const str = d.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
   return str.charAt(0).toUpperCase() + str.slice(1);
@@ -141,6 +133,18 @@ let state = {
   takenSlots: [], loadingSlots: false,
   name: '', phone: '', notes: '', submitting: false, submitted: false,
 };
+
+// FIX: updateField actualiza state Y el atributo disabled del botón
+// sin hacer full re-render (evita perder el foco del input mientras se escribe)
+function updateField(field, value) {
+  state[field] = value;
+  const btn = document.getElementById('submit-btn');
+  if (btn) {
+    const canSubmit = state.selectedService && state.selectedSlot &&
+                      state.name.trim() && state.phone.trim();
+    btn.disabled = !canSubmit || state.submitting;
+  }
+}
 
 async function init() {
   const slug = getSlug();
@@ -181,7 +185,8 @@ function findNextOpenDay(from) {
 async function loadTakenSlots() {
   state.loadingSlots = true;
   try {
-    const apts = await supaFetch(`appointments?user_id=eq.${state.biz.userId}&date=eq.${toDateStr(state.selectedDate)}&status=not.in.(Cancelada,No-show,Rechazada)&select=start_time,end_time`);
+    // FIX: 'No asistió' en lugar de 'No-show' para coincidir con valores reales en DB
+    const apts = await supaFetch(`appointments?user_id=eq.${state.biz.userId}&date=eq.${toDateStr(state.selectedDate)}&status=not.in.(Cancelada,No%20asisti%C3%B3,Rechazada)&select=start_time,end_time`);
     state.takenSlots = apts || [];
   } catch(e) { state.takenSlots = []; }
   state.loadingSlots = false;
@@ -258,6 +263,8 @@ function render() {
       <div class="summary-row"><span class="summary-key">Total</span><span class="summary-price">$${Number(state.selectedService.price).toLocaleString('es-MX')} MXN</span></div>
     </div>`:'';
 
+  // FIX: id="submit-btn" para poder habilitarlo desde updateField() sin re-render
+  // FIX: oninput llama updateField() en lugar de solo actualizar state
   app.innerHTML=`<div class="container">
     <div class="biz-header">
       <div class="biz-logo">${logoHtml}</div>
@@ -278,12 +285,12 @@ function render() {
     </div>
     <div class="section-title">3. Tus datos</div>
     <div class="card"><div class="form-body">
-      <div class="form-field"><label>Tu nombre *</label><input type="text" placeholder="Ej: María López" value="${state.name}" oninput="state.name=this.value" /></div>
-      <div class="form-field"><label>Tu WhatsApp / teléfono *</label><input type="tel" placeholder="Ej: 442 123 4567" value="${state.phone}" oninput="state.phone=this.value" /></div>
-      <div class="form-field"><label>Notas (opcional)</label><textarea placeholder="Primera vez, tipo de uñas, alergias..." oninput="state.notes=this.value">${state.notes}</textarea></div>
+      <div class="form-field"><label>Tu nombre *</label><input id="input-name" type="text" placeholder="Ej: María López" value="${state.name}" oninput="updateField('name', this.value)" /></div>
+      <div class="form-field"><label>Tu WhatsApp / teléfono *</label><input id="input-phone" type="tel" placeholder="Ej: 442 123 4567" value="${state.phone}" oninput="updateField('phone', this.value)" /></div>
+      <div class="form-field"><label>Notas (opcional)</label><textarea placeholder="Primera vez, tipo de uñas, alergias..." oninput="updateField('notes', this.value)">${state.notes}</textarea></div>
     </div></div>
     ${summaryHtml}
-    <button class="submit-btn" onclick="submitBooking()" ${(!canSubmit||state.submitting)?'disabled':''}>${state.submitting?'Confirmando tu cita...':'Confirmar cita →'}</button>
+    <button id="submit-btn" class="submit-btn" onclick="submitBooking()" ${(!canSubmit||state.submitting)?'disabled':''}>${state.submitting?'Confirmando tu cita...':'Confirmar cita →'}</button>
     <div class="powered">Agendas gestionadas con <span>VYLTA</span></div>
   </div>`;
 }
@@ -341,7 +348,6 @@ async function submitBooking() {
     state.submitted=true; render();
   } catch(e) {
     state.submitting=false; render();
-    // Modal elegante en lugar de alert() nativo — detectable por Claude in Chrome
     showError(e.message);
     console.error('[VYLTA submit]', e.message);
   }
