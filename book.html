@@ -3,19 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- FIX: título dinámico — se actualiza con JS después de cargar el negocio -->
   <title>Agendar cita</title>
+
+  <!-- FIX: Meta tags OG para preview en WhatsApp, Instagram, Facebook -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:site_name"   content="VYLTA" />
+  <meta name="twitter:card"       content="summary" />
+  <!-- og:title y og:description se inyectan dinámicamente vía JS -->
+
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F8FAFC; color: #0F172A; min-height: 100vh; }
+
+    /* Loading */
     .loader { display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column; gap: 16px; }
     .spinner { width: 36px; height: 36px; border: 3px solid #E2E8F0; border-top-color: #10B981; border-radius: 50%; animation: spin 0.7s linear infinite; }
     .loader-text { font-size: 14px; color: #94A3B8; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Error screen */
     .error-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 32px; text-align: center; gap: 12px; }
     .error-icon { font-size: 48px; }
     .error-title { font-size: 20px; font-weight: 700; color: #0F172A; }
     .error-desc { font-size: 14px; color: #64748B; line-height: 1.7; max-width: 320px; }
+
+    /* Layout */
     .container { max-width: 480px; margin: 0 auto; padding: 0 16px 80px; }
+
+    /* Business header */
     .biz-header { background: #fff; border-radius: 20px; padding: 24px; margin: 20px 0 16px; text-align: center; border: 1px solid #F1F5F9; }
     .biz-logo { width: 72px; height: 72px; border-radius: 18px; background: #10B981; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; color: #fff; margin: 0 auto 12px; overflow: hidden; }
     .biz-logo img { width: 100%; height: 100%; object-fit: cover; }
@@ -23,8 +40,27 @@
     .biz-type { font-size: 14px; color: #64748B; margin-top: 4px; }
     .biz-badge { display: inline-flex; align-items: center; gap: 6px; background: #ECFDF5; color: #10B981; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; margin-top: 8px; }
     .biz-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #10B981; }
-    .section-title { font-size: 13px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.8px; margin: 20px 0 10px; }
+
+    /* Section titles con indicador de completado */
+    .section-title {
+      font-size: 13px; font-weight: 700; color: #64748B;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      margin: 20px 0 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .step-badge {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #E2E8F0; color: #94A3B8;
+      font-size: 11px; font-weight: 800;
+      display: inline-flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all 0.2s;
+    }
+    .step-badge.done { background: #10B981; color: #fff; }
+
+    /* Cards */
     .card { background: #fff; border-radius: 16px; border: 1px solid #F1F5F9; overflow: hidden; margin-bottom: 16px; }
+
+    /* Services */
     .service-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; transition: background 0.15s; border-bottom: 1px solid #F8FAFC; }
     .service-item:last-child { border-bottom: none; }
     .service-item:hover { background: #F8FAFC; }
@@ -36,32 +72,48 @@
     .service-meta { font-size: 12px; color: #94A3B8; margin-top: 2px; }
     .service-price { font-size: 16px; font-weight: 800; color: #10B981; }
     .service-check { width: 22px; height: 22px; border-radius: 50%; background: #10B981; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; flex-shrink: 0; }
+
+    /* Date nav */
     .date-nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #F8FAFC; }
     .date-label { font-size: 15px; font-weight: 600; color: #0F172A; }
     .date-btn { width: 32px; height: 32px; border-radius: 10px; border: 1px solid #E2E8F0; background: #fff; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; color: #64748B; }
     .date-btn:hover { background: #F8FAFC; }
     .date-btn:disabled { opacity: 0.3; cursor: not-allowed; }
     .closed-banner { padding: 20px 16px; text-align: center; color: #94A3B8; font-size: 14px; }
+
+    /* Slots */
     .slots-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 14px 16px; }
     .slot { padding: 10px 4px; border-radius: 10px; border: 1.5px solid #E2E8F0; text-align: center; font-size: 13px; font-weight: 600; color: #0F172A; cursor: pointer; transition: all 0.15s; background: #fff; }
     .slot:hover { border-color: #10B981; color: #10B981; background: #F0FDF4; }
     .slot.selected { background: #10B981; border-color: #10B981; color: #fff; box-shadow: 0 2px 8px rgba(16,185,129,0.3); }
     .slots-empty { padding: 20px 16px; text-align: center; color: #94A3B8; font-size: 14px; }
     .slots-count { padding: 8px 16px 0; font-size: 11px; color: #94A3B8; }
+
+    /* Form */
     .form-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
     .form-field label { display: block; font-size: 12px; font-weight: 600; color: #64748B; margin-bottom: 6px; }
     .form-field input, .form-field textarea { width: 100%; padding: 12px 14px; border: 1.5px solid #E2E8F0; border-radius: 12px; font-size: 15px; color: #0F172A; background: #fff; font-family: inherit; transition: border-color 0.15s; outline: none; }
     .form-field input:focus, .form-field textarea:focus { border-color: #10B981; }
+    /* FIX: borde rojo para campo inválido */
+    .form-field input.invalid { border-color: #EF4444; }
+    .field-error { font-size: 11px; color: #EF4444; margin-top: 4px; display: none; }
+    .field-error.visible { display: block; }
     .form-field textarea { resize: none; height: 80px; }
+
+    /* Summary */
     .summary { background: #0F172A; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
     .summary-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .summary-row:last-child { margin-bottom: 0; padding-top: 8px; border-top: 1px solid #1E293B; }
     .summary-key { font-size: 12px; color: #64748B; }
     .summary-val { font-size: 13px; font-weight: 600; color: #F8FAFC; }
     .summary-price { font-size: 18px; font-weight: 800; color: #10B981; }
+
+    /* Submit button */
     .submit-btn { width: 100%; padding: 18px; background: #10B981; color: #fff; border: none; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
     .submit-btn:hover { opacity: 0.9; }
     .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Success */
     .success-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 32px; text-align: center; gap: 16px; }
     .success-icon { width: 80px; height: 80px; border-radius: 50%; background: #ECFDF5; display: flex; align-items: center; justify-content: center; font-size: 36px; }
     .success-title { font-size: 24px; font-weight: 800; color: #0F172A; }
@@ -72,8 +124,13 @@
     .success-card-key { color: #94A3B8; }
     .success-card-val { font-weight: 600; color: #0F172A; }
     .whatsapp-hint { background: #F0FDF4; border-radius: 12px; padding: 14px 16px; font-size: 13px; color: #10B981; font-weight: 500; max-width: 360px; width: 100%; }
+
+    /* FIX: powered link clickeable — lead gen para VYLTA */
     .powered { text-align: center; padding: 24px; font-size: 12px; color: #CBD5E1; }
-    .powered span { font-weight: 700; color: #10B981; }
+    .powered a { font-weight: 700; color: #10B981; text-decoration: none; }
+    .powered a:hover { text-decoration: underline; }
+
+    /* Error modal */
     .error-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 24px; }
     .error-modal { background: #fff; border-radius: 20px; padding: 28px 24px; max-width: 360px; width: 100%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
     .error-modal-icon { font-size: 40px; margin-bottom: 12px; }
@@ -92,6 +149,7 @@ const SUPABASE_URL = 'https://nhjmwmkaduiaifgztymi.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oam13bWthZHVpYWlmZ3p0eW1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1ODk3MTYsImV4cCI6MjA4ODE2NTcxNn0.p53BZPf6qygAYw29bIJ0bA5VwZ_lRxw-aocV8LuGB1c';
 const app = document.getElementById('app');
 
+// ── Error modal ───────────────────────────────────────────────────────────
 function showError(msg) {
   const prev = document.getElementById('vylta-error-modal');
   if (prev) prev.remove();
@@ -108,6 +166,7 @@ function showError(msg) {
   document.body.appendChild(overlay);
 }
 
+// ── Supabase fetch ────────────────────────────────────────────────────────
 async function supaFetch(path) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
@@ -116,6 +175,7 @@ async function supaFetch(path) {
   return res.json();
 }
 
+// ── Utils ─────────────────────────────────────────────────────────────────
 const getSlug = () => new URLSearchParams(window.location.search).get('n') || '';
 
 const formatDate = d => {
@@ -127,35 +187,80 @@ const toDateStr = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'
 const addDays = (d,n) => { const r=new Date(d); r.setDate(r.getDate()+n); return r; };
 const durationLabel = min => min<60?`${min} min`:min===60?'1 hora':`${Math.floor(min/60)}h${min%60>0?` ${min%60}min`:''}`;
 
+// FIX: íconos dinámicos según el nombre del servicio
+function serviceIcon(name) {
+  const n = (name||'').toLowerCase();
+  if (/u[ñn]a|manicur|gel|acr[ií]l/.test(n))      return '💅';
+  if (/barber|corte|pelo|cabello|color/.test(n))    return '✂️';
+  if (/spa|masaje|relax|facial/.test(n))            return '💆';
+  if (/dental|diente|odonto/.test(n))               return '🦷';
+  if (/ceja|depilar|cera/.test(n))                  return '✨';
+  if (/vet|perro|gato|mascota/.test(n))             return '🐾';
+  if (/foto|imagen|retra/.test(n))                  return '📸';
+  if (/makeup|maquilla/.test(n))                    return '💄';
+  if (/tatuaje|tattoo|piercing/.test(n))            return '🖋️';
+  if (/consulta|m[eé]dico|doctor/.test(n))          return '🩺';
+  return '⭐';
+}
+
+// FIX: validación de teléfono — mínimo 7 dígitos numéricos
+function validatePhone(phone) {
+  const digits = phone.replace(/\D/g, '');
+  return digits.length >= 7;
+}
+
+// ── Estado ────────────────────────────────────────────────────────────────
 let state = {
   biz: null, services: [], hours: [],
   selectedService: null, selectedDate: new Date(), selectedSlot: null,
   takenSlots: [], loadingSlots: false,
-  name: '', phone: '', notes: '', submitting: false, submitted: false,
+  name: '', phone: '', notes: '',
+  submitting: false, submitted: false,
+  // FIX: lock para evitar doble-submit por race condition
+  submitLocked: false,
 };
 
-// FIX: updateField actualiza state Y el atributo disabled del botón
-// sin hacer full re-render (evita perder el foco del input mientras se escribe)
+// FIX: updateField — actualiza state + habilita/deshabilita botón sin re-render
+// Evita perder foco del input al escribir
 function updateField(field, value) {
   state[field] = value;
-  const btn = document.getElementById('submit-btn');
-  if (btn) {
-    const canSubmit = state.selectedService && state.selectedSlot &&
-                      state.name.trim() && state.phone.trim();
-    btn.disabled = !canSubmit || state.submitting;
-  }
+  refreshSubmitBtn();
 }
 
+function refreshSubmitBtn() {
+  const btn = document.getElementById('submit-btn');
+  if (!btn) return;
+  const phoneOk = validatePhone(state.phone);
+  const canSubmit = state.selectedService && state.selectedSlot &&
+                    state.name.trim() && phoneOk;
+  btn.disabled = !canSubmit || state.submitting || state.submitLocked;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
 async function init() {
   const slug = getSlug();
   if (!slug) { renderError('Link inválido', 'Este enlace no tiene un negocio asociado.'); return; }
   try {
-    const links = await supaFetch(`booking_links?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&select=id,user_id,require_approval`);
+    const links = await supaFetch(`booking_links?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&select=id,user_id,require_approval,whatsapp_confirmation`);
     if (!links || links.length === 0) { renderError('Negocio no encontrado', 'El enlace no está activo o no existe.'); return; }
     const link = links[0];
     const profiles = await supaFetch(`business_profiles?user_id=eq.${link.user_id}&select=business_name,business_type,logo_url,phone`);
     const profile = profiles?.[0] || {};
-    state.biz = { ...profile, linkId: link.id, userId: link.user_id, requireApproval: link.require_approval };
+    state.biz = {
+      ...profile,
+      linkId: link.id,
+      userId: link.user_id,
+      requireApproval: link.require_approval,
+      whatsappConfirmation: link.whatsapp_confirmation,
+    };
+
+    // FIX: actualizar title y meta OG con el nombre real del negocio
+    const bizName = profile.business_name || 'Negocio';
+    document.title = `Agendar cita · ${bizName}`;
+    setMeta('og:title', `Agenda tu cita en ${bizName}`);
+    setMeta('og:description', `Reserva tu cita online con ${bizName}. Elige servicio, fecha y hora fácilmente.`);
+    if (profile.logo_url) setMeta('og:image', profile.logo_url);
+
     const [services, hours] = await Promise.all([
       supaFetch(`services?user_id=eq.${link.user_id}&is_active=eq.true&order=name`),
       supaFetch(`business_hours?user_id=eq.${link.user_id}&order=day_of_week`),
@@ -171,6 +276,13 @@ async function init() {
   }
 }
 
+function setMeta(property, content) {
+  let el = document.querySelector(`meta[property="${property}"]`);
+  if (!el) { el = document.createElement('meta'); el.setAttribute('property', property); document.head.appendChild(el); }
+  el.setAttribute('content', content);
+}
+
+// ── Days & slots ──────────────────────────────────────────────────────────
 function findNextOpenDay(from) {
   let d = new Date(from);
   for (let i=0; i<14; i++) {
@@ -185,10 +297,9 @@ function findNextOpenDay(from) {
 async function loadTakenSlots() {
   state.loadingSlots = true;
   try {
-    // FIX: 'No asistió' en lugar de 'No-show' para coincidir con valores reales en DB
     const apts = await supaFetch(`appointments?user_id=eq.${state.biz.userId}&date=eq.${toDateStr(state.selectedDate)}&status=not.in.(Cancelada,No%20asisti%C3%B3,Rechazada)&select=start_time,end_time`);
     state.takenSlots = apts || [];
-  } catch(e) { state.takenSlots = []; }
+  } catch { state.takenSlots = []; }
   state.loadingSlots = false;
 }
 
@@ -218,63 +329,85 @@ function buildSlots() {
 function endTime(start,dur){const[h,m]=start.split(':').map(Number),e=h*60+m+dur;return`${Math.floor(e/60).toString().padStart(2,'0')}:${(e%60).toString().padStart(2,'0')}`;}
 const isBeforeToday=d=>{const t=new Date();t.setHours(0,0,0,0);const c=new Date(d);c.setHours(0,0,0,0);return c<t;};
 
+// ── Render ────────────────────────────────────────────────────────────────
 function render() {
   if (state.submitted) { renderSuccess(); return; }
-  const biz=state.biz;
-  const initials=(biz.business_name||'N').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-  const slots=buildSlots();
-  const canSubmit=state.selectedService&&state.selectedSlot&&state.name.trim()&&state.phone.trim();
-  const logoHtml=biz.logo_url?`<img src="${biz.logo_url}" alt="" />`:initials;
+  const biz = state.biz;
+  const initials = (biz.business_name||'N').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const slots = buildSlots();
+  const phoneOk = validatePhone(state.phone);
+  const canSubmit = state.selectedService && state.selectedSlot && state.name.trim() && phoneOk;
 
-  const servicesHtml=state.services.length===0
-    ?`<div style="padding:20px;text-align:center;color:#94A3B8;font-size:14px">Sin servicios publicados aún.</div>`
-    :state.services.map(s=>{
-      const sel=state.selectedService?.id===s.id;
-      return`<div class="service-item${sel?' selected':''}" onclick="selectService('${s.id}')">
-        <div class="service-icon">✂️</div>
-        <div class="service-info"><div class="service-name">${s.name}</div><div class="service-meta">${durationLabel(s.duration_minutes)}${s.description?' · '+s.description:''}</div></div>
-        <div class="service-price">$${Number(s.price).toLocaleString('es-MX')}</div>
-        ${sel?'<div class="service-check">✓</div>':''}
-      </div>`;
-    }).join('');
+  // FIX: logo con onerror fallback a iniciales
+  const logoHtml = biz.logo_url
+    ? `<img src="${biz.logo_url}" alt="" onerror="this.parentNode.innerHTML='${initials}'" />`
+    : initials;
+
+  // FIX: íconos dinámicos por tipo de servicio
+  const servicesHtml = state.services.length === 0
+    ? `<div style="padding:20px;text-align:center;color:#94A3B8;font-size:14px">Sin servicios publicados aún.</div>`
+    : state.services.map(s => {
+        const sel = state.selectedService?.id === s.id;
+        const icon = serviceIcon(s.name);
+        return `<div class="service-item${sel?' selected':''}" onclick="selectService('${s.id}')">
+          <div class="service-icon">${icon}</div>
+          <div class="service-info">
+            <div class="service-name">${s.name}</div>
+            <div class="service-meta">${durationLabel(s.duration_minutes)}${s.description?' · '+s.description:''}</div>
+          </div>
+          <div class="service-price">$${Number(s.price).toLocaleString('es-MX')}</div>
+          ${sel?'<div class="service-check">✓</div>':''}
+        </div>`;
+      }).join('');
 
   let slotsHtml;
-  if(state.loadingSlots) {
-    slotsHtml=`<div class="slots-empty">Cargando horarios...</div>`;
-  } else if(!state.selectedService) {
-    slotsHtml=`<div class="slots-empty">👆 Selecciona un servicio para ver los horarios disponibles.</div>`;
-  } else if(!slots) {
-    slotsHtml=`<div class="closed-banner">🚫 Este día el negocio no tiene atención. Selecciona otra fecha.</div>`;
-  } else if(slots.length === 0) {
-    slotsHtml=`<div class="slots-empty">Sin horarios disponibles este día. Prueba con otra fecha.</div>`;
+  if (state.loadingSlots) {
+    slotsHtml = `<div class="slots-empty">Cargando horarios...</div>`;
+  } else if (!state.selectedService) {
+    slotsHtml = `<div class="slots-empty">👆 Selecciona un servicio para ver los horarios disponibles.</div>`;
+  } else if (!slots) {
+    slotsHtml = `<div class="closed-banner">🚫 Este día el negocio no tiene atención. Selecciona otra fecha.</div>`;
+  } else if (slots.length === 0) {
+    slotsHtml = `<div class="slots-empty">Sin horarios disponibles este día. Prueba con otra fecha.</div>`;
   } else {
-    slotsHtml=`
+    slotsHtml = `
       <div class="slots-count">${slots.length} horario${slots.length!==1?'s':''} disponible${slots.length!==1?'s':''}</div>
       <div class="slots-grid">${slots.map(s=>`
         <div class="slot${state.selectedSlot===s.label?' selected':''}" onclick="selectSlot('${s.label}')">${s.label}</div>
       `).join('')}</div>`;
   }
 
-  const summaryHtml=state.selectedService&&state.selectedSlot?`
+  const summaryHtml = state.selectedService && state.selectedSlot ? `
     <div class="summary">
       <div class="summary-row"><span class="summary-key">Servicio</span><span class="summary-val">${state.selectedService.name}</span></div>
       <div class="summary-row"><span class="summary-key">Fecha</span><span class="summary-val">${formatDate(state.selectedDate)}</span></div>
       <div class="summary-row"><span class="summary-key">Hora</span><span class="summary-val">${state.selectedSlot} — ${endTime(state.selectedSlot,state.selectedService.duration_minutes)}</span></div>
       <div class="summary-row"><span class="summary-key">Total</span><span class="summary-price">$${Number(state.selectedService.price).toLocaleString('es-MX')} MXN</span></div>
-    </div>`:'';
+    </div>` : '';
 
-  // FIX: id="submit-btn" para poder habilitarlo desde updateField() sin re-render
-  // FIX: oninput llama updateField() en lugar de solo actualizar state
-  app.innerHTML=`<div class="container">
+  // FIX: step badges con indicador de completado (✓ verde cuando el paso está listo)
+  const step1done = !!state.selectedService;
+  const step2done = !!state.selectedSlot;
+  const step3done = state.name.trim() && phoneOk;
+
+  app.innerHTML = `<div class="container">
     <div class="biz-header">
       <div class="biz-logo">${logoHtml}</div>
       <div class="biz-name">${biz.business_name||'Negocio'}</div>
       ${biz.business_type?`<div class="biz-type">${biz.business_type}</div>`:''}
       <div class="biz-badge"><div class="biz-badge-dot"></div>Acepta citas en línea</div>
     </div>
-    <div class="section-title">1. Elige un servicio</div>
+
+    <div class="section-title">
+      <span class="step-badge${step1done?' done':''}">1</span>
+      Elige un servicio
+    </div>
     <div class="card">${servicesHtml}</div>
-    <div class="section-title">2. Elige fecha y hora</div>
+
+    <div class="section-title">
+      <span class="step-badge${step2done?' done':''}">2</span>
+      Elige fecha y hora
+    </div>
     <div class="card">
       <div class="date-nav">
         <button class="date-btn" onclick="changeDate(-1)" ${isBeforeToday(addDays(state.selectedDate,-1))?'disabled':''}>‹</button>
@@ -283,18 +416,58 @@ function render() {
       </div>
       ${slotsHtml}
     </div>
-    <div class="section-title">3. Tus datos</div>
+
+    <div class="section-title">
+      <span class="step-badge${step3done?' done':''}">3</span>
+      Tus datos
+    </div>
     <div class="card"><div class="form-body">
-      <div class="form-field"><label>Tu nombre *</label><input id="input-name" type="text" placeholder="Ej: María López" value="${state.name}" oninput="updateField('name', this.value)" /></div>
-      <div class="form-field"><label>Tu WhatsApp / teléfono *</label><input id="input-phone" type="tel" placeholder="Ej: 442 123 4567" value="${state.phone}" oninput="updateField('phone', this.value)" /></div>
-      <div class="form-field"><label>Notas (opcional)</label><textarea placeholder="Primera vez, tipo de uñas, alergias..." oninput="updateField('notes', this.value)">${state.notes}</textarea></div>
+      <div class="form-field">
+        <label>Tu nombre *</label>
+        <input id="input-name" type="text" placeholder="Ej: María López"
+          value="${state.name}"
+          oninput="updateField('name', this.value)" />
+      </div>
+      <div class="form-field">
+        <label>Tu WhatsApp / teléfono *</label>
+        <input id="input-phone" type="tel" placeholder="Ej: 442 123 4567"
+          value="${state.phone}"
+          oninput="updateField('phone', this.value)"
+          onblur="validatePhoneField(this)" />
+        <div id="phone-error" class="field-error">Ingresa un número de teléfono válido (mínimo 7 dígitos)</div>
+      </div>
+      <div class="form-field">
+        <label>Notas (opcional)</label>
+        <textarea placeholder="Primera vez, tipo de uñas, alergias..." oninput="updateField('notes', this.value)">${state.notes}</textarea>
+      </div>
     </div></div>
+
     ${summaryHtml}
-    <button id="submit-btn" class="submit-btn" onclick="submitBooking()" ${(!canSubmit||state.submitting)?'disabled':''}>${state.submitting?'Confirmando tu cita...':'Confirmar cita →'}</button>
-    <div class="powered">Agendas gestionadas con <span>VYLTA</span></div>
+
+    <button id="submit-btn" class="submit-btn"
+      onclick="submitBooking()"
+      ${(!canSubmit||state.submitting||state.submitLocked)?'disabled':''}>
+      ${state.submitting?'Confirmando tu cita...':'Confirmar cita →'}
+    </button>
+
+    <div class="powered">Agendas gestionadas con <a href="https://vylta.com" target="_blank">VYLTA</a></div>
   </div>`;
 }
 
+// FIX: validación visual del teléfono al perder el foco
+function validatePhoneField(input) {
+  const errorEl = document.getElementById('phone-error');
+  if (!errorEl) return;
+  if (input.value.trim() && !validatePhone(input.value)) {
+    input.classList.add('invalid');
+    errorEl.classList.add('visible');
+  } else {
+    input.classList.remove('invalid');
+    errorEl.classList.remove('visible');
+  }
+}
+
+// ── Acciones ──────────────────────────────────────────────────────────────
 async function selectService(id) {
   state.selectedService = state.services.find(s=>s.id===id) || null;
   state.selectedSlot = null;
@@ -304,24 +477,41 @@ async function selectService(id) {
   render();
 }
 
-async function changeDate(delta){
-  const next=addDays(state.selectedDate,delta);
-  if(isBeforeToday(next))return;
-  state.selectedDate=next; state.selectedSlot=null; state.loadingSlots=true; render();
+async function changeDate(delta) {
+  const next = addDays(state.selectedDate, delta);
+  if (isBeforeToday(next)) return;
+  state.selectedDate = next; state.selectedSlot = null; state.loadingSlots = true; render();
   await loadTakenSlots(); render();
 }
 
-function selectSlot(label){
-  state.selectedSlot=label; render();
-  setTimeout(()=>{const els=document.querySelectorAll('.section-title');if(els[2])els[2].scrollIntoView({behavior:'smooth',block:'start'});},100);
+function selectSlot(label) {
+  state.selectedSlot = label; render();
+  setTimeout(()=>{
+    const els = document.querySelectorAll('.section-title');
+    if (els[2]) els[2].scrollIntoView({ behavior:'smooth', block:'start' });
+  }, 100);
 }
 
 async function submitBooking() {
-  if(state.submitting) return;
-  const {selectedService:svc, selectedSlot:slot, selectedDate:date, name, phone, notes, biz} = state;
+  // FIX: doble lock — state.submitting Y submitLocked para prevenir race condition
+  if (state.submitting || state.submitLocked) return;
+
+  const { selectedService:svc, selectedSlot:slot, selectedDate:date, name, phone, notes, biz } = state;
   const slug = getSlug();
-  if(!svc||!slot||!name.trim()||!phone.trim()) return;
-  state.submitting=true; render();
+
+  if (!svc || !slot || !name.trim() || !phone.trim()) return;
+
+  // FIX: validar teléfono antes de enviar
+  if (!validatePhone(phone)) {
+    showError('Por favor ingresa un número de teléfono válido (mínimo 7 dígitos).');
+    return;
+  }
+
+  // FIX: bloqueo inmediato para prevenir doble-submit
+  state.submitLocked = true;
+  state.submitting = true;
+  render();
+
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/create-booking-request`, {
       method: 'POST',
@@ -332,34 +522,41 @@ async function submitBooking() {
       },
       body: JSON.stringify({
         slug,
-        clientName: name.trim(),
+        clientName:  name.trim(),
         clientPhone: phone.trim(),
         serviceName: svc.name,
-        serviceId: svc.id,
-        date: toDateStr(date),
-        startTime: slot,
-        endTime: endTime(slot, svc.duration_minutes),
+        serviceId:   svc.id,
+        date:        toDateStr(date),
+        startTime:   slot,
+        endTime:     endTime(slot, svc.duration_minutes),
         serviceCost: svc.price,
-        notes: notes.trim() || null,
+        notes:       notes.trim() || null,
       }),
     });
     const data = await res.json();
-    if(!res.ok || data.error) throw new Error(data.error || `Error ${res.status}`);
-    state.submitted=true; render();
+    if (!res.ok || data.error) throw new Error(data.error || `Error ${res.status}`);
+    state.submitted = true; render();
   } catch(e) {
-    state.submitting=false; render();
+    state.submitting = false;
+    state.submitLocked = false; // liberar lock solo en error
+    render();
     showError(e.message);
     console.error('[VYLTA submit]', e.message);
   }
 }
 
-function renderError(title,desc){
-  app.innerHTML=`<div class="error-screen"><div class="error-icon">🔍</div><div class="error-title">${title}</div><div class="error-desc">${desc}</div></div>`;
+// ── Render helpers ────────────────────────────────────────────────────────
+function renderError(title, desc) {
+  app.innerHTML = `<div class="error-screen">
+    <div class="error-icon">🔍</div>
+    <div class="error-title">${title}</div>
+    <div class="error-desc">${desc}</div>
+  </div>`;
 }
 
-function renderSuccess(){
-  const{selectedService:svc, selectedSlot:slot, selectedDate:date, name, biz}=state;
-  app.innerHTML=`<div class="success-screen">
+function renderSuccess() {
+  const { selectedService:svc, selectedSlot:slot, selectedDate:date, name, biz } = state;
+  app.innerHTML = `<div class="success-screen">
     <div class="success-icon">✅</div>
     <div class="success-title">¡Cita confirmada!</div>
     <div class="success-desc">Tu cita con <strong>${biz.business_name}</strong> está agendada. ¡Te esperamos!</div>
@@ -370,8 +567,8 @@ function renderSuccess(){
       <div class="success-card-row"><span class="success-card-key">Hora</span><span class="success-card-val">${slot} — ${endTime(slot, svc.duration_minutes)}</span></div>
       <div class="success-card-row"><span class="success-card-key">Total</span><span class="success-card-val" style="color:#10B981;font-size:18px">$${Number(svc.price).toLocaleString('es-MX')} MXN</span></div>
     </div>
-    ${biz.phone?`<div class="whatsapp-hint">📱 Guarda el número del negocio: <strong>${biz.phone}</strong></div>`:''}
-    <div class="powered">Agendas gestionadas con <span>VYLTA</span></div>
+    ${biz.phone ? `<div class="whatsapp-hint">📱 Guarda el número del negocio: <strong>${biz.phone}</strong></div>` : ''}
+    <div class="powered">Agendas gestionadas con <a href="https://vylta.com" target="_blank">VYLTA</a></div>
   </div>`;
 }
 
