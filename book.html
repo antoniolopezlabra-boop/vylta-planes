@@ -19,6 +19,8 @@
     .error-title { font-size: 20px; font-weight: 700; color: #0F172A; }
     .error-desc { font-size: 14px; color: #64748B; line-height: 1.7; max-width: 320px; }
     .container { max-width: 480px; margin: 0 auto; padding: 0 16px 80px; }
+
+    /* Business header */
     .biz-header { background: #fff; border-radius: 20px; padding: 24px; margin: 20px 0 16px; text-align: center; border: 1px solid #F1F5F9; }
     .biz-logo { width: 72px; height: 72px; border-radius: 18px; background: #10B981; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; color: #fff; margin: 0 auto 12px; overflow: hidden; }
     .biz-logo img { width: 100%; height: 100%; object-fit: cover; }
@@ -26,10 +28,14 @@
     .biz-type { font-size: 14px; color: #64748B; margin-top: 4px; }
     .biz-badge { display: inline-flex; align-items: center; gap: 6px; background: #ECFDF5; color: #10B981; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; margin-top: 8px; }
     .biz-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #10B981; }
+
+    /* Steps */
     .section-title { font-size: 13px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.8px; margin: 20px 0 10px; display: flex; align-items: center; gap: 8px; }
     .step-badge { width: 20px; height: 20px; border-radius: 50%; background: #E2E8F0; color: #94A3B8; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
     .step-badge.done { background: #10B981; color: #fff; }
     .card { background: #fff; border-radius: 16px; border: 1px solid #F1F5F9; overflow: hidden; margin-bottom: 16px; }
+
+    /* Services */
     .service-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; transition: background 0.15s; border-bottom: 1px solid #F8FAFC; }
     .service-item:last-child { border-bottom: none; }
     .service-item:hover { background: #F8FAFC; }
@@ -41,6 +47,29 @@
     .service-meta { font-size: 12px; color: #94A3B8; margin-top: 2px; }
     .service-price { font-size: 16px; font-weight: 800; color: #10B981; }
     .service-check { width: 22px; height: 22px; border-radius: 50%; background: #10B981; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; flex-shrink: 0; }
+
+    /* FASE 4: Staff selector */
+    .staff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; padding: 14px 16px; }
+    .staff-card { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 12px; border-radius: 14px; border: 2px solid #F1F5F9; background: #fff; cursor: pointer; transition: all 0.15s; text-align: center; }
+    .staff-card:hover { border-color: #E2E8F0; background: #F8FAFC; }
+    .staff-card.selected { border-color: var(--staff-color, #10B981); background: var(--staff-bg, #ECFDF5); }
+    .staff-avatar { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; border: 2.5px solid transparent; transition: all 0.15s; }
+    .staff-card.selected .staff-avatar { border-color: var(--staff-color, #10B981); }
+    .staff-card-name { font-size: 14px; font-weight: 700; color: #0F172A; line-height: 1.2; }
+    .staff-card-role { font-size: 11px; color: #94A3B8; margin-top: 1px; }
+    .staff-check { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; margin-top: 2px; }
+    /* Opcion "Sin preferencia" */
+    .staff-any { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; transition: background 0.15s; border-top: 1px solid #F1F5F9; }
+    .staff-any:hover { background: #F8FAFC; }
+    .staff-any.selected { background: #ECFDF5; }
+    .staff-any-icon { width: 44px; height: 44px; border-radius: 12px; background: #F1F5F9; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .staff-any.selected .staff-any-icon { background: #D1FAE5; }
+    .staff-any-info { flex: 1; }
+    .staff-any-name { font-size: 15px; font-weight: 600; color: #0F172A; }
+    .staff-any-sub { font-size: 12px; color: #94A3B8; margin-top: 2px; }
+    .staff-any-check { width: 22px; height: 22px; border-radius: 50%; background: #10B981; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; }
+
+    /* Date/slots */
     .date-nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #F8FAFC; }
     .date-label { font-size: 15px; font-weight: 600; color: #0F172A; }
     .date-btn { width: 32px; height: 32px; border-radius: 10px; border: 1px solid #E2E8F0; background: #fff; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; color: #64748B; }
@@ -53,6 +82,8 @@
     .slot.selected { background: #10B981; border-color: #10B981; color: #fff; box-shadow: 0 2px 8px rgba(16,185,129,0.3); }
     .slots-empty { padding: 20px 16px; text-align: center; color: #94A3B8; font-size: 14px; }
     .slots-count { padding: 8px 16px 0; font-size: 11px; color: #94A3B8; }
+
+    /* Form */
     .form-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
     .form-field label { display: block; font-size: 12px; font-weight: 600; color: #64748B; margin-bottom: 6px; }
     .form-field input, .form-field textarea { width: 100%; padding: 12px 14px; border: 1.5px solid #E2E8F0; border-radius: 12px; font-size: 15px; color: #0F172A; background: #fff; font-family: inherit; transition: border-color 0.15s; outline: none; }
@@ -61,15 +92,21 @@
     .field-error { font-size: 11px; color: #EF4444; margin-top: 4px; display: none; }
     .field-error.visible { display: block; }
     .form-field textarea { resize: none; height: 80px; }
+
+    /* Summary */
     .summary { background: #0F172A; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
     .summary-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .summary-row:last-child { margin-bottom: 0; padding-top: 8px; border-top: 1px solid #1E293B; }
     .summary-key { font-size: 12px; color: #64748B; }
     .summary-val { font-size: 13px; font-weight: 600; color: #F8FAFC; }
     .summary-price { font-size: 18px; font-weight: 800; color: #10B981; }
+
+    /* Submit */
     .submit-btn { width: 100%; padding: 18px; background: #10B981; color: #fff; border: none; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
     .submit-btn:hover { opacity: 0.9; }
     .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Success */
     .success-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 32px; text-align: center; gap: 16px; }
     .success-icon { width: 80px; height: 80px; border-radius: 50%; background: #ECFDF5; display: flex; align-items: center; justify-content: center; font-size: 36px; }
     .success-title { font-size: 24px; font-weight: 800; color: #0F172A; }
@@ -83,6 +120,8 @@
     .powered { text-align: center; padding: 24px; font-size: 12px; color: #CBD5E1; }
     .powered a { font-weight: 700; color: #10B981; text-decoration: none; }
     .powered a:hover { text-decoration: underline; }
+
+    /* Error modal */
     .error-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 24px; }
     .error-modal { background: #fff; border-radius: 20px; padding: 28px 24px; max-width: 360px; width: 100%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
     .error-modal-icon { font-size: 40px; margin-bottom: 12px; }
@@ -119,7 +158,6 @@ async function supaFetch(path) {
   return res.json();
 }
 
-// FIX: slug desde path (/karen-nails) O desde query (?n=karen-nails) — soporta ambos formatos
 const getSlug = () => {
   const path = window.location.pathname.split('/').filter(Boolean).pop();
   const query = new URLSearchParams(window.location.search).get('n');
@@ -148,9 +186,22 @@ function serviceIcon(name) {
 
 function validatePhone(phone) { return phone.replace(/\D/g,'').length >= 7; }
 
+// Genera iniciales a partir del nombre
+function initials(name) { return (name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+
+// Hexcolor a rgba para fondos suaves
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 let state = {
-  biz: null, services: [], hours: [],
+  biz: null, services: [], hours: [], staffMembers: [],
   selectedService: null, selectedDate: new Date(), selectedSlot: null,
+  // FASE 4: null = sin preferencia (cualquiera), undefined = no hay staff en el negocio
+  selectedStaff: undefined,
   takenSlots: [], loadingSlots: false,
   name: '', phone: '', notes: '',
   submitting: false, submitted: false, submitLocked: false,
@@ -161,7 +212,10 @@ function updateField(field, value) { state[field] = value; refreshSubmitBtn(); }
 function refreshSubmitBtn() {
   const btn = document.getElementById('submit-btn');
   if (!btn) return;
-  const canSubmit = state.selectedService && state.selectedSlot && state.name.trim() && validatePhone(state.phone);
+  // FASE 4: si hay staff, el paso 2 requiere que se haya elegido (null = sin preferencia es válido)
+  const staffOk = state.staffMembers.length === 0 || state.selectedStaff !== undefined;
+  const canSubmit = state.selectedService && staffOk && state.selectedSlot &&
+                    state.name.trim() && validatePhone(state.phone);
   btn.disabled = !canSubmit || state.submitting || state.submitLocked;
 }
 
@@ -175,17 +229,28 @@ async function init() {
     const profiles = await supaFetch(`business_profiles?user_id=eq.${link.user_id}&select=business_name,business_type,logo_url,phone`);
     const profile = profiles?.[0] || {};
     state.biz = { ...profile, linkId: link.id, userId: link.user_id, requireApproval: link.require_approval, whatsappConfirmation: link.whatsapp_confirmation };
+
     const bizName = profile.business_name || 'Negocio';
     document.title = `Agendar cita · ${bizName}`;
     setMeta('og:title', `Agenda tu cita en ${bizName}`);
     setMeta('og:description', `Reserva tu cita online con ${bizName}. Elige servicio, fecha y hora fácilmente.`);
     if (profile.logo_url) setMeta('og:image', profile.logo_url);
-    const [services, hours] = await Promise.all([
+
+    // FASE 4: cargar staff activos en paralelo
+    const [services, hours, staff] = await Promise.all([
       supaFetch(`services?user_id=eq.${link.user_id}&is_active=eq.true&order=name`),
       supaFetch(`business_hours?user_id=eq.${link.user_id}&order=day_of_week`),
+      supaFetch(`staff_members?user_id=eq.${link.user_id}&is_active=eq.true&order=sort_order&select=id,name,role,color`),
     ]);
+
     state.services = services || [];
     state.hours = hours || [];
+    state.staffMembers = staff || [];
+
+    // Si no hay staff, selectedStaff queda undefined (no mostramos el paso)
+    // Si hay staff, empieza sin seleccionar (undefined) — el usuario debe elegir
+    if (state.staffMembers.length > 0) state.selectedStaff = undefined;
+
     state.selectedDate = findNextOpenDay(new Date());
     await loadTakenSlots();
     render();
@@ -202,20 +267,43 @@ function setMeta(property, content) {
 }
 
 function findNextOpenDay(from) {
+  // FASE 4: si hay staff seleccionado, buscar el próximo día en que ESE staff trabaja
   let d = new Date(from);
   for (let i=0; i<14; i++) {
     const dow = d.getDay();
-    const cfg = state.hours.find(h => h.day_of_week === dow);
-    if (cfg ? cfg.is_open : (dow!==0 && dow!==6)) return d;
+    if (isStaffOpenOnDay(dow)) return d;
     d = addDays(d, 1);
   }
   return from;
 }
 
+function isStaffOpenOnDay(dow) {
+  // Si hay staff con horario propio seleccionado, usar su horario
+  if (state.selectedStaff && state.selectedStaff.hours) {
+    const h = state.selectedStaff.hours.find(x => x.day_of_week === dow);
+    if (h) return h.is_open;
+  }
+  // Usar horario del negocio
+  const cfg = state.hours.find(h => h.day_of_week === dow);
+  return cfg ? cfg.is_open : (dow !== 0 && dow !== 6);
+}
+
+async function loadStaffHours(staffId) {
+  try {
+    const hours = await supaFetch(`staff_hours?staff_id=eq.${staffId}&order=day_of_week`);
+    return hours || [];
+  } catch { return []; }
+}
+
 async function loadTakenSlots() {
   state.loadingSlots = true;
   try {
-    const apts = await supaFetch(`appointments?user_id=eq.${state.biz.userId}&date=eq.${toDateStr(state.selectedDate)}&status=not.in.(Cancelada,No%20asisti%C3%B3,Rechazada)&select=start_time,end_time`);
+    // FASE 4: filtrar slots tomados por staff si hay uno seleccionado
+    let query = `appointments?user_id=eq.${state.biz.userId}&date=eq.${toDateStr(state.selectedDate)}&status=not.in.(Cancelada,No%20asisti%C3%B3,Rechazada)&select=start_time,end_time,staff_id`;
+    if (state.selectedStaff && state.selectedStaff.id) {
+      query += `&staff_id=eq.${state.selectedStaff.id}`;
+    }
+    const apts = await supaFetch(query);
     state.takenSlots = apts || [];
   } catch { state.takenSlots = []; }
   state.loadingSlots = false;
@@ -223,14 +311,26 @@ async function loadTakenSlots() {
 
 function buildSlots() {
   const dow = state.selectedDate.getDay();
-  const def = [0,1,2,3,4,5,6].map(d=>({day_of_week:d,is_open:d>0&&d<6,start_time:'09:00',end_time:'18:00'}));
-  const cfg = state.hours.find(h=>h.day_of_week===dow) || def[dow];
+
+  // FASE 4: usar horario del staff seleccionado si tiene uno propio
+  let cfg = null;
+  if (state.selectedStaff && state.selectedStaff.hours && state.selectedStaff.hours.length > 0) {
+    const h = state.selectedStaff.hours.find(x => x.day_of_week === dow);
+    if (h) cfg = { is_open: h.is_open, start_time: h.start_time, end_time: h.end_time };
+  }
+
+  if (!cfg) {
+    const def = [0,1,2,3,4,5,6].map(d=>({day_of_week:d,is_open:d>0&&d<6,start_time:'09:00',end_time:'18:00'}));
+    cfg = state.hours.find(h=>h.day_of_week===dow) || def[dow];
+  }
+
   if (!cfg || !cfg.is_open) return null;
-  const [sh,sm]=cfg.start_time.split(':').map(Number);
-  const [eh,em]=cfg.end_time.split(':').map(Number);
+
+  const [sh,sm] = cfg.start_time.split(':').map(Number);
+  const [eh,em] = cfg.end_time.split(':').map(Number);
   const dur = state.selectedService ? Math.ceil(state.selectedService.duration_minutes/30)*30 : 30;
   const now = new Date(), isToday = toDateStr(state.selectedDate)===toDateStr(now);
-  const slots=[];
+  const slots = [];
   for (let t=sh*60+sm; t+dur<=eh*60+em; t+=30) {
     const label=`${Math.floor(t/60).toString().padStart(2,'0')}:${(t%60).toString().padStart(2,'0')}`;
     const taken=state.takenSlots.some(a=>{ const [as,ams]=(a.start_time||'00:00').split(':').map(Number); const [ae,ame]=(a.end_time||'00:00').split(':').map(Number); return t<ae*60+ame && t+dur>as*60+ams; });
@@ -240,16 +340,33 @@ function buildSlots() {
   return slots;
 }
 
-function endTime(start,dur){const[h,m]=start.split(':').map(Number),e=h*60+m+dur;return`${Math.floor(e/60).toString().padStart(2,'0')}:${(e%60).toString().padStart(2,'0')}`;}
+function endTime(start,dur){const[h,m]=start.split(':').map(Number),e=h*60+m+dur;return`${Math.floor(e/60).toString().padStart(2,'0')}:${(e%60).toString().padStart(2,'0')}`; }
 const isBeforeToday=d=>{const t=new Date();t.setHours(0,0,0,0);const c=new Date(d);c.setHours(0,0,0,0);return c<t;};
 
+// ── RENDER ─────────────────────────────────────────────────────────────
 function render() {
   if (state.submitted) { renderSuccess(); return; }
+
   const biz = state.biz;
-  const initials = (biz.business_name||'N').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const bizInitials = (biz.business_name||'N').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const hasStaff = state.staffMembers.length > 0;
+  const staffSelected = state.selectedStaff !== undefined; // undefined=no elegido, null=sin pref, obj=elegido
+
+  // Pasos numerados — FASE 4 inserta el paso 2 si hay staff
+  let stepNum = 1;
+  const s1 = !!state.selectedService;
+  const s2 = hasStaff ? staffSelected : true;          // paso staff (solo si hay staff)
+  const s3 = !!state.selectedSlot;                     // fecha/hora
+  const s4 = state.name.trim() && validatePhone(state.phone); // datos
+
   const slots = buildSlots();
-  const canSubmit = state.selectedService && state.selectedSlot && state.name.trim() && validatePhone(state.phone);
-  const logoHtml = biz.logo_url ? `<img src="${biz.logo_url}" alt="" onerror="this.parentNode.innerHTML='${initials}'" />` : initials;
+  const canSubmit = s1 && s2 && s3 && s4;
+
+  const logoHtml = biz.logo_url
+    ? `<img src="${biz.logo_url}" alt="" onerror="this.parentNode.innerHTML='${bizInitials}'" />`
+    : bizInitials;
+
+  // — SERVICIOS —
   const servicesHtml = state.services.length === 0
     ? `<div style="padding:20px;text-align:center;color:#94A3B8;font-size:14px">Sin servicios publicados aún.</div>`
     : state.services.map(s => {
@@ -261,28 +378,126 @@ function render() {
           ${sel?'<div class="service-check">✓</div>':''}
         </div>`;
       }).join('');
+
+  // — STAFF GRID — (FASE 4)
+  let staffHtml = '';
+  if (hasStaff) {
+    const staffCards = state.staffMembers.map(m => {
+      const sel = state.selectedStaff?.id === m.id;
+      const bg  = hexToRgba(m.color, 0.1);
+      return `<div class="staff-card${sel?' selected':''}" onclick="selectStaff('${m.id}')"
+        style="--staff-color:${m.color};--staff-bg:${bg}">
+        <div class="staff-avatar" style="background:${bg};color:${m.color}">${initials(m.name)}</div>
+        <div class="staff-card-name">${m.name}</div>
+        ${m.role ? `<div class="staff-card-role">${m.role}</div>` : ''}
+        ${sel ? `<div class="staff-check" style="background:${m.color}">✓</div>` : ''}
+      </div>`;
+    }).join('');
+
+    const anySel = state.selectedStaff === null;
+    staffHtml = `
+      <div class="staff-grid">${staffCards}</div>
+      <div class="staff-any${anySel?' selected':''}" onclick="selectStaff(null)">
+        <div class="staff-any-icon">👤</div>
+        <div class="staff-any-info">
+          <div class="staff-any-name">Sin preferencia</div>
+          <div class="staff-any-sub">Cualquier colaborador disponible</div>
+        </div>
+        ${anySel ? '<div class="staff-any-check">✓</div>' : ''}
+      </div>`;
+  }
+
+  // — SLOTS —
   let slotsHtml;
-  if (state.loadingSlots) slotsHtml = `<div class="slots-empty">Cargando horarios...</div>`;
-  else if (!state.selectedService) slotsHtml = `<div class="slots-empty">👆 Selecciona un servicio para ver los horarios disponibles.</div>`;
-  else if (!slots) slotsHtml = `<div class="closed-banner">🚫 Este día el negocio no tiene atención. Selecciona otra fecha.</div>`;
-  else if (slots.length === 0) slotsHtml = `<div class="slots-empty">Sin horarios disponibles este día. Prueba con otra fecha.</div>`;
-  else slotsHtml = `<div class="slots-count">${slots.length} horario${slots.length!==1?'s':''} disponible${slots.length!==1?'s':''}</div><div class="slots-grid">${slots.map(s=>`<div class="slot${state.selectedSlot===s.label?' selected':''}" onclick="selectSlot('${s.label}')">${s.label}</div>`).join('')}</div>`;
-  const summaryHtml = state.selectedService && state.selectedSlot ? `<div class="summary"><div class="summary-row"><span class="summary-key">Servicio</span><span class="summary-val">${state.selectedService.name}</span></div><div class="summary-row"><span class="summary-key">Fecha</span><span class="summary-val">${formatDate(state.selectedDate)}</span></div><div class="summary-row"><span class="summary-key">Hora</span><span class="summary-val">${state.selectedSlot} — ${endTime(state.selectedSlot,state.selectedService.duration_minutes)}</span></div><div class="summary-row"><span class="summary-key">Total</span><span class="summary-price">$${Number(state.selectedService.price).toLocaleString('es-MX')} MXN</span></div></div>` : '';
-  const s1 = !!state.selectedService, s2 = !!state.selectedSlot, s3 = state.name.trim() && validatePhone(state.phone);
+  if (!s1) {
+    slotsHtml = `<div class="slots-empty">👆 Primero selecciona un servicio.</div>`;
+  } else if (hasStaff && !staffSelected) {
+    slotsHtml = `<div class="slots-empty">👥 Elige un colaborador para ver los horarios.</div>`;
+  } else if (state.loadingSlots) {
+    slotsHtml = `<div class="slots-empty">Cargando horarios...</div>`;
+  } else if (!slots) {
+    const who = state.selectedStaff ? state.selectedStaff.name : 'el negocio';
+    slotsHtml = `<div class="closed-banner">🚫 ${who} no tiene atención este día. Selecciona otra fecha.</div>`;
+  } else if (slots.length === 0) {
+    slotsHtml = `<div class="slots-empty">Sin horarios disponibles. Prueba con otra fecha.</div>`;
+  } else {
+    slotsHtml = `<div class="slots-count">${slots.length} horario${slots.length!==1?'s':''} disponible${slots.length!==1?'s':''}</div>
+      <div class="slots-grid">${slots.map(s=>`<div class="slot${state.selectedSlot===s.label?' selected':''}" onclick="selectSlot('${s.label}')">${s.label}</div>`).join('')}</div>`;
+  }
+
+  // — RESUMEN —
+  const summaryHtml = (s1 && s3) ? `
+    <div class="summary">
+      <div class="summary-row"><span class="summary-key">Servicio</span><span class="summary-val">${state.selectedService.name}</span></div>
+      ${state.selectedStaff ? `<div class="summary-row"><span class="summary-key">Con</span><span class="summary-val">${state.selectedStaff.name}</span></div>` : ''}
+      <div class="summary-row"><span class="summary-key">Fecha</span><span class="summary-val">${formatDate(state.selectedDate)}</span></div>
+      <div class="summary-row"><span class="summary-key">Hora</span><span class="summary-val">${state.selectedSlot} — ${endTime(state.selectedSlot,state.selectedService.duration_minutes)}</span></div>
+      <div class="summary-row"><span class="summary-key">Total</span><span class="summary-price">$${Number(state.selectedService.price).toLocaleString('es-MX')} MXN</span></div>
+    </div>` : '';
+
+  // Numeración dinámica de pasos
+  const stepService  = stepNum++;
+  const stepStaff    = hasStaff ? stepNum++ : null;
+  const stepDate     = stepNum++;
+  const stepInfo     = stepNum++;
+
   app.innerHTML = `<div class="container">
-    <div class="biz-header"><div class="biz-logo">${logoHtml}</div><div class="biz-name">${biz.business_name||'Negocio'}</div>${biz.business_type?`<div class="biz-type">${biz.business_type}</div>`:''}<div class="biz-badge"><div class="biz-badge-dot"></div>Acepta citas en línea</div></div>
-    <div class="section-title"><span class="step-badge${s1?' done':''}">1</span>Elige un servicio</div>
+    <div class="biz-header">
+      <div class="biz-logo">${logoHtml}</div>
+      <div class="biz-name">${biz.business_name||'Negocio'}</div>
+      ${biz.business_type?`<div class="biz-type">${biz.business_type}</div>`:''}
+      <div class="biz-badge"><div class="biz-badge-dot"></div>Acepta citas en línea</div>
+    </div>
+
+    <div class="section-title">
+      <span class="step-badge${s1?' done':''">${stepService}</span>Elige un servicio
+    </div>
     <div class="card">${servicesHtml}</div>
-    <div class="section-title"><span class="step-badge${s2?' done':''}">2</span>Elige fecha y hora</div>
-    <div class="card"><div class="date-nav"><button class="date-btn" onclick="changeDate(-1)" ${isBeforeToday(addDays(state.selectedDate,-1))?'disabled':''}>&#8249;</button><span class="date-label">${formatDate(state.selectedDate)}</span><button class="date-btn" onclick="changeDate(1)">&#8250;</button></div>${slotsHtml}</div>
-    <div class="section-title"><span class="step-badge${s3?' done':''}">3</span>Tus datos</div>
+
+    ${hasStaff ? `
+    <div class="section-title">
+      <span class="step-badge${staffSelected?' done':''}">${stepStaff}</span>¿Con quién?
+    </div>
+    <div class="card">${staffHtml}</div>
+    ` : ''}
+
+    <div class="section-title">
+      <span class="step-badge${s3?' done':''">${stepDate}</span>Elige fecha y hora
+      ${state.selectedStaff ? `<span style="font-size:11px;color:#94A3B8;font-weight:500;text-transform:none;letter-spacing:0">con ${state.selectedStaff.name}</span>` : ''}
+    </div>
+    <div class="card">
+      <div class="date-nav">
+        <button class="date-btn" onclick="changeDate(-1)" ${isBeforeToday(addDays(state.selectedDate,-1))?'disabled':''}>&#8249;</button>
+        <span class="date-label">${formatDate(state.selectedDate)}</span>
+        <button class="date-btn" onclick="changeDate(1)">&#8250;</button>
+      </div>
+      ${slotsHtml}
+    </div>
+
+    <div class="section-title">
+      <span class="step-badge${s4?' done':''">${stepInfo}</span>Tus datos
+    </div>
     <div class="card"><div class="form-body">
-      <div class="form-field"><label>Tu nombre *</label><input id="input-name" type="text" placeholder="Ej: María López" value="${state.name}" oninput="updateField('name',this.value)" /></div>
-      <div class="form-field"><label>Tu WhatsApp / teléfono *</label><input id="input-phone" type="tel" placeholder="Ej: 442 123 4567" value="${state.phone}" oninput="updateField('phone',this.value)" onblur="validatePhoneField(this)" /><div id="phone-error" class="field-error">Ingresa un número de teléfono válido (mínimo 7 dígitos)</div></div>
-      <div class="form-field"><label>Notas (opcional)</label><textarea placeholder="Primera vez, tipo de uñas, alergias..." oninput="updateField('notes',this.value)">${state.notes}</textarea></div>
+      <div class="form-field"><label>Tu nombre *</label>
+        <input id="input-name" type="text" placeholder="Ej: María López"
+          value="${state.name}" oninput="updateField('name',this.value)" />
+      </div>
+      <div class="form-field"><label>Tu WhatsApp / teléfono *</label>
+        <input id="input-phone" type="tel" placeholder="Ej: 442 123 4567"
+          value="${state.phone}" oninput="updateField('phone',this.value)" onblur="validatePhoneField(this)" />
+        <div id="phone-error" class="field-error">Ingresa un número de teléfono válido (mínimo 7 dígitos)</div>
+      </div>
+      <div class="form-field"><label>Notas (opcional)</label>
+        <textarea placeholder="Primera vez, tipo de uñas, alergias..." oninput="updateField('notes',this.value)">${state.notes}</textarea>
+      </div>
     </div></div>
+
     ${summaryHtml}
-    <button id="submit-btn" class="submit-btn" onclick="submitBooking()" ${(!canSubmit||state.submitting||state.submitLocked)?'disabled':''}>${state.submitting?'Confirmando tu cita...':'Confirmar cita →'}</button>
+
+    <button id="submit-btn" class="submit-btn" onclick="submitBooking()"
+      ${(!canSubmit||state.submitting||state.submitLocked)?'disabled':''}>
+      ${state.submitting?'Confirmando tu cita...':'Confirmar cita →'}
+    </button>
     <div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div>
   </div>`;
 }
@@ -294,37 +509,128 @@ function validatePhoneField(input) {
   else { input.classList.remove('invalid'); errorEl.classList.remove('visible'); }
 }
 
-async function selectService(id) { state.selectedService=state.services.find(s=>s.id===id)||null; state.selectedSlot=null; state.loadingSlots=true; render(); await loadTakenSlots(); render(); }
-async function changeDate(delta) { const next=addDays(state.selectedDate,delta); if(isBeforeToday(next))return; state.selectedDate=next; state.selectedSlot=null; state.loadingSlots=true; render(); await loadTakenSlots(); render(); }
-function selectSlot(label) { state.selectedSlot=label; render(); setTimeout(()=>{ const els=document.querySelectorAll('.section-title'); if(els[2])els[2].scrollIntoView({behavior:'smooth',block:'start'}); },100); }
+// ── ACCIONES ────────────────────────────────────────────────────────────
+async function selectService(id) {
+  state.selectedService = state.services.find(s=>s.id===id) || null;
+  state.selectedSlot = null;
+  state.loadingSlots = true;
+  render();
+  await loadTakenSlots();
+  render();
+}
+
+// FASE 4: seleccionar staff y recargar horarios/slots con SU disponibilidad
+async function selectStaff(id) {
+  if (id === null) {
+    // Sin preferencia: usar horario del negocio
+    state.selectedStaff = null;
+  } else {
+    const member = state.staffMembers.find(m => m.id === id);
+    if (!member) return;
+    // Cargar horario propio del staff si no lo tiene ya cargado
+    if (!member.hours) {
+      member.hours = await loadStaffHours(id);
+    }
+    state.selectedStaff = member;
+  }
+  // Resetear fecha al próximo día disponible del staff elegido
+  state.selectedDate = findNextOpenDay(new Date());
+  state.selectedSlot = null;
+  state.loadingSlots = true;
+  render();
+  await loadTakenSlots();
+  render();
+  // Scroll suave al paso de fecha
+  setTimeout(() => {
+    const els = document.querySelectorAll('.section-title');
+    const dateStep = state.staffMembers.length > 0 ? 2 : 1;
+    if (els[dateStep]) els[dateStep].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 150);
+}
+
+async function changeDate(delta) {
+  const next = addDays(state.selectedDate, delta);
+  if (isBeforeToday(next)) return;
+  state.selectedDate = next;
+  state.selectedSlot = null;
+  state.loadingSlots = true;
+  render();
+  await loadTakenSlots();
+  render();
+}
+
+function selectSlot(label) {
+  state.selectedSlot = label;
+  render();
+  setTimeout(() => {
+    const els = document.querySelectorAll('.section-title');
+    const infoStep = state.staffMembers.length > 0 ? 3 : 2;
+    if (els[infoStep]) els[infoStep].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+}
 
 async function submitBooking() {
   if (state.submitting || state.submitLocked) return;
-  const { selectedService:svc, selectedSlot:slot, selectedDate:date, name, phone, notes } = state;
+  const { selectedService:svc, selectedStaff:staff, selectedSlot:slot, selectedDate:date, name, phone, notes } = state;
   const slug = getSlug();
   if (!svc||!slot||!name.trim()||!phone.trim()) return;
   if (!validatePhone(phone)) { showError('Por favor ingresa un número de teléfono válido (mínimo 7 dígitos).'); return; }
-  state.submitLocked = true; state.submitting = true; render();
+  state.submitLocked = true;
+  state.submitting = true;
+  render();
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/create-booking-request`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
-      body: JSON.stringify({ slug, clientName:name.trim(), clientPhone:phone.trim(), serviceName:svc.name, serviceId:svc.id, date:toDateStr(date), startTime:slot, endTime:endTime(slot,svc.duration_minutes), serviceCost:svc.price, notes:notes.trim()||null }),
+      body: JSON.stringify({
+        slug,
+        clientName:  name.trim(),
+        clientPhone: phone.trim(),
+        serviceName: svc.name,
+        serviceId:   svc.id,
+        date:        toDateStr(date),
+        startTime:   slot,
+        endTime:     endTime(slot, svc.duration_minutes),
+        serviceCost: svc.price,
+        notes:       notes.trim() || null,
+        // FASE 4: enviar staff_id si hay preferencia específica
+        staff_id:    staff?.id || null,
+      }),
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || `Error ${res.status}`);
-    state.submitted = true; render();
+    state.submitted = true;
+    render();
   } catch(e) {
-    state.submitting = false; state.submitLocked = false; render();
-    showError(e.message); console.error('[VYLTA submit]', e.message);
+    state.submitting = false;
+    state.submitLocked = false;
+    render();
+    showError(e.message);
+    console.error('[VYLTA submit]', e.message);
   }
 }
 
-function renderError(title, desc) { app.innerHTML = `<div class="error-screen"><div class="error-icon">🔍</div><div class="error-title">${title}</div><div class="error-desc">${desc}</div></div>`; }
+function renderError(title, desc) {
+  app.innerHTML = `<div class="error-screen"><div class="error-icon">🔍</div><div class="error-title">${title}</div><div class="error-desc">${desc}</div></div>`;
+}
 
 function renderSuccess() {
-  const { selectedService:svc, selectedSlot:slot, selectedDate:date, name, biz } = state;
-  app.innerHTML = `<div class="success-screen"><div class="success-icon">✅</div><div class="success-title">¡Cita confirmada!</div><div class="success-desc">Tu cita con <strong>${biz.business_name}</strong> está agendada. ¡Te esperamos!</div><div class="success-card"><div class="success-card-row"><span class="success-card-key">Nombre</span><span class="success-card-val">${name}</span></div><div class="success-card-row"><span class="success-card-key">Servicio</span><span class="success-card-val">${svc.name}</span></div><div class="success-card-row"><span class="success-card-key">Fecha</span><span class="success-card-val">${formatDate(date)}</span></div><div class="success-card-row"><span class="success-card-key">Hora</span><span class="success-card-val">${slot} — ${endTime(slot,svc.duration_minutes)}</span></div><div class="success-card-row"><span class="success-card-key">Total</span><span class="success-card-val" style="color:#10B981;font-size:18px">$${Number(svc.price).toLocaleString('es-MX')} MXN</span></div></div>${biz.phone?`<div class="whatsapp-hint">📱 Guarda el número del negocio: <strong>${biz.phone}</strong></div>`:''}<div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div></div>`;
+  const { selectedService:svc, selectedStaff:staff, selectedSlot:slot, selectedDate:date, name, biz } = state;
+  app.innerHTML = `<div class="success-screen">
+    <div class="success-icon">✅</div>
+    <div class="success-title">¡Cita confirmada!</div>
+    <div class="success-desc">Tu cita con <strong>${biz.business_name}</strong> está agendada. ¡Te esperamos!</div>
+    <div class="success-card">
+      <div class="success-card-row"><span class="success-card-key">Nombre</span><span class="success-card-val">${name}</span></div>
+      <div class="success-card-row"><span class="success-card-key">Servicio</span><span class="success-card-val">${svc.name}</span></div>
+      ${staff ? `<div class="success-card-row"><span class="success-card-key">Con</span><span class="success-card-val">${staff.name}</span></div>` : ''}
+      <div class="success-card-row"><span class="success-card-key">Fecha</span><span class="success-card-val">${formatDate(date)}</span></div>
+      <div class="success-card-row"><span class="success-card-key">Hora</span><span class="success-card-val">${slot} — ${endTime(slot,svc.duration_minutes)}</span></div>
+      <div class="success-card-row"><span class="success-card-key">Total</span><span class="success-card-val" style="color:#10B981;font-size:18px">$${Number(svc.price).toLocaleString('es-MX')} MXN</span></div>
+    </div>
+    ${biz.phone ? `<div class="whatsapp-hint">📱 Guarda el número del negocio: <strong>${biz.phone}</strong></div>` : ''}
+    <div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div>
+  </div>`;
 }
 
 init();
