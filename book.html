@@ -98,14 +98,12 @@
     .whatsapp-hint { background: #F0FDF4; border-radius: 12px; padding: 14px 16px; font-size: 13px; color: #10B981; font-weight: 500; max-width: 360px; width: 100%; }
     .powered { text-align: center; padding: 24px; font-size: 12px; color: #CBD5E1; }
     .powered a { font-weight: 700; color: #10B981; text-decoration: none; }
-    .powered a:hover { text-decoration: underline; }
     .error-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 24px; }
     .error-modal { background: #fff; border-radius: 20px; padding: 28px 24px; max-width: 360px; width: 100%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
     .error-modal-icon { font-size: 40px; margin-bottom: 12px; }
     .error-modal-title { font-size: 17px; font-weight: 700; color: #0F172A; margin-bottom: 8px; }
     .error-modal-msg { font-size: 14px; color: #64748B; line-height: 1.6; margin-bottom: 20px; }
     .error-modal-btn { width: 100%; padding: 14px; background: #0F172A; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; }
-    .error-modal-btn:hover { background: #1E293B; }
   </style>
 </head>
 <body>
@@ -114,494 +112,461 @@
 var SUPABASE_URL = 'https://nhjmwmkaduiaifgztymi.supabase.co';
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oam13bWthZHVpYWlmZ3p0eW1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1ODk3MTYsImV4cCI6MjA4ODE2NTcxNn0.p53BZPf6qygAYw29bIJ0bA5VwZ_lRxw-aocV8LuGB1c';
 var app = document.getElementById('app');
+var rendered = false; // true = estructura principal ya existe en DOM
 
 function showError(msg) {
   var prev = document.getElementById('vylta-error-modal');
   if (prev) prev.remove();
-  var overlay = document.createElement('div');
-  overlay.id = 'vylta-error-modal';
-  overlay.className = 'error-modal-overlay';
-  overlay.innerHTML = '<div class="error-modal"><div class="error-modal-icon">&#x26A0;&#xFE0F;</div><div class="error-modal-title">Ocurri&#xF3; un problema</div><div class="error-modal-msg">' + msg + '</div><button class="error-modal-btn" onclick="document.getElementById(\' vylta-error-modal\').remove()">Entendido</button></div>';
-  document.body.appendChild(overlay);
+  var o = document.createElement('div');
+  o.id = 'vylta-error-modal';
+  o.className = 'error-modal-overlay';
+  o.innerHTML = '<div class="error-modal"><div class="error-modal-icon">&#x26A0;</div><div class="error-modal-title">Ocurri&#xF3; un problema</div><div class="error-modal-msg">' + msg + '</div><button class="error-modal-btn" onclick="document.getElementById(\'vylta-error-modal\').remove()">Entendido</button></div>';
+  document.body.appendChild(o);
 }
 
 function supaFetch(path) {
   return fetch(SUPABASE_URL + '/rest/v1/' + path, {
     headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
-  }).then(function(res) {
-    if (!res.ok) return res.text().then(function(b) { throw new Error(res.status + ': ' + b); });
-    return res.json();
+  }).then(function(r) {
+    if (!r.ok) return r.text().then(function(b) { throw new Error(r.status + ': ' + b); });
+    return r.json();
   });
 }
 
 function getSlug() {
-  var parts = window.location.pathname.split('/').filter(Boolean);
-  var path = parts.pop();
-  var query = new URLSearchParams(window.location.search).get('n');
-  return (path && path !== 'book.html') ? path : (query || '');
-}
-
-function formatDate(d) {
-  var str = d.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
-  return str.charAt(0).toUpperCase() + str.slice(1);
+  var path = window.location.pathname.split('/').filter(Boolean).pop();
+  var q = new URLSearchParams(window.location.search).get('n');
+  return (path && path !== 'book.html') ? path : (q || '');
 }
 function toDateStr(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
-function addDays(d, n) { var r = new Date(d); r.setDate(r.getDate() + n); return r; }
-function durationLabel(min) { return min < 60 ? (min + ' min') : min === 60 ? '1 hora' : (Math.floor(min/60) + 'h' + (min%60 > 0 ? ' ' + (min%60) + 'min' : '')); }
-function getInitials(name) { return (name||'?').split(' ').map(function(w){return w[0];}).slice(0,2).join('').toUpperCase(); }
-function hexToRgba(hex, alpha) {
-  var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-  return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+function addDays(d,n) { var r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function isBeforeToday(d) { var t=new Date(); t.setHours(0,0,0,0); var c=new Date(d); c.setHours(0,0,0,0); return c<t; }
+function formatDate(d) { var s=d.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'}); return s.charAt(0).toUpperCase()+s.slice(1); }
+function durationLabel(m) { return m<60?(m+' min'):m===60?'1 hora':(Math.floor(m/60)+'h'+(m%60>0?' '+(m%60)+'min':'')); }
+function getInitials(n) { return (n||'?').split(' ').map(function(w){return w[0];}).slice(0,2).join('').toUpperCase(); }
+function hexToRgba(h,a) { var r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16); return 'rgba('+r+','+g+','+b+','+a+')'; }
+function endTime(s,d) { var p=s.split(':').map(Number),e=p[0]*60+p[1]+d; return String(Math.floor(e/60)).padStart(2,'0')+':'+String(e%60).padStart(2,'0'); }
+function validatePhone(p) { return p.replace(/\D/g,'').length>=7; }
+function setMeta(prop,val) {
+  var el=document.querySelector('meta[property="'+prop+'"]');
+  if(!el){el=document.createElement('meta');el.setAttribute('property',prop);document.head.appendChild(el);}
+  el.setAttribute('content',val);
 }
-
 function serviceIcon(name) {
-  var n = (name||'').toLowerCase();
-  if (/u[\xf1n]a|manicur|gel|acr[\xed]l/.test(n)) return '&#x1F485;';
-  if (/barber|corte|pelo|cabello|color/.test(n))   return '&#x2702;&#xFE0F;';
-  if (/spa|masaje|relax|facial/.test(n))           return '&#x1F486;';
-  if (/dental|diente|odonto/.test(n))              return '&#x1F9B7;';
-  if (/ceja|depilar|cera/.test(n))                 return '&#x2728;';
-  if (/vet|perro|gato|mascota/.test(n))            return '&#x1F43E;';
-  if (/foto|imagen|retra/.test(n))                 return '&#x1F4F8;';
-  if (/makeup|maquilla/.test(n))                   return '&#x1F484;';
-  if (/tatuaje|tattoo|piercing/.test(n))           return '&#x1F58B;&#xFE0F;';
-  if (/consulta|m[e\xe9]dico|doctor/.test(n))      return '&#x1FA7A;';
+  var n=(name||'').toLowerCase();
+  if(/u[\xf1n]a|manicur|gel|acr[\xed]l/.test(n)) return '&#x1F485;';
+  if(/barber|corte|pelo|cabello|color/.test(n))   return '&#x2702;';
+  if(/spa|masaje|relax|facial/.test(n))           return '&#x1F486;';
+  if(/dental|diente|odonto/.test(n))              return '&#x1F9B7;';
+  if(/ceja|depilar|cera/.test(n))                 return '&#x2728;';
+  if(/vet|perro|gato|mascota/.test(n))            return '&#x1F43E;';
+  if(/foto|imagen|retra/.test(n))                 return '&#x1F4F8;';
+  if(/makeup|maquilla/.test(n))                   return '&#x1F484;';
+  if(/tatuaje|tattoo|piercing/.test(n))           return '&#x1F58B;';
+  if(/consulta|m[e\xe9]dico|doctor/.test(n))      return '&#x1FA7A;';
   return '&#x2B50;';
 }
 
-function validatePhone(phone) { return phone.replace(/\D/g,'').length >= 7; }
-function isBeforeToday(d) { var t = new Date(); t.setHours(0,0,0,0); var c = new Date(d); c.setHours(0,0,0,0); return c < t; }
-function endTime(start, dur) {
-  var parts = start.split(':').map(Number);
-  var e = parts[0]*60 + parts[1] + dur;
-  return String(Math.floor(e/60)).padStart(2,'0') + ':' + String(e%60).padStart(2,'0');
-}
-function setMeta(property, content) {
-  var el = document.querySelector('meta[property="' + property + '"]');
-  if (!el) { el = document.createElement('meta'); el.setAttribute('property', property); document.head.appendChild(el); }
-  el.setAttribute('content', content);
-}
-
 var state = {
-  biz: null, services: [], hours: [], staffMembers: [],
-  selectedService: null, selectedDate: new Date(), selectedSlot: null,
-  selectedStaff: undefined,
-  takenSlots: [], loadingSlots: false,
-  name: '', phone: '', notes: '',
-  submitting: false, submitted: false, submitLocked: false
+  biz:null, services:[], hours:[], staffMembers:[],
+  selectedService:null, selectedDate:new Date(), selectedSlot:null,
+  selectedStaff:undefined,
+  takenSlots:[], loadingSlots:false,
+  name:'', phone:'', notes:'',
+  submitting:false, submitted:false, submitLocked:false
 };
 
-function updateField(field, value) { state[field] = value; refreshSubmitBtn(); }
+// Lee los valores actuales de los inputs antes de re-renderizar
+function syncFormFromDOM() {
+  var n=document.getElementById('input-name');
+  var p=document.getElementById('input-phone');
+  var nt=document.getElementById('input-notes');
+  if(n) state.name=n.value;
+  if(p) state.phone=p.value;
+  if(nt) state.notes=nt.value;
+}
+
+function updateField(field,value) { state[field]=value; refreshSubmitBtn(); }
 
 function refreshSubmitBtn() {
-  var btn = document.getElementById('submit-btn');
-  if (!btn) return;
-  var staffOk = state.staffMembers.length === 0 || state.selectedStaff !== undefined;
-  var canSubmit = state.selectedService && staffOk && state.selectedSlot && state.name.trim() && validatePhone(state.phone);
-  btn.disabled = !canSubmit || state.submitting || state.submitLocked;
+  var btn=document.getElementById('submit-btn');
+  if(!btn) return;
+  var staffOk=state.staffMembers.length===0||state.selectedStaff!==undefined;
+  var ok=state.selectedService&&staffOk&&state.selectedSlot&&state.name.trim()&&validatePhone(state.phone);
+  btn.disabled=!ok||state.submitting||state.submitLocked;
+  btn.textContent=state.submitting?'Confirmando tu cita...':'Confirmar cita \u2192';
+  // Actualizar badge paso datos
+  updateStepBadge('step-info', !!(state.name.trim()&&validatePhone(state.phone)));
+}
+
+function updateStepBadge(id, done) {
+  var el=document.getElementById(id);
+  if(!el) return;
+  if(done) el.classList.add('done'); else el.classList.remove('done');
 }
 
 function isStaffOpenOnDay(dow) {
-  if (state.selectedStaff && state.selectedStaff.hours) {
-    var h = state.selectedStaff.hours.find(function(x) { return x.day_of_week === dow; });
-    if (h) return h.is_open;
+  if(state.selectedStaff&&state.selectedStaff.hours) {
+    var h=state.selectedStaff.hours.find(function(x){return x.day_of_week===dow;});
+    if(h) return h.is_open;
   }
-  var cfg = state.hours.find(function(h) { return h.day_of_week === dow; });
-  return cfg ? cfg.is_open : (dow !== 0 && dow !== 6);
+  var c=state.hours.find(function(h){return h.day_of_week===dow;});
+  return c?c.is_open:(dow!==0&&dow!==6);
 }
-
 function findNextOpenDay(from) {
-  var d = new Date(from);
-  for (var i = 0; i < 14; i++) {
-    if (isStaffOpenOnDay(d.getDay())) return d;
-    d = addDays(d, 1);
-  }
+  var d=new Date(from);
+  for(var i=0;i<14;i++){if(isStaffOpenOnDay(d.getDay()))return d;d=addDays(d,1);}
   return from;
 }
-
-function loadStaffHours(staffId) {
-  return supaFetch('staff_hours?staff_id=eq.' + staffId + '&order=day_of_week').catch(function() { return []; });
+function loadStaffHours(id) {
+  return supaFetch('staff_hours?staff_id=eq.'+id+'&order=day_of_week').catch(function(){return[];});
 }
-
 function loadTakenSlots() {
-  state.loadingSlots = true;
-  var query = 'appointments?user_id=eq.' + state.biz.userId + '&date=eq.' + toDateStr(state.selectedDate) + '&status=not.in.(Cancelada,No%20asisti%C3%B3,Rechazada)&select=start_time,end_time,staff_id';
-  if (state.selectedStaff && state.selectedStaff.id) {
-    query += '&staff_id=eq.' + state.selectedStaff.id;
-  }
-  return supaFetch(query).then(function(apts) {
-    state.takenSlots = apts || [];
-    state.loadingSlots = false;
-  }).catch(function() {
-    state.takenSlots = [];
-    state.loadingSlots = false;
-  });
+  state.loadingSlots=true;
+  var q='appointments?user_id=eq.'+state.biz.userId+'&date=eq.'+toDateStr(state.selectedDate)+'&status=not.in.(Cancelada,No%20asisti%C3%B3,Rechazada)&select=start_time,end_time,staff_id';
+  if(state.selectedStaff&&state.selectedStaff.id) q+='&staff_id=eq.'+state.selectedStaff.id;
+  return supaFetch(q).then(function(a){state.takenSlots=a||[];state.loadingSlots=false;}).catch(function(){state.takenSlots=[];state.loadingSlots=false;});
 }
-
 function buildSlots() {
-  var dow = state.selectedDate.getDay();
-  var cfg = null;
-  if (state.selectedStaff && state.selectedStaff.hours && state.selectedStaff.hours.length > 0) {
-    var sh = state.selectedStaff.hours.find(function(x) { return x.day_of_week === dow; });
-    if (sh) cfg = { is_open: sh.is_open, start_time: sh.start_time, end_time: sh.end_time };
+  var dow=state.selectedDate.getDay(),cfg=null;
+  if(state.selectedStaff&&state.selectedStaff.hours&&state.selectedStaff.hours.length>0) {
+    var sh=state.selectedStaff.hours.find(function(x){return x.day_of_week===dow;});
+    if(sh) cfg={is_open:sh.is_open,start_time:sh.start_time,end_time:sh.end_time};
   }
-  if (!cfg) {
-    var def = [0,1,2,3,4,5,6].map(function(d) { return { day_of_week:d, is_open:d>0&&d<6, start_time:'09:00', end_time:'18:00' }; });
-    cfg = state.hours.find(function(h) { return h.day_of_week === dow; }) || def[dow];
+  if(!cfg) {
+    var def=[0,1,2,3,4,5,6].map(function(d){return{day_of_week:d,is_open:d>0&&d<6,start_time:'09:00',end_time:'18:00'};});
+    cfg=state.hours.find(function(h){return h.day_of_week===dow;})||def[dow];
   }
-  if (!cfg || !cfg.is_open) return null;
-  var startParts = cfg.start_time.split(':').map(Number);
-  var endParts = cfg.end_time.split(':').map(Number);
-  var startMin = startParts[0]*60 + startParts[1];
-  var endMin = endParts[0]*60 + endParts[1];
-  var dur = state.selectedService ? Math.ceil(state.selectedService.duration_minutes/30)*30 : 30;
-  var now = new Date();
-  var isToday = toDateStr(state.selectedDate) === toDateStr(now);
-  var slots = [];
-  for (var t = startMin; t + dur <= endMin; t += 30) {
-    var hh = Math.floor(t/60), mm = t%60;
-    var label = String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0');
-    var taken = state.takenSlots.some(function(a) {
-      var ap = (a.start_time||'00:00').split(':').map(Number);
-      var ae = (a.end_time||'00:00').split(':').map(Number);
-      return t < ae[0]*60+ae[1] && t+dur > ap[0]*60+ap[1];
+  if(!cfg||!cfg.is_open) return null;
+  var sp=cfg.start_time.split(':').map(Number),ep=cfg.end_time.split(':').map(Number);
+  var sm=sp[0]*60+sp[1],em=ep[0]*60+ep[1];
+  var dur=state.selectedService?Math.ceil(state.selectedService.duration_minutes/30)*30:30;
+  var now=new Date(),isToday=toDateStr(state.selectedDate)===toDateStr(now),slots=[];
+  for(var t=sm;t+dur<=em;t+=30) {
+    var hh=Math.floor(t/60),mm=t%60;
+    var lbl=String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+    var taken=state.takenSlots.some(function(a){
+      var ap=(a.start_time||'00:00').split(':').map(Number),ae=(a.end_time||'00:00').split(':').map(Number);
+      return t<ae[0]*60+ae[1]&&t+dur>ap[0]*60+ap[1];
     });
-    var past = isToday && (hh < now.getHours() || (hh === now.getHours() && mm <= now.getMinutes()));
-    if (!taken && !past) slots.push(label);
+    var past=isToday&&(hh<now.getHours()||(hh===now.getHours()&&mm<=now.getMinutes()));
+    if(!taken&&!past) slots.push(lbl);
   }
   return slots;
 }
 
+// ── Helpers de HTML parcial ────────────────────────────────────────────
+function buildSlotsHtml(slots, s1, hasStaff, staffSelected) {
+  if(!s1) return '<div class="slots-empty">&#x1F446; Primero selecciona un servicio.</div>';
+  if(hasStaff&&!staffSelected) return '<div class="slots-empty">&#x1F465; Elige un colaborador para ver los horarios.</div>';
+  if(state.loadingSlots) return '<div class="slots-empty">Cargando horarios...</div>';
+  if(!slots) { var who=(state.selectedStaff&&state.selectedStaff.name)?state.selectedStaff.name:'el negocio'; return '<div class="closed-banner">&#x1F6AB; '+who+' no tiene atenci&#xF3;n este d&#xED;a. Selecciona otra fecha.</div>'; }
+  if(slots.length===0) return '<div class="slots-empty">Sin horarios disponibles. Prueba con otra fecha.</div>';
+  var h='<div class="slots-count">'+slots.length+' horario'+(slots.length!==1?'s':'')+' disponible'+(slots.length!==1?'s':'')+'</div><div class="slots-grid">';
+  slots.forEach(function(s){h+='<div class="slot'+(state.selectedSlot===s?' selected':'')+' " onclick="selectSlot(\''+s+'\')" >'+s+'</div>';});
+  return h+'</div>';
+}
+
+function buildSummaryHtml() {
+  if(!state.selectedService||!state.selectedSlot) return '';
+  return '<div class="summary">'+
+    '<div class="summary-row"><span class="summary-key">Servicio</span><span class="summary-val">'+state.selectedService.name+'</span></div>'+
+    (state.selectedStaff?'<div class="summary-row"><span class="summary-key">Con</span><span class="summary-val">'+state.selectedStaff.name+'</span></div>':'')+
+    '<div class="summary-row"><span class="summary-key">Fecha</span><span class="summary-val">'+formatDate(state.selectedDate)+'</span></div>'+
+    '<div class="summary-row"><span class="summary-key">Hora</span><span class="summary-val">'+state.selectedSlot+' &mdash; '+endTime(state.selectedSlot,state.selectedService.duration_minutes)+'</span></div>'+
+    '<div class="summary-row"><span class="summary-key">Total</span><span class="summary-price">$'+Number(state.selectedService.price).toLocaleString('es-MX')+' MXN</span></div>'+
+    '</div>';
+}
+
+// ── RENDER PARCIAL: actualiza solo lo que cambia sin tocar los inputs ──
+function patchRender() {
+  syncFormFromDOM(); // leer valores actuales antes de cualquier cambio
+  var s1=!!state.selectedService;
+  var hasStaff=state.staffMembers.length>0;
+  var staffSelected=state.selectedStaff!==undefined;
+  var slots=buildSlots();
+
+  // 1. Servicios: marcar seleccionado
+  var items=document.querySelectorAll('.service-item');
+  items.forEach(function(el) {
+    var id=el.getAttribute('onclick').replace(/selectService\('(.+)'\)/,'$1');
+    var sel=state.selectedService&&state.selectedService.id===id;
+    if(sel) el.classList.add('selected'); else el.classList.remove('selected');
+    var chk=el.querySelector('.service-check');
+    if(sel&&!chk) { var c=document.createElement('div'); c.className='service-check'; c.innerHTML='&#x2713;'; el.appendChild(c); }
+    else if(!sel&&chk) chk.remove();
+  });
+
+  // 2. Staff: marcar seleccionado
+  var scards=document.querySelectorAll('.staff-card');
+  scards.forEach(function(el) {
+    var id=el.getAttribute('onclick').replace(/selectStaff\('(.+)'\)/,'$1');
+    var m=state.staffMembers.find(function(x){return x.id===id;});
+    if(!m) return;
+    var sel=state.selectedStaff&&state.selectedStaff.id===id;
+    var bg=hexToRgba(m.color,0.1);
+    if(sel){ el.classList.add('selected'); el.style.borderColor=m.color; el.style.background=bg; }
+    else   { el.classList.remove('selected'); el.style.borderColor=''; el.style.background=''; }
+    var chk=el.querySelector('.staff-check');
+    if(sel&&!chk){ var c=document.createElement('div'); c.className='staff-check'; c.style.background=m.color; c.innerHTML='&#x2713;'; el.appendChild(c); }
+    else if(!sel&&chk) chk.remove();
+  });
+  var anyEl=document.querySelector('.staff-any');
+  if(anyEl) {
+    if(state.selectedStaff===null){ anyEl.classList.add('selected'); var ac=anyEl.querySelector('.staff-any-check'); if(!ac){var c=document.createElement('div');c.className='staff-any-check';c.innerHTML='&#x2713;';anyEl.appendChild(c);} }
+    else { anyEl.classList.remove('selected'); var ac2=anyEl.querySelector('.staff-any-check'); if(ac2)ac2.remove(); }
+  }
+
+  // 3. Step badges
+  var s3=!!state.selectedSlot;
+  var s4=!!(state.name.trim()&&validatePhone(state.phone));
+  var badgeIds=['step-svc','step-staff','step-date','step-info'];
+  var badgeVals=[s1,s2,s3,s4];
+  // step-staff solo si hay staff
+  document.getElementById('step-svc') && (s1?document.getElementById('step-svc').classList.add('done'):document.getElementById('step-svc').classList.remove('done'));
+  if(hasStaff&&document.getElementById('step-staff')) { staffSelected?document.getElementById('step-staff').classList.add('done'):document.getElementById('step-staff').classList.remove('done'); }
+  document.getElementById('step-date') && (s3?document.getElementById('step-date').classList.add('done'):document.getElementById('step-date').classList.remove('done'));
+  document.getElementById('step-info') && (s4?document.getElementById('step-info').classList.add('done'):document.getElementById('step-info').classList.remove('done'));
+
+  // 4. Date nav
+  var dateLbl=document.getElementById('date-label');
+  if(dateLbl) dateLbl.textContent=formatDate(state.selectedDate);
+  var prevBtn=document.getElementById('date-prev');
+  if(prevBtn) prevBtn.disabled=isBeforeToday(addDays(state.selectedDate,-1));
+
+  // 5. Slots
+  var slotsWrap=document.getElementById('slots-wrap');
+  if(slotsWrap) slotsWrap.innerHTML=buildSlotsHtml(slots,s1,hasStaff,staffSelected);
+
+  // 6. Resumen
+  var summWrap=document.getElementById('summary-wrap');
+  if(summWrap) summWrap.innerHTML=buildSummaryHtml();
+
+  // 7. Botón submit
+  var btn=document.getElementById('submit-btn');
+  if(btn) {
+    var staffOk=!hasStaff||staffSelected;
+    var canSubmit=s1&&staffOk&&s3&&state.name.trim()&&validatePhone(state.phone);
+    btn.disabled=!canSubmit||state.submitting||state.submitLocked;
+    btn.textContent=state.submitting?'Confirmando tu cita...':'Confirmar cita \u2192';
+  }
+}
+
+// ── RENDER COMPLETO (solo en init y cuando cambia la estructura) ───────
 function render() {
-  if (state.submitted) { renderSuccess(); return; }
-  var biz = state.biz;
-  var bizInit = getInitials(biz.business_name);
-  var hasStaff = state.staffMembers.length > 0;
-  var staffSelected = state.selectedStaff !== undefined;
-  var s1 = !!state.selectedService;
-  var s2 = hasStaff ? staffSelected : true;
-  var s3 = !!state.selectedSlot;
-  var s4 = !!(state.name.trim() && validatePhone(state.phone));
-  var slots = buildSlots();
-  var canSubmit = s1 && s2 && s3 && s4;
-  var stepNum = 1;
-  var stepSvc  = stepNum++;
-  var stepStaff = hasStaff ? stepNum++ : null;
-  var stepDate = stepNum++;
-  var stepInfo = stepNum++;
+  if(state.submitted){renderSuccess();return;}
+  syncFormFromDOM();
+  var biz=state.biz;
+  var bizInit=getInitials(biz.business_name);
+  var hasStaff=state.staffMembers.length>0;
+  var staffSelected=state.selectedStaff!==undefined;
+  var s1=!!state.selectedService,s2=hasStaff?staffSelected:true,s3=!!state.selectedSlot;
+  var s4=!!(state.name.trim()&&validatePhone(state.phone));
+  var slots=buildSlots();
+  var canSubmit=s1&&s2&&s3&&s4;
+  var stepNum=1,stepSvc=stepNum++;
+  var stepStaff=hasStaff?stepNum++:null,stepDate=stepNum++,stepInfo=stepNum++;
 
-  // Logo
-  var logoHtml = bizInit;
-  if (biz.logo_url) {
-    logoHtml = '<img src="' + biz.logo_url + '" alt="" id="biz-logo-img" />';
-  }
+  var logoHtml=biz.logo_url?'<img src="'+biz.logo_url+'" alt="" id="biz-logo-img" />':bizInit;
 
-  // Servicios
-  var servicesHtml = '';
-  if (state.services.length === 0) {
-    servicesHtml = '<div style="padding:20px;text-align:center;color:#94A3B8;font-size:14px">Sin servicios publicados.</div>';
-  } else {
-    state.services.forEach(function(s) {
-      var sel = state.selectedService && state.selectedService.id === s.id;
-      servicesHtml += '<div class="service-item' + (sel?' selected':'') + '" onclick="selectService(\'' + s.id + '\')">' +
-        '<div class="service-icon">' + serviceIcon(s.name) + '</div>' +
-        '<div class="service-info"><div class="service-name">' + s.name + '</div>' +
-        '<div class="service-meta">' + durationLabel(s.duration_minutes) + (s.description ? ' &middot; ' + s.description : '') + '</div></div>' +
-        '<div class="service-price">$' + Number(s.price).toLocaleString('es-MX') + '</div>' +
-        (sel ? '<div class="service-check">&#x2713;</div>' : '') +
-        '</div>';
+  var servHtml='';
+  if(state.services.length===0){servHtml='<div style="padding:20px;text-align:center;color:#94A3B8;font-size:14px">Sin servicios publicados.</div>';}
+  else state.services.forEach(function(s){
+    var sel=state.selectedService&&state.selectedService.id===s.id;
+    servHtml+='<div class="service-item'+(sel?' selected':'')+' " onclick="selectService(\''+s.id+'\')" >'+'<div class="service-icon">'+serviceIcon(s.name)+'</div>'+'<div class="service-info"><div class="service-name">'+s.name+'</div><div class="service-meta">'+durationLabel(s.duration_minutes)+(s.description?' &middot; '+s.description:'')+'</div></div>'+'<div class="service-price">$'+Number(s.price).toLocaleString('es-MX')+'</div>'+(sel?'<div class="service-check">&#x2713;</div>':'')+'</div>';
+  });
+
+  var staffHtml='';
+  if(hasStaff){
+    var cards='';
+    state.staffMembers.forEach(function(m){
+      var sel=state.selectedStaff&&state.selectedStaff.id===m.id;
+      var bg=hexToRgba(m.color,0.1);
+      cards+='<div class="staff-card'+(sel?' selected':'')+' " onclick="selectStaff(\''+m.id+'\')" style="'+(sel?'border-color:'+m.color+';background:'+bg+';':'')+'">'
+        +'<div class="staff-avatar" style="background:'+bg+';color:'+m.color+';'+(sel?'border-color:'+m.color+';':'')+'">'+getInitials(m.name)+'</div>'
+        +'<div class="staff-card-name">'+m.name+'</div>'
+        +(m.role?'<div class="staff-card-role">'+m.role+'</div>':'')
+        +(sel?'<div class="staff-check" style="background:'+m.color+'">&#x2713;</div>':'')
+        +'</div>';
     });
+    var anySel=state.selectedStaff===null;
+    staffHtml='<div class="section-title"><span class="step-badge'+(staffSelected?' done':'')+' " id="step-staff">'+stepStaff+'</span>&#xBF;Con qui&#xE9;n?</div>'
+      +'<div class="card"><div class="staff-grid">'+cards+'</div>'
+      +'<div class="staff-any'+(anySel?' selected':'')+' " onclick="selectStaff(null)">'
+      +'<div class="staff-any-icon">&#x1F464;</div>'
+      +'<div class="staff-any-info"><div class="staff-any-name">Sin preferencia</div><div class="staff-any-sub">Cualquier colaborador disponible</div></div>'
+      +(anySel?'<div class="staff-any-check">&#x2713;</div>':'')
+      +'</div></div>';
   }
 
-  // Staff
-  var staffSectionHtml = '';
-  if (hasStaff) {
-    var staffCards = '';
-    state.staffMembers.forEach(function(m) {
-      var sel = state.selectedStaff && state.selectedStaff.id === m.id;
-      var bg = hexToRgba(m.color, 0.1);
-      staffCards += '<div class="staff-card' + (sel?' selected':'') + '" onclick="selectStaff(\'' + m.id + '\')" ' +
-        'style="' + (sel ? 'border-color:' + m.color + ';background:' + bg + ';' : '') + '">' +
-        '<div class="staff-avatar" style="background:' + bg + ';color:' + m.color + ';' + (sel?'border-color:'+m.color+';':'') + '">' + getInitials(m.name) + '</div>' +
-        '<div class="staff-card-name">' + m.name + '</div>' +
-        (m.role ? '<div class="staff-card-role">' + m.role + '</div>' : '') +
-        (sel ? '<div class="staff-check" style="background:' + m.color + '">&#x2713;</div>' : '') +
-        '</div>';
-    });
-    var anySel = state.selectedStaff === null;
-    staffSectionHtml = '<div class="section-title"><span class="step-badge' + (s2?' done':'') + '">' + stepStaff + '</span>&#xBF;Con qui&#xE9;n?</div>' +
-      '<div class="card"><div class="staff-grid">' + staffCards + '</div>' +
-      '<div class="staff-any' + (anySel?' selected':'') + '" onclick="selectStaff(null)">' +
-      '<div class="staff-any-icon">&#x1F464;</div>' +
-      '<div class="staff-any-info"><div class="staff-any-name">Sin preferencia</div><div class="staff-any-sub">Cualquier colaborador disponible</div></div>' +
-      (anySel ? '<div class="staff-any-check">&#x2713;</div>' : '') +
-      '</div></div>';
-  }
+  var dateExtra=state.selectedStaff&&state.selectedStaff.name?' &nbsp;<span style="font-size:11px;color:#94A3B8;font-weight:500;text-transform:none;letter-spacing:0">con '+state.selectedStaff.name+'</span>':'';
 
-  // Slots
-  var slotsHtml = '';
-  if (!s1) {
-    slotsHtml = '<div class="slots-empty">&#x1F446; Primero selecciona un servicio.</div>';
-  } else if (hasStaff && !staffSelected) {
-    slotsHtml = '<div class="slots-empty">&#x1F465; Elige un colaborador para ver los horarios.</div>';
-  } else if (state.loadingSlots) {
-    slotsHtml = '<div class="slots-empty">Cargando horarios...</div>';
-  } else if (!slots) {
-    var who = (state.selectedStaff && state.selectedStaff.name) ? state.selectedStaff.name : 'el negocio';
-    slotsHtml = '<div class="closed-banner">&#x1F6AB; ' + who + ' no tiene atenci&#xF3;n este d&#xED;a. Selecciona otra fecha.</div>';
-  } else if (slots.length === 0) {
-    slotsHtml = '<div class="slots-empty">Sin horarios disponibles. Prueba con otra fecha.</div>';
-  } else {
-    slotsHtml = '<div class="slots-count">' + slots.length + ' horario' + (slots.length!==1?'s':'') + ' disponible' + (slots.length!==1?'s':'') + '</div><div class="slots-grid">';
-    slots.forEach(function(s) {
-      slotsHtml += '<div class="slot' + (state.selectedSlot===s?' selected':'') + '" onclick="selectSlot(\'' + s + '\')">' + s + '</div>';
-    });
-    slotsHtml += '</div>';
-  }
+  var html='<div class="container">';
+  html+='<div class="biz-header"><div class="biz-logo" id="biz-logo-wrap">'+logoHtml+'</div><div class="biz-name">'+(biz.business_name||'Negocio')+'</div>'+(biz.business_type?'<div class="biz-type">'+biz.business_type+'</div>':'')+'<div class="biz-badge"><div class="biz-badge-dot"></div>Acepta citas en l&#xED;nea</div></div>';
+  html+='<div class="section-title"><span class="step-badge'+(s1?' done':'')+' " id="step-svc">'+stepSvc+'</span>Elige un servicio</div>';
+  html+='<div class="card">'+servHtml+'</div>';
+  html+=staffHtml;
+  html+='<div class="section-title"><span class="step-badge'+(s3?' done':'')+' " id="step-date">'+stepDate+'</span>Elige fecha y hora'+dateExtra+'</div>';
+  html+='<div class="card"><div class="date-nav">'+'<button class="date-btn" id="date-prev" onclick="changeDate(-1)"'+(isBeforeToday(addDays(state.selectedDate,-1))?' disabled':'')+'>&#8249;</button><span class="date-label" id="date-label">'+formatDate(state.selectedDate)+'</span><button class="date-btn" onclick="changeDate(1)">&#8250;</button></div><div id="slots-wrap">'+buildSlotsHtml(slots,s1,hasStaff,staffSelected)+'</div></div>';
+  html+='<div class="section-title"><span class="step-badge'+(s4?' done':'')+' " id="step-info">'+stepInfo+'</span>Tus datos</div>';
+  // FIX: inputs usan oninput para actualizar state SIN re-render
+  html+='<div class="card"><div class="form-body">'
+    +'<div class="form-field"><label>Tu nombre *</label><input id="input-name" type="text" placeholder="Ej: Mar&#xED;a L&#xF3;pez" value="'+state.name.replace(/"/g,'&quot;')+'" oninput="updateField(\'name\',this.value)" /></div>'
+    +'<div class="form-field"><label>Tu WhatsApp / tel&#xE9;fono *</label><input id="input-phone" type="tel" placeholder="Ej: 442 123 4567" value="'+state.phone.replace(/"/g,'&quot;')+'" oninput="updateField(\'phone\',this.value)" onblur="validatePhoneField(this)" /><div id="phone-error" class="field-error">Ingresa un n&#xFA;mero v&#xE1;lido (m&#xED;n. 7 d&#xED;gitos)</div></div>'
+    +'<div class="form-field"><label>Notas (opcional)</label><textarea id="input-notes" placeholder="Primera vez, tipo de u&#xF1;as, alergias..." oninput="updateField(\'notes\',this.value)">'+state.notes+'</textarea></div>'
+    +'</div></div>';
+  html+='<div id="summary-wrap">'+buildSummaryHtml()+'</div>';
+  html+='<button id="submit-btn" class="submit-btn" onclick="submitBooking()"'+(!canSubmit||state.submitting||state.submitLocked?' disabled':'')+'>'+(state.submitting?'Confirmando tu cita...':'Confirmar cita &#x2192;')+'</button>';
+  html+='<div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div>';
+  html+='</div>';
+  app.innerHTML=html;
+  rendered=true;
 
-  // Resumen
-  var summaryHtml = '';
-  if (s1 && s3) {
-    summaryHtml = '<div class="summary">' +
-      '<div class="summary-row"><span class="summary-key">Servicio</span><span class="summary-val">' + state.selectedService.name + '</span></div>' +
-      (state.selectedStaff ? '<div class="summary-row"><span class="summary-key">Con</span><span class="summary-val">' + state.selectedStaff.name + '</span></div>' : '') +
-      '<div class="summary-row"><span class="summary-key">Fecha</span><span class="summary-val">' + formatDate(state.selectedDate) + '</span></div>' +
-      '<div class="summary-row"><span class="summary-key">Hora</span><span class="summary-val">' + state.selectedSlot + ' &mdash; ' + endTime(state.selectedSlot, state.selectedService.duration_minutes) + '</span></div>' +
-      '<div class="summary-row"><span class="summary-key">Total</span><span class="summary-price">$' + Number(state.selectedService.price).toLocaleString('es-MX') + ' MXN</span></div>' +
-      '</div>';
-  }
-
-  var dateTitle = 'Elige fecha y hora';
-  if (state.selectedStaff && state.selectedStaff.name) {
-    dateTitle += ' &nbsp;<span style="font-size:11px;color:#94A3B8;font-weight:500;text-transform:none;letter-spacing:0">con ' + state.selectedStaff.name + '</span>';
-  }
-
-  var html = '<div class="container">';
-  html += '<div class="biz-header"><div class="biz-logo" id="biz-logo-wrap">' + logoHtml + '</div>' +
-    '<div class="biz-name">' + (biz.business_name||'Negocio') + '</div>' +
-    (biz.business_type ? '<div class="biz-type">' + biz.business_type + '</div>' : '') +
-    '<div class="biz-badge"><div class="biz-badge-dot"></div>Acepta citas en l&#xED;nea</div></div>';
-
-  html += '<div class="section-title"><span class="step-badge' + (s1?' done':'') + '">' + stepSvc + '</span>Elige un servicio</div>';
-  html += '<div class="card">' + servicesHtml + '</div>';
-  html += staffSectionHtml;
-  html += '<div class="section-title"><span class="step-badge' + (s3?' done':'') + '">' + stepDate + '</span>' + dateTitle + '</div>';
-  html += '<div class="card"><div class="date-nav">' +
-    '<button class="date-btn" onclick="changeDate(-1)"' + (isBeforeToday(addDays(state.selectedDate,-1)) ? ' disabled' : '') + '>&#8249;</button>' +
-    '<span class="date-label">' + formatDate(state.selectedDate) + '</span>' +
-    '<button class="date-btn" onclick="changeDate(1)">&#8250;</button>' +
-    '</div>' + slotsHtml + '</div>';
-  html += '<div class="section-title"><span class="step-badge' + (s4?' done':'') + '">' + stepInfo + '</span>Tus datos</div>';
-  html += '<div class="card"><div class="form-body">' +
-    '<div class="form-field"><label>Tu nombre *</label><input id="input-name" type="text" placeholder="Ej: Mar&#xED;a L&#xF3;pez" value="' + state.name.replace(/"/g,'&quot;') + '" oninput="updateField(\' name\',this.value)" /></div>' +
-    '<div class="form-field"><label>Tu WhatsApp / tel&#xE9;fono *</label><input id="input-phone" type="tel" placeholder="Ej: 442 123 4567" value="' + state.phone.replace(/"/g,'&quot;') + '" oninput="updateField(\'phone\',this.value)" onblur="validatePhoneField(this)" /><div id="phone-error" class="field-error">Ingresa un n&#xFA;mero de tel&#xE9;fono v&#xE1;lido (m&#xED;nimo 7 d&#xED;gitos)</div></div>' +
-    '<div class="form-field"><label>Notas (opcional)</label><textarea placeholder="Primera vez, tipo de u&#xF1;as, alergias..." oninput="updateField(\'notes\',this.value)">' + state.notes + '</textarea></div>' +
-    '</div></div>';
-  html += summaryHtml;
-  html += '<button id="submit-btn" class="submit-btn" onclick="submitBooking()"' + ((!canSubmit||state.submitting||state.submitLocked)?' disabled':'') + '>' + (state.submitting ? 'Confirmando tu cita...' : 'Confirmar cita &rarr;') + '</button>';
-  html += '<div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div>';
-  html += '</div>';
-  app.innerHTML = html;
-
-  // Fallback logo si falla la imagen
-  if (biz.logo_url) {
-    var img = document.getElementById('biz-logo-img');
-    if (img) img.onerror = function() {
-      var wrap = document.getElementById('biz-logo-wrap');
-      if (wrap) wrap.innerHTML = bizInit;
-    };
+  if(biz.logo_url){
+    var img=document.getElementById('biz-logo-img');
+    if(img) img.onerror=function(){var w=document.getElementById('biz-logo-wrap');if(w)w.innerHTML=bizInit;};
   }
 }
 
 function validatePhoneField(input) {
-  var errorEl = document.getElementById('phone-error');
-  if (!errorEl) return;
-  if (input.value.trim() && !validatePhone(input.value)) { input.classList.add('invalid'); errorEl.classList.add('visible'); }
-  else { input.classList.remove('invalid'); errorEl.classList.remove('visible'); }
+  var e=document.getElementById('phone-error'); if(!e) return;
+  if(input.value.trim()&&!validatePhone(input.value)){input.classList.add('invalid');e.classList.add('visible');}
+  else{input.classList.remove('invalid');e.classList.remove('visible');}
 }
 
+// ── ACCIONES: usan patchRender en lugar de render para no borrar inputs ─
 function selectService(id) {
-  state.selectedService = state.services.find(function(s){return s.id===id;}) || null;
-  state.selectedSlot = null;
-  state.loadingSlots = true;
-  render();
-  loadTakenSlots().then(render);
+  syncFormFromDOM();
+  state.selectedService=state.services.find(function(s){return s.id===id;})||null;
+  state.selectedSlot=null;
+  state.loadingSlots=true;
+  patchRender();
+  loadTakenSlots().then(patchRender);
 }
 
 function selectStaff(id) {
-  if (id === null) {
-    state.selectedStaff = null;
-    state.selectedDate = findNextOpenDay(new Date());
-    state.selectedSlot = null;
-    state.loadingSlots = true;
-    render();
-    loadTakenSlots().then(function() {
-      render();
-      setTimeout(function() {
-        var els = document.querySelectorAll('.section-title');
-        var idx = state.staffMembers.length > 0 ? 2 : 1;
-        if (els[idx]) els[idx].scrollIntoView({ behavior:'smooth', block:'start' });
-      }, 150);
+  syncFormFromDOM();
+  var doSelect=function(member) {
+    state.selectedStaff=member;
+    state.selectedDate=findNextOpenDay(new Date());
+    state.selectedSlot=null;
+    state.loadingSlots=true;
+    patchRender();
+    loadTakenSlots().then(function(){
+      patchRender();
+      setTimeout(function(){
+        var els=document.querySelectorAll('.section-title');
+        var idx=state.staffMembers.length>0?2:1;
+        if(els[idx])els[idx].scrollIntoView({behavior:'smooth',block:'start'});
+      },150);
     });
-  } else {
-    var member = state.staffMembers.find(function(m){ return m.id === id; });
-    if (!member) return;
-    if (member.hours) {
-      state.selectedStaff = member;
-      state.selectedDate = findNextOpenDay(new Date());
-      state.selectedSlot = null;
-      state.loadingSlots = true;
-      render();
-      loadTakenSlots().then(function() {
-        render();
-        setTimeout(function() {
-          var els = document.querySelectorAll('.section-title');
-          var idx = state.staffMembers.length > 0 ? 2 : 1;
-          if (els[idx]) els[idx].scrollIntoView({ behavior:'smooth', block:'start' });
-        }, 150);
-      });
-    } else {
-      loadStaffHours(id).then(function(hours) {
-        member.hours = hours;
-        state.selectedStaff = member;
-        state.selectedDate = findNextOpenDay(new Date());
-        state.selectedSlot = null;
-        state.loadingSlots = true;
-        render();
-        return loadTakenSlots();
-      }).then(function() {
-        render();
-        setTimeout(function() {
-          var els = document.querySelectorAll('.section-title');
-          var idx = state.staffMembers.length > 0 ? 2 : 1;
-          if (els[idx]) els[idx].scrollIntoView({ behavior:'smooth', block:'start' });
-        }, 150);
-      });
-    }
-  }
+  };
+  if(id===null){doSelect(null);return;}
+  var member=state.staffMembers.find(function(m){return m.id===id;});
+  if(!member) return;
+  if(member.hours){doSelect(member);return;}
+  loadStaffHours(id).then(function(hours){member.hours=hours;doSelect(member);});
 }
 
 function changeDate(delta) {
-  var next = addDays(state.selectedDate, delta);
-  if (isBeforeToday(next)) return;
-  state.selectedDate = next;
-  state.selectedSlot = null;
-  state.loadingSlots = true;
-  render();
-  loadTakenSlots().then(render);
+  syncFormFromDOM();
+  var next=addDays(state.selectedDate,delta);
+  if(isBeforeToday(next)) return;
+  state.selectedDate=next;
+  state.selectedSlot=null;
+  state.loadingSlots=true;
+  patchRender();
+  loadTakenSlots().then(patchRender);
 }
 
 function selectSlot(label) {
-  state.selectedSlot = label;
-  render();
-  setTimeout(function() {
-    var els = document.querySelectorAll('.section-title');
-    var idx = state.staffMembers.length > 0 ? 3 : 2;
-    if (els[idx]) els[idx].scrollIntoView({ behavior:'smooth', block:'start' });
-  }, 100);
+  syncFormFromDOM();
+  state.selectedSlot=label;
+  patchRender();
+  setTimeout(function(){
+    var els=document.querySelectorAll('.section-title');
+    var idx=state.staffMembers.length>0?3:2;
+    if(els[idx])els[idx].scrollIntoView({behavior:'smooth',block:'start'});
+  },100);
 }
 
 function submitBooking() {
-  if (state.submitting || state.submitLocked) return;
-  var svc = state.selectedService, staff = state.selectedStaff, slot = state.selectedSlot;
-  var date = state.selectedDate, name = state.name, phone = state.phone, notes = state.notes;
-  var slug = getSlug();
-  if (!svc||!slot||!name.trim()||!phone.trim()) return;
-  if (!validatePhone(phone)) { showError('Por favor ingresa un n&#xFA;mero de tel&#xE9;fono v&#xE1;lido (m&#xED;nimo 7 d&#xED;gitos).'); return; }
-  state.submitLocked = true;
-  state.submitting = true;
-  render();
-  fetch(SUPABASE_URL + '/functions/v1/create-booking-request', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
-    body: JSON.stringify({
-      slug: slug,
-      clientName:  name.trim(),
-      clientPhone: phone.trim(),
-      serviceName: svc.name,
-      serviceId:   svc.id,
-      date:        toDateStr(date),
-      startTime:   slot,
-      endTime:     endTime(slot, svc.duration_minutes),
-      serviceCost: svc.price,
-      notes:       notes.trim() || null,
-      staff_id:    (staff && staff.id) ? staff.id : null
-    })
-  }).then(function(res) {
-    return res.json().then(function(data) {
-      if (!res.ok || data.error) throw new Error(data.error || ('Error ' + res.status));
-      state.submitted = true;
-      render();
-    });
-  }).catch(function(e) {
-    state.submitting = false;
-    state.submitLocked = false;
-    render();
-    showError(e.message);
+  if(state.submitting||state.submitLocked) return;
+  syncFormFromDOM();
+  var svc=state.selectedService,staff=state.selectedStaff,slot=state.selectedSlot;
+  var date=state.selectedDate,name=state.name,phone=state.phone,notes=state.notes;
+  if(!svc||!slot||!name.trim()||!phone.trim()) return;
+  if(!validatePhone(phone)){showError('Ingresa un n&#xFA;mero de tel&#xE9;fono v&#xE1;lido (m&#xED;n. 7 d&#xED;gitos).');return;}
+  state.submitLocked=true;state.submitting=true;patchRender();
+  fetch(SUPABASE_URL+'/functions/v1/create-booking-request',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY},
+    body:JSON.stringify({slug:getSlug(),clientName:name.trim(),clientPhone:phone.trim(),serviceName:svc.name,serviceId:svc.id,date:toDateStr(date),startTime:slot,endTime:endTime(slot,svc.duration_minutes),serviceCost:svc.price,notes:notes.trim()||null,staff_id:(staff&&staff.id)?staff.id:null})
+  }).then(function(r){return r.json().then(function(d){
+    if(!r.ok||d.error) throw new Error(d.error||'Error '+r.status);
+    state.submitted=true;render();
+  });}).catch(function(e){
+    state.submitting=false;state.submitLocked=false;patchRender();showError(e.message);
   });
 }
 
-function renderError(title, desc) {
-  app.innerHTML = '<div class="error-screen"><div class="error-icon">&#x1F50D;</div><div class="error-title">' + title + '</div><div class="error-desc">' + desc + '</div></div>';
+function renderError(title,desc){
+  app.innerHTML='<div class="error-screen"><div class="error-icon">&#x1F50D;</div><div class="error-title">'+title+'</div><div class="error-desc">'+desc+'</div></div>';
 }
 
-function renderSuccess() {
-  var svc = state.selectedService, staff = state.selectedStaff;
-  var slot = state.selectedSlot, date = state.selectedDate;
-  var name = state.name, biz = state.biz;
-  var html = '<div class="success-screen">' +
-    '<div class="success-icon">&#x2705;</div>' +
-    '<div class="success-title">&#xA1;Cita confirmada!</div>' +
-    '<div class="success-desc">Tu cita con <strong>' + biz.business_name + '</strong> est&#xE1; agendada. &#xA1;Te esperamos!</div>' +
-    '<div class="success-card">' +
-    '<div class="success-card-row"><span class="success-card-key">Nombre</span><span class="success-card-val">' + name + '</span></div>' +
-    '<div class="success-card-row"><span class="success-card-key">Servicio</span><span class="success-card-val">' + svc.name + '</span></div>' +
-    (staff ? '<div class="success-card-row"><span class="success-card-key">Con</span><span class="success-card-val">' + staff.name + '</span></div>' : '') +
-    '<div class="success-card-row"><span class="success-card-key">Fecha</span><span class="success-card-val">' + formatDate(date) + '</span></div>' +
-    '<div class="success-card-row"><span class="success-card-key">Hora</span><span class="success-card-val">' + slot + ' &mdash; ' + endTime(slot, svc.duration_minutes) + '</span></div>' +
-    '<div class="success-card-row"><span class="success-card-key">Total</span><span class="success-card-val" style="color:#10B981;font-size:18px">$' + Number(svc.price).toLocaleString('es-MX') + ' MXN</span></div>' +
-    '</div>' +
-    (biz.phone ? '<div class="whatsapp-hint">&#x1F4F1; Guarda el n&#xFA;mero del negocio: <strong>' + biz.phone + '</strong></div>' : '') +
-    '<div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div>' +
-    '</div>';
-  app.innerHTML = html;
+function renderSuccess(){
+  var svc=state.selectedService,staff=state.selectedStaff,slot=state.selectedSlot,date=state.selectedDate,name=state.name,biz=state.biz;
+  app.innerHTML='<div class="success-screen">'
+    +'<div class="success-icon">&#x2705;</div>'
+    +'<div class="success-title">&#xA1;Cita confirmada!</div>'
+    +'<div class="success-desc">Tu cita con <strong>'+biz.business_name+'</strong> est&#xE1; agendada. &#xA1;Te esperamos!</div>'
+    +'<div class="success-card">'
+    +'<div class="success-card-row"><span class="success-card-key">Nombre</span><span class="success-card-val">'+name+'</span></div>'
+    +'<div class="success-card-row"><span class="success-card-key">Servicio</span><span class="success-card-val">'+svc.name+'</span></div>'
+    +(staff?'<div class="success-card-row"><span class="success-card-key">Con</span><span class="success-card-val">'+staff.name+'</span></div>':'')
+    +'<div class="success-card-row"><span class="success-card-key">Fecha</span><span class="success-card-val">'+formatDate(date)+'</span></div>'
+    +'<div class="success-card-row"><span class="success-card-key">Hora</span><span class="success-card-val">'+slot+' &mdash; '+endTime(slot,svc.duration_minutes)+'</span></div>'
+    +'<div class="success-card-row"><span class="success-card-key">Total</span><span class="success-card-val" style="color:#10B981;font-size:18px">$'+Number(svc.price).toLocaleString('es-MX')+' MXN</span></div>'
+    +'</div>'
+    +(biz.phone?'<div class="whatsapp-hint">&#x1F4F1; Guarda el n&#xFA;mero del negocio: <strong>'+biz.phone+'</strong></div>':'')
+    +'<div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div>'
+    +'</div>';
 }
 
-function init() {
-  var slug = getSlug();
-  if (!slug) { renderError('Link inv&#xE1;lido', 'Este enlace no tiene un negocio asociado.'); return; }
-  supaFetch('booking_links?slug=eq.' + encodeURIComponent(slug) + '&is_active=eq.true&select=id,user_id,require_approval,whatsapp_confirmation')
-  .then(function(links) {
-    if (!links || links.length === 0) { renderError('Negocio no encontrado', 'El enlace no est&#xE1; activo o no existe.'); return; }
-    var link = links[0];
-    return supaFetch('business_profiles?user_id=eq.' + link.user_id + '&select=business_name,business_type,logo_url,phone')
-    .then(function(profiles) {
-      var profile = (profiles && profiles[0]) || {};
-      state.biz = { business_name: profile.business_name, business_type: profile.business_type, logo_url: profile.logo_url, phone: profile.phone, linkId: link.id, userId: link.user_id, requireApproval: link.require_approval, whatsappConfirmation: link.whatsapp_confirmation };
-      var bizName = profile.business_name || 'Negocio';
-      document.title = 'Agendar cita &middot; ' + bizName;
-      setMeta('og:title', 'Agenda tu cita en ' + bizName);
-      setMeta('og:description', 'Reserva tu cita online con ' + bizName + '. Elige servicio, fecha y hora f&#xE1;cilmente.');
-      if (profile.logo_url) setMeta('og:image', profile.logo_url);
+function init(){
+  var slug=getSlug();
+  if(!slug){renderError('Link inv&#xE1;lido','Este enlace no tiene un negocio asociado.');return;}
+  supaFetch('booking_links?slug=eq.'+encodeURIComponent(slug)+'&is_active=eq.true&select=id,user_id,require_approval,whatsapp_confirmation')
+  .then(function(links){
+    if(!links||links.length===0){renderError('Negocio no encontrado','El enlace no est&#xE1; activo o no existe.');return null;}
+    var link=links[0];
+    return supaFetch('business_profiles?user_id=eq.'+link.user_id+'&select=business_name,business_type,logo_url,phone')
+    .then(function(profiles){
+      var p=(profiles&&profiles[0])||{};
+      state.biz={business_name:p.business_name,business_type:p.business_type,logo_url:p.logo_url,phone:p.phone,linkId:link.id,userId:link.user_id,requireApproval:link.require_approval,whatsappConfirmation:link.whatsapp_confirmation};
+      document.title='Agendar cita · '+(p.business_name||'Negocio');
+      setMeta('og:title','Agenda tu cita en '+(p.business_name||'Negocio'));
+      setMeta('og:description','Reserva tu cita online con '+(p.business_name||'Negocio')+'.');
+      if(p.logo_url) setMeta('og:image',p.logo_url);
       return Promise.all([
-        supaFetch('services?user_id=eq.' + link.user_id + '&is_active=eq.true&order=name'),
-        supaFetch('business_hours?user_id=eq.' + link.user_id + '&order=day_of_week'),
-        supaFetch('staff_members?user_id=eq.' + link.user_id + '&is_active=eq.true&order=sort_order&select=id,name,role,color')
+        supaFetch('services?user_id=eq.'+link.user_id+'&is_active=eq.true&order=name'),
+        supaFetch('business_hours?user_id=eq.'+link.user_id+'&order=day_of_week'),
+        supaFetch('staff_members?user_id=eq.'+link.user_id+'&is_active=eq.true&order=sort_order&select=id,name,role,color')
       ]);
     });
-  }).then(function(results) {
-    if (!results) return;
-    state.services     = results[0] || [];
-    state.hours        = results[1] || [];
-    state.staffMembers = results[2] || [];
-    if (state.staffMembers.length > 0) state.selectedStaff = undefined;
-    state.selectedDate = findNextOpenDay(new Date());
+  }).then(function(results){
+    if(!results) return;
+    state.services=results[0]||[];
+    state.hours=results[1]||[];
+    state.staffMembers=results[2]||[];
+    if(state.staffMembers.length>0) state.selectedStaff=undefined;
+    state.selectedDate=findNextOpenDay(new Date());
     return loadTakenSlots();
-  }).then(function() {
-    render();
-  }).catch(function(e) {
-    console.error('[VYLTA]', e);
-    renderError('Error de conexi&#xF3;n', 'No pudimos cargar la informaci&#xF3;n. ' + e.message);
+  }).then(function(){
+    if(state.biz) render(); // render completo solo al inicio
+  }).catch(function(e){
+    console.error('[VYLTA]',e);
+    renderError('Error de conexi&#xF3;n','No pudimos cargar la informaci&#xF3;n. '+e.message);
   });
 }
 
