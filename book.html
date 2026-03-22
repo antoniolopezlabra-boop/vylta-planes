@@ -115,22 +115,21 @@ var SUPABASE_URL = 'https://nhjmwmkaduiaifgztymi.supabase.co';
 var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oam13bWthZHVpYWlmZ3p0eW1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1ODk3MTYsImV4cCI6MjA4ODE2NTcxNn0.p53BZPf6qygAYw29bIJ0bA5VwZ_lRxw-aocV8LuGB1c';
 var app = document.getElementById('app');
 
-// ── Estado global ─────────────────────────────────────────────────────────
 var S = {
   biz: null, services: [], hours: [], staffMembers: [],
   selectedService: null, selectedDate: new Date(), selectedSlot: null,
-  selectedStaff: undefined, // undefined=no elegido aun, null=sin pref, obj=elegido
+  selectedStaff: undefined,
   takenSlots: [], loadingSlots: false,
   name: '', phone: '', notes: '',
   submitting: false, submitted: false, submitLocked: false
 };
 
-// ── Utilidades ─────────────────────────────────────────────────────────────
+// ── Utilidades ─────────────────────────────────────────────────────────
 function supaFetch(path) {
   return fetch(SUPABASE_URL + '/rest/v1/' + path, {
     headers: { 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY }
   }).then(function(r) {
-    if (!r.ok) return r.text().then(function(b) { throw new Error(r.status + ': ' + b); });
+    if (!r.ok) return r.text().then(function(b){ throw new Error(r.status+': '+b); });
     return r.json();
   });
 }
@@ -143,17 +142,17 @@ function fmtDate(d) {
   var s = d.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
-function toDateStr(d) { return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
+function toDateStr(d) { return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
 function pad(n) { return String(n).padStart(2,'0'); }
-function addDays(d, n) { var r = new Date(d); r.setDate(r.getDate()+n); return r; }
-function durLabel(min) { return min<60 ? min+' min' : min===60 ? '1 hora' : Math.floor(min/60)+'h'+(min%60?(' '+min%60+'min'):''); }
-function initials(name) { return (name||'?').split(' ').map(function(w){return w[0];}).slice(0,2).join('').toUpperCase(); }
-function hexRgba(hex, a) {
-  var r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+function addDays(d,n) { var r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function durLabel(min) { return min<60?min+' min':min===60?'1 hora':Math.floor(min/60)+'h'+(min%60?' '+min%60+'min':''); }
+function getInitials(name) { return (name||'?').split(' ').map(function(w){return w[0];}).slice(0,2).join('').toUpperCase(); }
+function hexRgba(hex,a) {
+  var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
   return 'rgba('+r+','+g+','+b+','+a+')';
 }
 function svcIcon(name) {
-  var n = (name||'').toLowerCase();
+  var n=(name||'').toLowerCase();
   if (/u[\xf1n]a|manicur|gel|acr[\xed]l/.test(n)) return '&#x1F485;';
   if (/barber|corte|pelo|cabello|color/.test(n))   return '&#x2702;&#xFE0F;';
   if (/spa|masaje|relax|facial/.test(n))           return '&#x1F486;';
@@ -166,406 +165,365 @@ function svcIcon(name) {
   if (/consulta|m[e\xe9]dico|doctor/.test(n))      return '&#x1FA7A;';
   return '&#x2B50;';
 }
-function validPhone(p) { return p.replace(/\D/g,'').length >= 7; }
+function validPhone(p) { return p.replace(/\D/g,'').length>=7; }
 function beforeToday(d) { var t=new Date(); t.setHours(0,0,0,0); var c=new Date(d); c.setHours(0,0,0,0); return c<t; }
-function endT(start, dur) {
-  var p=start.split(':').map(Number), e=p[0]*60+p[1]+dur;
-  return pad(Math.floor(e/60))+':'+pad(e%60);
-}
-function setMeta(prop, val) {
-  var el = document.querySelector('meta[property="'+prop+'"]');
-  if (!el) { el=document.createElement('meta'); el.setAttribute('property',prop); document.head.appendChild(el); }
-  el.setAttribute('content', val);
+function endT(start,dur) { var p=start.split(':').map(Number),e=p[0]*60+p[1]+dur; return pad(Math.floor(e/60))+':'+pad(e%60); }
+function setMeta(prop,val) {
+  var el=document.querySelector('meta[property="'+prop+'"]');
+  if(!el){el=document.createElement('meta');el.setAttribute('property',prop);document.head.appendChild(el);}
+  el.setAttribute('content',val);
 }
 
-// ── FIX: leer los inputs antes de re-renderizar para NO perder lo que el usuario escribio
-function saveInputState() {
-  var n = document.getElementById('inp-name');
-  var p = document.getElementById('inp-phone');
-  var t = document.getElementById('inp-notes');
-  if (n) S.name  = n.value;
-  if (p) S.phone = p.value;
-  if (t) S.notes = t.value;
+// FIX: Guardar valores de los inputs al estado ANTES de cualquier re-render
+// Esto evita que se borren cuando el usuario escribe y luego selecciona horario/fecha
+function saveInputs() {
+  var n=document.getElementById('inp-name');
+  var p=document.getElementById('inp-phone');
+  var t=document.getElementById('inp-notes');
+  if(n) S.name=n.value;
+  if(p) S.phone=p.value;
+  if(t) S.notes=t.value;
 }
 
-// ── Habilitacion del boton (sin re-render) ─────────────────────────────────
 function refreshBtn() {
-  var btn = document.getElementById('submit-btn');
-  if (!btn) return;
-  var staffOk = S.staffMembers.length === 0 || S.selectedStaff !== undefined;
-  var ok = S.selectedService && staffOk && S.selectedSlot && S.name.trim() && validPhone(S.phone);
-  btn.disabled = !ok || S.submitting || S.submitLocked;
+  var btn=document.getElementById('submit-btn');
+  if(!btn) return;
+  var staffOk=S.staffMembers.length===0||S.selectedStaff!==undefined;
+  var ok=S.selectedService&&staffOk&&S.selectedSlot&&S.name.trim()&&validPhone(S.phone);
+  btn.disabled=!ok||S.submitting||S.submitLocked;
 }
 
 // ── Horarios ───────────────────────────────────────────────────────────────
 function staffOpenOnDay(dow) {
-  if (S.selectedStaff && S.selectedStaff.hours) {
-    var h = S.selectedStaff.hours.find(function(x){return x.day_of_week===dow;});
-    if (h) return h.is_open;
+  if(S.selectedStaff&&S.selectedStaff.hours){
+    var h=S.selectedStaff.hours.find(function(x){return x.day_of_week===dow;});
+    if(h) return h.is_open;
   }
-  var c = S.hours.find(function(h){return h.day_of_week===dow;});
-  return c ? c.is_open : (dow!==0 && dow!==6);
+  var c=S.hours.find(function(h){return h.day_of_week===dow;});
+  return c?c.is_open:(dow!==0&&dow!==6);
 }
 function nextOpenDay(from) {
-  var d = new Date(from);
-  for (var i=0;i<14;i++) { if (staffOpenOnDay(d.getDay())) return d; d=addDays(d,1); }
+  var d=new Date(from);
+  for(var i=0;i<14;i++){if(staffOpenOnDay(d.getDay())) return d; d=addDays(d,1);}
   return from;
 }
 function loadStaffHours(id) {
   return supaFetch('staff_hours?staff_id=eq.'+id+'&order=day_of_week').catch(function(){return [];});
 }
 function loadSlots() {
-  S.loadingSlots = true;
-  var q = 'appointments?user_id=eq.'+S.biz.userId+'&date=eq.'+toDateStr(S.selectedDate)+'&status=not.in.(Cancelada,No%20asisti%C3%B3,Rechazada)&select=start_time,end_time,staff_id';
-  if (S.selectedStaff && S.selectedStaff.id) q += '&staff_id=eq.'+S.selectedStaff.id;
-  return supaFetch(q).then(function(a){ S.takenSlots=a||[]; S.loadingSlots=false; }).catch(function(){ S.takenSlots=[]; S.loadingSlots=false; });
+  S.loadingSlots=true;
+  var q='appointments?user_id=eq.'+S.biz.userId+'&date=eq.'+toDateStr(S.selectedDate)+'&status=not.in.(Cancelada,No%20asisti%C3%B3,Rechazada)&select=start_time,end_time,staff_id';
+  if(S.selectedStaff&&S.selectedStaff.id) q+='&staff_id=eq.'+S.selectedStaff.id;
+  return supaFetch(q).then(function(a){S.takenSlots=a||[];S.loadingSlots=false;}).catch(function(){S.takenSlots=[];S.loadingSlots=false;});
 }
 function buildSlots() {
-  var dow = S.selectedDate.getDay(), cfg = null;
-  if (S.selectedStaff && S.selectedStaff.hours && S.selectedStaff.hours.length) {
-    var sh = S.selectedStaff.hours.find(function(x){return x.day_of_week===dow;});
-    if (sh) cfg = {is_open:sh.is_open, start_time:sh.start_time, end_time:sh.end_time};
+  var dow=S.selectedDate.getDay(),cfg=null;
+  if(S.selectedStaff&&S.selectedStaff.hours&&S.selectedStaff.hours.length){
+    var sh=S.selectedStaff.hours.find(function(x){return x.day_of_week===dow;});
+    if(sh) cfg={is_open:sh.is_open,start_time:sh.start_time,end_time:sh.end_time};
   }
-  if (!cfg) {
-    var def = [0,1,2,3,4,5,6].map(function(d){return{day_of_week:d,is_open:d>0&&d<6,start_time:'09:00',end_time:'18:00'};});
-    cfg = S.hours.find(function(h){return h.day_of_week===dow;}) || def[dow];
+  if(!cfg){
+    var def=[0,1,2,3,4,5,6].map(function(d){return{day_of_week:d,is_open:d>0&&d<6,start_time:'09:00',end_time:'18:00'};});
+    cfg=S.hours.find(function(h){return h.day_of_week===dow;})||def[dow];
   }
-  if (!cfg || !cfg.is_open) return null;
-  var sp=cfg.start_time.split(':').map(Number), ep=cfg.end_time.split(':').map(Number);
-  var sm=sp[0]*60+sp[1], em=ep[0]*60+ep[1];
-  var dur = S.selectedService ? Math.ceil(S.selectedService.duration_minutes/30)*30 : 30;
-  var now=new Date(), today=toDateStr(S.selectedDate)===toDateStr(now);
+  if(!cfg||!cfg.is_open) return null;
+  var sp=cfg.start_time.split(':').map(Number),ep=cfg.end_time.split(':').map(Number);
+  var sm=sp[0]*60+sp[1],em=ep[0]*60+ep[1];
+  var dur=S.selectedService?Math.ceil(S.selectedService.duration_minutes/30)*30:30;
+  var now=new Date(),today=toDateStr(S.selectedDate)===toDateStr(now);
   var slots=[];
-  for (var t=sm;t+dur<=em;t+=30) {
+  for(var t=sm;t+dur<=em;t+=30){
     var lbl=pad(Math.floor(t/60))+':'+pad(t%60);
     var taken=S.takenSlots.some(function(a){
-      var ap=( a.start_time||'00:00').split(':').map(Number);
-      var ae=(a.end_time  ||'00:00').split(':').map(Number);
-      return t<ae[0]*60+ae[1] && t+dur>ap[0]*60+ap[1];
+      var ap=(a.start_time||'00:00').split(':').map(Number);
+      var ae=(a.end_time||'00:00').split(':').map(Number);
+      return t<ae[0]*60+ae[1]&&t+dur>ap[0]*60+ap[1];
     });
     var past=today&&(Math.floor(t/60)<now.getHours()||(Math.floor(t/60)===now.getHours()&&t%60<=now.getMinutes()));
-    if (!taken&&!past) slots.push(lbl);
+    if(!taken&&!past) slots.push(lbl);
   }
   return slots;
 }
 
-// ── RENDER PARCIAL: solo actualiza partes que cambian sin tocar el formulario
-function render() {
-  if (S.submitted) { renderSuccess(); return; }
-
-  // Si el contenedor aun no existe, hacer full render
-  if (!document.getElementById('vylta-container')) { renderFull(); return; }
-
-  // FIX: actualizar solo las partes dinamicas sin destruir el formulario
-  renderServiceSection();
-  renderStaffSection();
-  renderDateSection();
-  renderSummary();
-  renderSubmitBtn();
-  renderStepBadges();
-}
-
-// ── RENDER COMPLETO (primera vez) ──────────────────────────────────────────
+// ── Render completo (primera vez) ───────────────────────────────────────────
 function renderFull() {
-  var biz = S.biz;
-  var bizInit = initials(biz.business_name);
-  var hasStaff = S.staffMembers.length > 0;
-  var stepNum = 1;
-  var stepSvc   = stepNum++;
-  var stepStaff = hasStaff ? stepNum++ : null;
-  var stepDate  = stepNum++;
-  var stepInfo  = stepNum++;
+  if(S.submitted){renderSuccess();return;}
+  var biz=S.biz;
+  var bizInit=getInitials(biz.business_name);
+  var hasStaff=S.staffMembers.length>0;
+  var stepNum=1;
+  var stepSvc=stepNum++;
+  var stepStaff=hasStaff?stepNum++:null;
+  var stepDate=stepNum++;
+  var stepInfo=stepNum++;
+  var logoHtml=biz.logo_url?'<img src="'+biz.logo_url+'" alt="" id="biz-logo-img" />':bizInit;
 
-  var logoHtml = biz.logo_url ? '<img src="'+biz.logo_url+'" alt="" id="biz-logo-img" />' : bizInit;
+  var html='<div id="vylta-container" class="container">';
+  html+='<div class="biz-header"><div class="biz-logo" id="biz-logo-wrap">'+logoHtml+'</div>';
+  html+='<div class="biz-name">'+(biz.business_name||'Negocio')+'</div>';
+  html+=(biz.business_type?'<div class="biz-type">'+biz.business_type+'</div>':'');
+  html+='<div class="biz-badge"><div class="biz-badge-dot"></div>Acepta citas en l&#xED;nea</div></div>';
+  html+='<div id="sect-svc"></div>';
+  html+='<div id="sect-staff"></div>';
+  html+='<div id="sect-date"></div>';
+  // Formulario: se crea UNA SOLA VEZ, nunca se reemplaza
+  html+='<div class="section-title"><span class="step-badge" id="badge-info">'+stepInfo+'</span>Tus datos</div>';
+  html+='<div class="card"><div class="form-body">';
+  html+='<div class="form-field"><label>Tu nombre *</label><input id="inp-name" type="text" placeholder="Ej: Mar&#xED;a L&#xF3;pez" autocomplete="name" /></div>';
+  html+='<div class="form-field"><label>Tu WhatsApp / tel&#xE9;fono *</label><input id="inp-phone" type="tel" placeholder="Ej: 442 123 4567" autocomplete="tel" /><div id="phone-error" class="field-error">Ingresa un n&#xFA;mero v&#xE1;lido (m&#xED;nimo 7 d&#xED;gitos)</div></div>';
+  html+='<div class="form-field"><label>Notas (opcional)</label><textarea id="inp-notes" placeholder="Primera vez, tipo de u&#xF1;as, alergias..."></textarea></div>';
+  html+='</div></div>';
+  html+='<div id="sect-summary"></div>';
+  html+='<button id="submit-btn" class="submit-btn" disabled onclick="submitBooking()">Confirmar cita &#x2192;</button>';
+  html+='<div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div>';
+  html+='</div>';
+  app.innerHTML=html;
 
-  var html = '<div id="vylta-container" class="container">';
-  // Header negocio
-  html += '<div class="biz-header"><div class="biz-logo" id="biz-logo-wrap">'+logoHtml+'</div>';
-  html += '<div class="biz-name">'+(biz.business_name||'Negocio')+'</div>';
-  html += (biz.business_type ? '<div class="biz-type">'+biz.business_type+'</div>' : '');
-  html += '<div class="biz-badge"><div class="biz-badge-dot"></div>Acepta citas en l&#xED;nea</div></div>';
-
-  // Paso servicios
-  html += '<div id="sect-svc"></div>';
-  // Paso staff (placeholder)
-  html += '<div id="sect-staff"></div>';
-  // Paso fecha
-  html += '<div id="sect-date"></div>';
-  // Paso datos (formulario — se crea UNA SOLA VEZ y no se toca)
-  html += '<div class="section-title"><span class="step-badge" id="badge-info">'+stepInfo+'</span>Tus datos</div>';
-  html += '<div class="card"><div class="form-body">';
-  html += '<div class="form-field"><label>Tu nombre *</label>';
-  html += '<input id="inp-name" type="text" placeholder="Ej: Mar&#xED;a L&#xF3;pez" autocomplete="name" /></div>';
-  html += '<div class="form-field"><label>Tu WhatsApp / tel&#xE9;fono *</label>';
-  html += '<input id="inp-phone" type="tel" placeholder="Ej: 442 123 4567" autocomplete="tel" />';
-  html += '<div id="phone-error" class="field-error">Ingresa un n&#xFA;mero v&#xE1;lido (m&#xED;nimo 7 d&#xED;gitos)</div></div>';
-  html += '<div class="form-field"><label>Notas (opcional)</label>';
-  html += '<textarea id="inp-notes" placeholder="Primera vez, tipo de u&#xF1;as, alergias..."></textarea></div>';
-  html += '</div></div>';
-  // Resumen + boton
-  html += '<div id="sect-summary"></div>';
-  html += '<button id="submit-btn" class="submit-btn" disabled>Confirmar cita &#x2192;</button>';
-  html += '<div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div>';
-  html += '</div>';
-  app.innerHTML = html;
-
-  // FIX: event listeners en los inputs — actualizan estado y solo refrescan el boton
-  document.getElementById('inp-name').addEventListener('input', function(){ S.name=this.value; refreshBtn(); updateBadge('badge-info'); });
-  document.getElementById('inp-phone').addEventListener('input', function(){ S.phone=this.value; refreshBtn(); updateBadge('badge-info'); });
-  document.getElementById('inp-phone').addEventListener('blur', function(){
-    var err=document.getElementById('phone-error');
-    if (!err) return;
-    if (this.value.trim() && !validPhone(this.value)) { this.classList.add('invalid'); err.classList.add('visible'); }
-    else { this.classList.remove('invalid'); err.classList.remove('visible'); }
+  // FIX: event listeners directos en los inputs — actualizan estado Y boton sin re-render
+  document.getElementById('inp-name').addEventListener('input',function(){
+    S.name=this.value; refreshBtn();
+    var b=document.getElementById('badge-info');
+    if(b){if(S.name.trim()&&validPhone(S.phone))b.classList.add('done');else b.classList.remove('done');}
   });
-  document.getElementById('inp-notes').addEventListener('input', function(){ S.notes=this.value; });
+  document.getElementById('inp-phone').addEventListener('input',function(){
+    S.phone=this.value; refreshBtn();
+    var b=document.getElementById('badge-info');
+    if(b){if(S.name.trim()&&validPhone(S.phone))b.classList.add('done');else b.classList.remove('done');}
+  });
+  document.getElementById('inp-phone').addEventListener('blur',function(){
+    var err=document.getElementById('phone-error');
+    if(!err) return;
+    if(this.value.trim()&&!validPhone(this.value)){this.classList.add('invalid');err.classList.add('visible');}
+    else{this.classList.remove('invalid');err.classList.remove('visible');}
+  });
+  document.getElementById('inp-notes').addEventListener('input',function(){S.notes=this.value;});
 
   // Logo fallback
-  if (biz.logo_url) {
-    var img = document.getElementById('biz-logo-img');
-    if (img) img.onerror = function() {
-      var w = document.getElementById('biz-logo-wrap');
-      if (w) w.innerHTML = bizInit;
-    };
+  if(biz.logo_url){
+    var img=document.getElementById('biz-logo-img');
+    if(img) img.onerror=function(){var w=document.getElementById('biz-logo-wrap');if(w)w.innerHTML=bizInit;};
   }
 
-  // Renderizar secciones dinamicas
-  renderServiceSection();
+  renderSections();
+}
+
+// ── Render parcial: solo actualiza secciones dinamicas (NO toca el formulario)
+function renderSections() {
+  renderSvcSection();
   renderStaffSection();
   renderDateSection();
   renderSummary();
-  renderSubmitBtn();
+  refreshBtn();
+  // Actualizar badge de datos segun estado actual
+  var b=document.getElementById('badge-info');
+  if(b){if(S.name.trim()&&validPhone(S.phone))b.classList.add('done');else b.classList.remove('done');}
 }
 
-// ── Secciones dinamicas ────────────────────────────────────────────────────
-function renderServiceSection() {
-  var el = document.getElementById('sect-svc');
-  if (!el) return;
-  var stepNum = 1;
-  var s1 = !!S.selectedService;
-  var html = '<div class="section-title"><span class="step-badge'+(s1?' done':'')+'">'+stepNum+'</span>Elige un servicio</div>';
-  html += '<div class="card">';
-  if (S.services.length === 0) {
-    html += '<div style="padding:20px;text-align:center;color:#94A3B8;font-size:14px">Sin servicios publicados.</div>';
+function renderSvcSection() {
+  var el=document.getElementById('sect-svc'); if(!el) return;
+  var s1=!!S.selectedService;
+  var html='<div class="section-title"><span class="step-badge'+(s1?' done':'')+'">1</span>Elige un servicio</div><div class="card">';
+  if(!S.services.length){
+    html+='<div style="padding:20px;text-align:center;color:#94A3B8;font-size:14px">Sin servicios publicados.</div>';
   } else {
-    S.services.forEach(function(s) {
-      var sel = S.selectedService && S.selectedService.id === s.id;
-      html += '<div class="service-item'+(sel?' selected':'')+'" onclick="selectSvc(\''+s.id+'\')">';
-      html += '<div class="service-icon">'+svcIcon(s.name)+'</div>';
-      html += '<div class="service-info"><div class="service-name">'+s.name+'</div>';
-      html += '<div class="service-meta">'+durLabel(s.duration_minutes)+(s.description?' &middot; '+s.description:'')+'</div></div>';
-      html += '<div class="service-price">$'+Number(s.price).toLocaleString('es-MX')+'</div>';
-      html += (sel ? '<div class="service-check">&#x2713;</div>' : '');
-      html += '</div>';
+    S.services.forEach(function(s){
+      var sel=S.selectedService&&S.selectedService.id===s.id;
+      html+='<div class="service-item'+(sel?' selected':'')+'" onclick="selectSvc(\''+s.id+'\')">';
+      html+='<div class="service-icon">'+svcIcon(s.name)+'</div>';
+      html+='<div class="service-info"><div class="service-name">'+s.name+'</div>';
+      html+='<div class="service-meta">'+durLabel(s.duration_minutes)+(s.description?' &middot; '+s.description:'')+'</div></div>';
+      html+='<div class="service-price">$'+Number(s.price).toLocaleString('es-MX')+'</div>';
+      html+=(sel?'<div class="service-check">&#x2713;</div>':'');
+      html+='</div>';
     });
   }
-  html += '</div>';
-  el.innerHTML = html;
+  html+='</div>';
+  el.innerHTML=html;
 }
 
 function renderStaffSection() {
-  var el = document.getElementById('sect-staff');
-  if (!el) return;
-  if (S.staffMembers.length === 0) { el.innerHTML = ''; return; }
-  var stepNum = 2; // siempre 2 cuando hay staff
-  var staffSelected = S.selectedStaff !== undefined;
-  var html = '<div class="section-title"><span class="step-badge'+(staffSelected?' done':'')+'">'+stepNum+'</span>&#xBF;Con qui&#xE9;n?</div>';
-  html += '<div class="card"><div class="staff-grid">';
-  S.staffMembers.forEach(function(m) {
-    var sel = S.selectedStaff && S.selectedStaff.id === m.id;
-    var bg = hexRgba(m.color, 0.1);
-    html += '<div class="staff-card'+(sel?' selected':'')+'" onclick="selectStaff(\''+m.id+'\')" ';
-    html += 'style="'+(sel?'border-color:'+m.color+';background:'+bg+';':'')+'">'
-    html += '<div class="staff-avatar" style="background:'+bg+';color:'+m.color+';'+(sel?'border-color:'+m.color+';':'')+'">'+initials(m.name)+'</div>';
-    html += '<div class="staff-card-name">'+m.name+'</div>';
-    html += (m.role ? '<div class="staff-card-role">'+m.role+'</div>' : '');
-    html += (sel ? '<div class="staff-check" style="background:'+m.color+'">&#x2713;</div>' : '');
-    html += '</div>';
+  var el=document.getElementById('sect-staff'); if(!el) return;
+  if(!S.staffMembers.length){el.innerHTML='';return;}
+  var staffSel=S.selectedStaff!==undefined;
+  var stepNum=2;
+  var html='<div class="section-title"><span class="step-badge'+(staffSel?' done':'')+'">'+stepNum+'</span>&#xBF;Con qui&#xE9;n?</div>';
+  html+='<div class="card"><div class="staff-grid">';
+  S.staffMembers.forEach(function(m){
+    var sel=S.selectedStaff&&S.selectedStaff.id===m.id;
+    var bg=hexRgba(m.color,0.1);
+    html+='<div class="staff-card'+(sel?' selected':'')+'" onclick="selectStaff(\''+m.id+'\')" style="'+(sel?'border-color:'+m.color+';background:'+bg+';':'')+'">'
+    html+='<div class="staff-avatar" style="background:'+bg+';color:'+m.color+';'+(sel?'border-color:'+m.color+';':'')+'">'+getInitials(m.name)+'</div>';
+    html+='<div class="staff-card-name">'+m.name+'</div>';
+    html+=(m.role?'<div class="staff-card-role">'+m.role+'</div>':'');
+    html+=(sel?'<div class="staff-check" style="background:'+m.color+'">&#x2713;</div>':'');
+    html+='</div>';
   });
-  html += '</div>';
-  var anySel = S.selectedStaff === null;
-  html += '<div class="staff-any'+(anySel?' selected':'')+'" onclick="selectStaff(null)">';
-  html += '<div class="staff-any-icon">&#x1F464;</div>';
-  html += '<div class="staff-any-info"><div class="staff-any-name">Sin preferencia</div><div class="staff-any-sub">Cualquier colaborador disponible</div></div>';
-  html += (anySel ? '<div class="staff-any-check">&#x2713;</div>' : '');
-  html += '</div></div>';
-  el.innerHTML = html;
+  html+='</div>';
+  var anySel=S.selectedStaff===null;
+  html+='<div class="staff-any'+(anySel?' selected':'')+'" onclick="selectStaff(null)">';
+  html+='<div class="staff-any-icon">&#x1F464;</div>';
+  html+='<div class="staff-any-info"><div class="staff-any-name">Sin preferencia</div><div class="staff-any-sub">Cualquier colaborador disponible</div></div>';
+  html+=(anySel?'<div class="staff-any-check">&#x2713;</div>':'');
+  html+='</div></div>';
+  el.innerHTML=html;
 }
 
 function renderDateSection() {
-  var el = document.getElementById('sect-date');
-  if (!el) return;
-  var hasStaff = S.staffMembers.length > 0;
-  var staffSelected = S.selectedStaff !== undefined;
-  var s3 = !!S.selectedSlot;
-  var stepDate = hasStaff ? 3 : 2;
-  var slots = buildSlots();
-  var dateTitle = '<span class="step-badge'+(s3?' done':'')+'">'+stepDate+'</span>Elige fecha y hora';
-  if (S.selectedStaff && S.selectedStaff.name) {
-    dateTitle += '&nbsp;<span style="font-size:11px;color:#94A3B8;font-weight:500;text-transform:none;letter-spacing:0">con '+S.selectedStaff.name+'</span>';
-  }
-  var html = '<div class="section-title">'+dateTitle+'</div>';
-  html += '<div class="card"><div class="date-nav">';
-  html += '<button class="date-btn" onclick="changeDate(-1)"'+(beforeToday(addDays(S.selectedDate,-1))?' disabled':'')+'>&#8249;</button>';
-  html += '<span class="date-label">'+fmtDate(S.selectedDate)+'</span>';
-  html += '<button class="date-btn" onclick="changeDate(1)">&#8250;</button></div>';
-  var slotsHtml = '';
-  if (!S.selectedService) {
-    slotsHtml = '<div class="slots-empty">&#x1F446; Primero selecciona un servicio.</div>';
-  } else if (hasStaff && !staffSelected) {
-    slotsHtml = '<div class="slots-empty">&#x1F465; Elige un colaborador para ver los horarios.</div>';
-  } else if (S.loadingSlots) {
-    slotsHtml = '<div class="slots-empty">Cargando horarios...</div>';
-  } else if (!slots) {
-    var who = (S.selectedStaff && S.selectedStaff.name) ? S.selectedStaff.name : 'el negocio';
-    slotsHtml = '<div class="closed-banner">&#x1F6AB; '+who+' no tiene atenci&#xF3;n este d&#xED;a. Selecciona otra fecha.</div>';
-  } else if (slots.length === 0) {
-    slotsHtml = '<div class="slots-empty">Sin horarios disponibles. Prueba con otra fecha.</div>';
+  var el=document.getElementById('sect-date'); if(!el) return;
+  var hasStaff=S.staffMembers.length>0;
+  var staffSel=S.selectedStaff!==undefined;
+  var s3=!!S.selectedSlot;
+  var stepDate=hasStaff?3:2;
+  var slots=buildSlots();
+  var title='<span class="step-badge'+(s3?' done':'')+'">'+stepDate+'</span>Elige fecha y hora';
+  if(S.selectedStaff&&S.selectedStaff.name) title+='&nbsp;<span style="font-size:11px;color:#94A3B8;font-weight:500;text-transform:none;letter-spacing:0">con '+S.selectedStaff.name+'</span>';
+  var html='<div class="section-title">'+title+'</div>';
+  html+='<div class="card"><div class="date-nav">';
+  html+='<button class="date-btn" onclick="changeDate(-1)"'+(beforeToday(addDays(S.selectedDate,-1))?' disabled':'')+'>&#8249;</button>';
+  html+='<span class="date-label">'+fmtDate(S.selectedDate)+'</span>';
+  html+='<button class="date-btn" onclick="changeDate(1)">&#8250;</button></div>';
+  var shtml='';
+  if(!S.selectedService){
+    shtml='<div class="slots-empty">&#x1F446; Primero selecciona un servicio.</div>';
+  } else if(hasStaff&&!staffSel){
+    shtml='<div class="slots-empty">&#x1F465; Elige un colaborador para ver los horarios.</div>';
+  } else if(S.loadingSlots){
+    shtml='<div class="slots-empty">Cargando horarios...</div>';
+  } else if(!slots){
+    var who=(S.selectedStaff&&S.selectedStaff.name)?S.selectedStaff.name:'el negocio';
+    shtml='<div class="closed-banner">&#x1F6AB; '+who+' no tiene atenci&#xF3;n este d&#xED;a. Selecciona otra fecha.</div>';
+  } else if(!slots.length){
+    shtml='<div class="slots-empty">Sin horarios disponibles. Prueba con otra fecha.</div>';
   } else {
-    slotsHtml = '<div class="slots-count">'+slots.length+' horario'+(slots.length!==1?'s':'')+' disponible'+(slots.length!==1?'s':'')+'</div><div class="slots-grid">';
-    slots.forEach(function(s) {
-      slotsHtml += '<div class="slot'+(S.selectedSlot===s?' selected':'')+'" onclick="pickSlot(\''+s+'\')">'+ s +'</div>';
+    shtml='<div class="slots-count">'+slots.length+' horario'+(slots.length!==1?'s':'')+' disponible'+(slots.length!==1?'s':'')+'</div><div class="slots-grid">';
+    slots.forEach(function(s){
+      shtml+='<div class="slot'+(S.selectedSlot===s?' selected':'')+'" onclick="pickSlot(\''+s+'\')">'+ s +'</div>';
     });
-    slotsHtml += '</div>';
+    shtml+='</div>';
   }
-  html += slotsHtml + '</div>';
-  el.innerHTML = html;
+  html+=shtml+'</div>';
+  el.innerHTML=html;
 }
 
 function renderSummary() {
-  var el = document.getElementById('sect-summary');
-  if (!el) return;
-  if (!S.selectedService || !S.selectedSlot) { el.innerHTML = ''; return; }
-  var html = '<div class="summary">';
-  html += '<div class="summary-row"><span class="summary-key">Servicio</span><span class="summary-val">'+S.selectedService.name+'</span></div>';
-  if (S.selectedStaff) html += '<div class="summary-row"><span class="summary-key">Con</span><span class="summary-val">'+S.selectedStaff.name+'</span></div>';
-  html += '<div class="summary-row"><span class="summary-key">Fecha</span><span class="summary-val">'+fmtDate(S.selectedDate)+'</span></div>';
-  html += '<div class="summary-row"><span class="summary-key">Hora</span><span class="summary-val">'+S.selectedSlot+' &mdash; '+endT(S.selectedSlot,S.selectedService.duration_minutes)+'</span></div>';
-  html += '<div class="summary-row"><span class="summary-key">Total</span><span class="summary-price">$'+Number(S.selectedService.price).toLocaleString('es-MX')+' MXN</span></div>';
-  html += '</div>';
-  el.innerHTML = html;
+  var el=document.getElementById('sect-summary'); if(!el) return;
+  if(!S.selectedService||!S.selectedSlot){el.innerHTML='';return;}
+  var html='<div class="summary">';
+  html+='<div class="summary-row"><span class="summary-key">Servicio</span><span class="summary-val">'+S.selectedService.name+'</span></div>';
+  if(S.selectedStaff) html+='<div class="summary-row"><span class="summary-key">Con</span><span class="summary-val">'+S.selectedStaff.name+'</span></div>';
+  html+='<div class="summary-row"><span class="summary-key">Fecha</span><span class="summary-val">'+fmtDate(S.selectedDate)+'</span></div>';
+  html+='<div class="summary-row"><span class="summary-key">Hora</span><span class="summary-val">'+S.selectedSlot+' &mdash; '+endT(S.selectedSlot,S.selectedService.duration_minutes)+'</span></div>';
+  html+='<div class="summary-row"><span class="summary-key">Total</span><span class="summary-price">$'+Number(S.selectedService.price).toLocaleString('es-MX')+' MXN</span></div>';
+  html+='</div>';
+  el.innerHTML=html;
 }
 
-function renderSubmitBtn() {
-  var btn = document.getElementById('submit-btn');
-  if (!btn) return;
-  btn.textContent = S.submitting ? 'Confirmando tu cita...' : 'Confirmar cita \u2192';
-  refreshBtn();
-}
-
-function renderStepBadges() {
-  var badge = document.getElementById('badge-info');
-  if (!badge) return;
-  var s4 = !!(S.name.trim() && validPhone(S.phone));
-  if (s4) badge.classList.add('done'); else badge.classList.remove('done');
-}
-
-function updateBadge(id) {
-  var badge = document.getElementById(id);
-  if (!badge) return;
-  var s4 = !!(S.name.trim() && validPhone(S.phone));
-  if (s4) badge.classList.add('done'); else badge.classList.remove('done');
-}
-
-// ── Acciones ───────────────────────────────────────────────────────────────
+// ── Acciones (FIX: saveInputs() al inicio de cada una que dispara re-render)
 function selectSvc(id) {
-  S.selectedService = S.services.find(function(s){return s.id===id;}) || null;
-  S.selectedSlot = null;
-  S.loadingSlots = true;
-  render();
-  loadSlots().then(render);
+  saveInputs(); // FIX: preservar nombre/telefono antes de re-render
+  S.selectedService=S.services.find(function(s){return s.id===id;})||null;
+  S.selectedSlot=null;
+  S.loadingSlots=true;
+  renderSections();
+  loadSlots().then(renderSections);
 }
 
 function selectStaff(id) {
-  if (id === null) {
-    S.selectedStaff = null;
+  saveInputs(); // FIX: preservar nombre/telefono antes de re-render
+  if(id===null){
+    S.selectedStaff=null;
+    doAfterStaff();
   } else {
-    var m = S.staffMembers.find(function(x){return x.id===id;});
-    if (!m) return;
-    if (m.hours) { S.selectedStaff = m; doAfterStaff(); return; }
-    loadStaffHours(id).then(function(hrs) { m.hours=hrs; S.selectedStaff=m; doAfterStaff(); });
-    return;
+    var m=S.staffMembers.find(function(x){return x.id===id;});
+    if(!m) return;
+    if(m.hours){S.selectedStaff=m;doAfterStaff();return;}
+    loadStaffHours(id).then(function(hrs){m.hours=hrs;S.selectedStaff=m;doAfterStaff();});
   }
-  doAfterStaff();
 }
 function doAfterStaff() {
-  S.selectedDate = nextOpenDay(new Date());
-  S.selectedSlot = null;
-  S.loadingSlots = true;
-  render();
+  S.selectedDate=nextOpenDay(new Date());
+  S.selectedSlot=null;
+  S.loadingSlots=true;
+  renderSections();
   loadSlots().then(function(){
-    render();
+    renderSections();
     setTimeout(function(){
-      var els = document.querySelectorAll('.section-title');
-      var idx = S.staffMembers.length > 0 ? 2 : 1;
-      if (els[idx]) els[idx].scrollIntoView({behavior:'smooth',block:'start'});
-    }, 150);
+      var els=document.querySelectorAll('.section-title');
+      var idx=S.staffMembers.length>0?2:1;
+      if(els[idx]) els[idx].scrollIntoView({behavior:'smooth',block:'start'});
+    },150);
   });
 }
 
 function changeDate(delta) {
-  var next = addDays(S.selectedDate, delta);
-  if (beforeToday(next)) return;
-  S.selectedDate = next;
-  S.selectedSlot = null;
-  S.loadingSlots = true;
-  render();
-  loadSlots().then(render);
+  saveInputs(); // FIX: preservar nombre/telefono antes de re-render
+  var next=addDays(S.selectedDate,delta);
+  if(beforeToday(next)) return;
+  S.selectedDate=next;
+  S.selectedSlot=null;
+  S.loadingSlots=true;
+  renderSections();
+  loadSlots().then(renderSections);
 }
 
 function pickSlot(label) {
-  S.selectedSlot = label;
-  render();
+  saveInputs(); // FIX: preservar nombre/telefono antes de re-render
+  S.selectedSlot=label;
+  renderSections();
   setTimeout(function(){
-    var els = document.querySelectorAll('.section-title');
-    var idx = S.staffMembers.length > 0 ? 3 : 2;
-    if (els[idx]) els[idx].scrollIntoView({behavior:'smooth',block:'start'});
-  }, 100);
+    var els=document.querySelectorAll('.section-title');
+    var idx=S.staffMembers.length>0?3:2;
+    if(els[idx]) els[idx].scrollIntoView({behavior:'smooth',block:'start'});
+  },100);
 }
 
 function submitBooking() {
-  if (S.submitting || S.submitLocked) return;
-  var svc=S.selectedService, staff=S.selectedStaff, slot=S.selectedSlot, date=S.selectedDate;
-  var name=S.name, phone=S.phone, notes=S.notes;
-  if (!svc||!slot||!name.trim()||!phone.trim()) return;
-  if (!validPhone(phone)) { showErr('Ingresa un n&#xFA;mero de tel&#xE9;fono v&#xE1;lido.'); return; }
-  S.submitLocked = true; S.submitting = true;
-  renderSubmitBtn();
-  fetch(SUPABASE_URL+'/functions/v1/create-booking-request', {
+  if(S.submitting||S.submitLocked) return;
+  saveInputs();
+  var svc=S.selectedService,staff=S.selectedStaff,slot=S.selectedSlot,date=S.selectedDate;
+  var name=S.name,phone=S.phone,notes=S.notes;
+  if(!svc||!slot||!name.trim()||!phone.trim()) return;
+  if(!validPhone(phone)){showErr('Ingresa un n&#xFA;mero de tel&#xE9;fono v&#xE1;lido.');return;}
+  S.submitLocked=true; S.submitting=true;
+  var btn=document.getElementById('submit-btn');
+  if(btn){btn.disabled=true;btn.textContent='Confirmando tu cita...';}
+  fetch(SUPABASE_URL+'/functions/v1/create-booking-request',{
     method:'POST',
     headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
-    body: JSON.stringify({
-      slug: getSlug(),
-      clientName: name.trim(), clientPhone: phone.trim(),
-      serviceName: svc.name, serviceId: svc.id,
-      date: toDateStr(date), startTime: slot,
-      endTime: endT(slot, svc.duration_minutes),
-      serviceCost: svc.price, notes: notes.trim()||null,
-      staff_id: (staff&&staff.id) ? staff.id : null
+    body:JSON.stringify({
+      slug:getSlug(),
+      clientName:name.trim(),clientPhone:phone.trim(),
+      serviceName:svc.name,serviceId:svc.id,
+      date:toDateStr(date),startTime:slot,
+      endTime:endT(slot,svc.duration_minutes),
+      serviceCost:svc.price,notes:notes.trim()||null,
+      staff_id:(staff&&staff.id)?staff.id:null
     })
-  }).then(function(r){ return r.json().then(function(d){
-    if (!r.ok||d.error) throw new Error(d.error||('Error '+r.status));
+  }).then(function(r){return r.json().then(function(d){
+    if(!r.ok||d.error) throw new Error(d.error||('Error '+r.status));
     S.submitted=true; renderSuccess();
   });}).catch(function(e){
     S.submitting=false; S.submitLocked=false;
-    renderSubmitBtn();
+    var btn=document.getElementById('submit-btn');
+    if(btn){btn.disabled=false;btn.textContent='Confirmar cita \u2192';}
+    refreshBtn();
     showErr(e.message);
   });
 }
 
 function showErr(msg) {
-  var prev=document.getElementById('vylta-modal'); if(prev)prev.remove();
-  var o=document.createElement('div'); o.id='vylta-modal'; o.className='error-modal-overlay';
+  var prev=document.getElementById('vylta-modal');if(prev)prev.remove();
+  var o=document.createElement('div');o.id='vylta-modal';o.className='error-modal-overlay';
   o.innerHTML='<div class="error-modal"><div class="error-modal-icon">&#x26A0;&#xFE0F;</div><div class="error-modal-title">Ocurri&#xF3; un problema</div><div class="error-modal-msg">'+msg+'</div><button class="error-modal-btn" onclick="document.getElementById(\'vylta-modal\').remove()">Entendido</button></div>';
   document.body.appendChild(o);
 }
 
-function renderError(title, desc) {
+function renderError(title,desc) {
   app.innerHTML='<div class="error-screen"><div class="error-icon">&#x1F50D;</div><div class="error-title">'+title+'</div><div class="error-desc">'+desc+'</div></div>';
 }
 
 function renderSuccess() {
-  var svc=S.selectedService, staff=S.selectedStaff, slot=S.selectedSlot, date=S.selectedDate;
+  var svc=S.selectedService,staff=S.selectedStaff,slot=S.selectedSlot,date=S.selectedDate;
   var html='<div class="success-screen">';
   html+='<div class="success-icon">&#x2705;</div>';
   html+='<div class="success-title">&#xA1;Cita confirmada!</div>';
@@ -573,24 +531,24 @@ function renderSuccess() {
   html+='<div class="success-card">';
   html+='<div class="success-card-row"><span class="success-card-key">Nombre</span><span class="success-card-val">'+S.name+'</span></div>';
   html+='<div class="success-card-row"><span class="success-card-key">Servicio</span><span class="success-card-val">'+svc.name+'</span></div>';
-  if (staff) html+='<div class="success-card-row"><span class="success-card-key">Con</span><span class="success-card-val">'+staff.name+'</span></div>';
+  if(staff) html+='<div class="success-card-row"><span class="success-card-key">Con</span><span class="success-card-val">'+staff.name+'</span></div>';
   html+='<div class="success-card-row"><span class="success-card-key">Fecha</span><span class="success-card-val">'+fmtDate(date)+'</span></div>';
   html+='<div class="success-card-row"><span class="success-card-key">Hora</span><span class="success-card-val">'+slot+' &mdash; '+endT(slot,svc.duration_minutes)+'</span></div>';
   html+='<div class="success-card-row"><span class="success-card-key">Total</span><span class="success-card-val" style="color:#10B981;font-size:18px">$'+Number(svc.price).toLocaleString('es-MX')+' MXN</span></div>';
   html+='</div>';
-  if (S.biz.phone) html+='<div class="whatsapp-hint">&#x1F4F1; Guarda el n&#xFA;mero: <strong>'+S.biz.phone+'</strong></div>';
+  if(S.biz.phone) html+='<div class="whatsapp-hint">&#x1F4F1; Guarda el n&#xFA;mero: <strong>'+S.biz.phone+'</strong></div>';
   html+='<div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div>';
   html+='</div>';
   app.innerHTML=html;
 }
 
-// ── Init ───────────────────────────────────────────────────────────────────
+// ── Init ──────────────────────────────────────────────────────────────────
 function init() {
-  var slug = getSlug();
-  if (!slug) { renderError('Link inv&#xE1;lido','Este enlace no tiene un negocio asociado.'); return; }
+  var slug=getSlug();
+  if(!slug){renderError('Link inv&#xE1;lido','Este enlace no tiene un negocio asociado.');return;}
   supaFetch('booking_links?slug=eq.'+encodeURIComponent(slug)+'&is_active=eq.true&select=id,user_id,require_approval,whatsapp_confirmation')
   .then(function(links){
-    if (!links||!links.length) { renderError('Negocio no encontrado','El enlace no est&#xE1; activo o no existe.'); return Promise.reject('not found'); }
+    if(!links||!links.length){renderError('Negocio no encontrado','El enlace no est&#xE1; activo o no existe.');return Promise.reject('not found');}
     var link=links[0];
     return supaFetch('business_profiles?user_id=eq.'+link.user_id+'&select=business_name,business_type,logo_url,phone')
     .then(function(profiles){
@@ -600,7 +558,7 @@ function init() {
       document.title='Agendar cita &middot; '+bn;
       setMeta('og:title','Agenda tu cita en '+bn);
       setMeta('og:description','Reserva tu cita con '+bn+'. Elige servicio, fecha y hora.');
-      if (p.logo_url) setMeta('og:image',p.logo_url);
+      if(p.logo_url) setMeta('og:image',p.logo_url);
       return Promise.all([
         supaFetch('services?user_id=eq.'+link.user_id+'&is_active=eq.true&order=name'),
         supaFetch('business_hours?user_id=eq.'+link.user_id+'&order=day_of_week'),
@@ -608,14 +566,14 @@ function init() {
       ]);
     });
   }).then(function(res){
-    if (!res) return;
-    S.services=res[0]||[]; S.hours=res[1]||[]; S.staffMembers=res[2]||[];
-    if (S.staffMembers.length>0) S.selectedStaff=undefined;
+    if(!res) return;
+    S.services=res[0]||[];S.hours=res[1]||[];S.staffMembers=res[2]||[];
+    if(S.staffMembers.length>0) S.selectedStaff=undefined;
     S.selectedDate=nextOpenDay(new Date());
     return loadSlots();
-  }).then(function(){ renderFull(); })
+  }).then(function(){renderFull();})
   .catch(function(e){
-    if (e==='not found') return;
+    if(e==='not found') return;
     console.error('[VYLTA]',e);
     renderError('Error de conexi&#xF3;n','No pudimos cargar la informaci&#xF3;n. '+e.message);
   });
