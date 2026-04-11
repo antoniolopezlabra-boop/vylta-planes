@@ -83,9 +83,10 @@
     .summary-key { font-size: 12px; color: #64748B; }
     .summary-val { font-size: 13px; font-weight: 600; color: #F8FAFC; }
     .summary-price { font-size: 18px; font-weight: 800; color: #10B981; }
-    .submit-btn { width: 100%; padding: 18px; background: #10B981; color: #fff; border: none; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
-    .submit-btn:hover { opacity: 0.9; }
+    .submit-btn { width: 100%; padding: 18px; background: #10B981; color: #fff; border: none; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; position: relative; }
+    .submit-btn:hover:not(:disabled) { opacity: 0.9; }
     .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .submit-btn.loading { opacity: 0.8; }
     .success-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 32px; text-align: center; gap: 16px; }
     .success-icon { width: 80px; height: 80px; border-radius: 50%; background: #ECFDF5; display: flex; align-items: center; justify-content: center; font-size: 36px; }
     .success-title { font-size: 24px; font-weight: 800; color: #0F172A; }
@@ -165,7 +166,13 @@ function svcIcon(name) {
   if (/consulta|m[e\xe9]dico|doctor/.test(n))      return '&#x1FA7A;';
   return '&#x2B50;';
 }
-function validPhone(p) { return p.replace(/\D/g,'').length>=7; }
+
+// Validacion de telefono: minimo 7 digitos numericos
+function validPhone(p) {
+  var digits = p.replace(/\D/g,'');
+  return digits.length >= 7 && digits.length <= 15;
+}
+
 function beforeToday(d) { var t=new Date(); t.setHours(0,0,0,0); var c=new Date(d); c.setHours(0,0,0,0); return c<t; }
 function endT(start,dur) { var p=start.split(':').map(Number),e=p[0]*60+p[1]+dur; return pad(Math.floor(e/60))+':'+pad(e%60); }
 function setMeta(prop,val) {
@@ -174,8 +181,6 @@ function setMeta(prop,val) {
   el.setAttribute('content',val);
 }
 
-// FIX: Guardar valores de los inputs al estado ANTES de cualquier re-render
-// Esto evita que se borren cuando el usuario escribe y luego selecciona horario/fecha
 function saveInputs() {
   var n=document.getElementById('inp-name');
   var p=document.getElementById('inp-phone');
@@ -189,7 +194,9 @@ function refreshBtn() {
   var btn=document.getElementById('submit-btn');
   if(!btn) return;
   var staffOk=S.staffMembers.length===0||S.selectedStaff!==undefined;
-  var ok=S.selectedService&&staffOk&&S.selectedSlot&&S.name.trim()&&validPhone(S.phone);
+  var phoneOk=validPhone(S.phone);
+  var ok=S.selectedService&&staffOk&&S.selectedSlot&&S.name.trim()&&phoneOk;
+  // FIX doble-submit: si submitLocked es true, el botón queda deshabilitado permanentemente hasta éxito/error
   btn.disabled=!ok||S.submitting||S.submitLocked;
 }
 
@@ -266,20 +273,19 @@ function renderFull() {
   html+='<div id="sect-svc"></div>';
   html+='<div id="sect-staff"></div>';
   html+='<div id="sect-date"></div>';
-  // Formulario: se crea UNA SOLA VEZ, nunca se reemplaza
   html+='<div class="section-title"><span class="step-badge" id="badge-info">'+stepInfo+'</span>Tus datos</div>';
   html+='<div class="card"><div class="form-body">';
   html+='<div class="form-field"><label>Tu nombre *</label><input id="inp-name" type="text" placeholder="Ej: Mar&#xED;a L&#xF3;pez" autocomplete="name" /></div>';
-  html+='<div class="form-field"><label>Tu WhatsApp / tel&#xE9;fono *</label><input id="inp-phone" type="tel" placeholder="Ej: 442 123 4567" autocomplete="tel" /><div id="phone-error" class="field-error">Ingresa un n&#xFA;mero v&#xE1;lido (m&#xED;nimo 7 d&#xED;gitos)</div></div>';
+  html+='<div class="form-field"><label>Tu WhatsApp / tel&#xE9;fono *</label><input id="inp-phone" type="tel" placeholder="Ej: 442 123 4567" autocomplete="tel" /><div id="phone-error" class="field-error">Ingresa un n&#xFA;mero v&#xE1;lido (7&#x2013;15 d&#xED;gitos)</div></div>';
   html+='<div class="form-field"><label>Notas (opcional)</label><textarea id="inp-notes" placeholder="Primera vez, tipo de u&#xF1;as, alergias..."></textarea></div>';
   html+='</div></div>';
   html+='<div id="sect-summary"></div>';
+  // FIX doble-submit: onclick llama submitBooking que tiene su propio guard interno
   html+='<button id="submit-btn" class="submit-btn" disabled onclick="submitBooking()">Confirmar cita &#x2192;</button>';
   html+='<div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div>';
   html+='</div>';
   app.innerHTML=html;
 
-  // FIX: event listeners directos en los inputs — actualizan estado Y boton sin re-render
   document.getElementById('inp-name').addEventListener('input',function(){
     S.name=this.value; refreshBtn();
     var b=document.getElementById('badge-info');
@@ -287,18 +293,26 @@ function renderFull() {
   });
   document.getElementById('inp-phone').addEventListener('input',function(){
     S.phone=this.value; refreshBtn();
+    // Limpiar error mientras escribe
+    var err=document.getElementById('phone-error');
+    var inp=document.getElementById('inp-phone');
+    if(err&&inp){err.classList.remove('visible');inp.classList.remove('invalid');}
     var b=document.getElementById('badge-info');
     if(b){if(S.name.trim()&&validPhone(S.phone))b.classList.add('done');else b.classList.remove('done');}
   });
   document.getElementById('inp-phone').addEventListener('blur',function(){
     var err=document.getElementById('phone-error');
     if(!err) return;
-    if(this.value.trim()&&!validPhone(this.value)){this.classList.add('invalid');err.classList.add('visible');}
-    else{this.classList.remove('invalid');err.classList.remove('visible');}
+    if(this.value.trim()&&!validPhone(this.value)){
+      this.classList.add('invalid');
+      err.classList.add('visible');
+    } else {
+      this.classList.remove('invalid');
+      err.classList.remove('visible');
+    }
   });
   document.getElementById('inp-notes').addEventListener('input',function(){S.notes=this.value;});
 
-  // Logo fallback
   if(biz.logo_url){
     var img=document.getElementById('biz-logo-img');
     if(img) img.onerror=function(){var w=document.getElementById('biz-logo-wrap');if(w)w.innerHTML=bizInit;};
@@ -307,14 +321,12 @@ function renderFull() {
   renderSections();
 }
 
-// ── Render parcial: solo actualiza secciones dinamicas (NO toca el formulario)
 function renderSections() {
   renderSvcSection();
   renderStaffSection();
   renderDateSection();
   renderSummary();
   refreshBtn();
-  // Actualizar badge de datos segun estado actual
   var b=document.getElementById('badge-info');
   if(b){if(S.name.trim()&&validPhone(S.phone))b.classList.add('done');else b.classList.remove('done');}
 }
@@ -395,7 +407,7 @@ function renderDateSection() {
   } else if(!slots.length){
     shtml='<div class="slots-empty">Sin horarios disponibles. Prueba con otra fecha.</div>';
   } else {
-    shtml='<div class="slots-count">'+slots.length+' horario'+(slots.length!==1?'s':'')+' disponible'+(slots.length!==1?'s':'')+'</div><div class="slots-grid">';
+    shtml='<div class="slots-count">'+slots.length+' horario'+(slots.length!==1?'s':'')+'</div><div class="slots-grid">';
     slots.forEach(function(s){
       shtml+='<div class="slot'+(S.selectedSlot===s?' selected':'')+'" onclick="pickSlot(\''+s+'\')">'+ s +'</div>';
     });
@@ -418,9 +430,9 @@ function renderSummary() {
   el.innerHTML=html;
 }
 
-// ── Acciones (FIX: saveInputs() al inicio de cada una que dispara re-render)
+// ── Acciones
 function selectSvc(id) {
-  saveInputs(); // FIX: preservar nombre/telefono antes de re-render
+  saveInputs();
   S.selectedService=S.services.find(function(s){return s.id===id;})||null;
   S.selectedSlot=null;
   S.loadingSlots=true;
@@ -429,7 +441,7 @@ function selectSvc(id) {
 }
 
 function selectStaff(id) {
-  saveInputs(); // FIX: preservar nombre/telefono antes de re-render
+  saveInputs();
   if(id===null){
     S.selectedStaff=null;
     doAfterStaff();
@@ -456,7 +468,7 @@ function doAfterStaff() {
 }
 
 function changeDate(delta) {
-  saveInputs(); // FIX: preservar nombre/telefono antes de re-render
+  saveInputs();
   var next=addDays(S.selectedDate,delta);
   if(beforeToday(next)) return;
   S.selectedDate=next;
@@ -467,7 +479,7 @@ function changeDate(delta) {
 }
 
 function pickSlot(label) {
-  saveInputs(); // FIX: preservar nombre/telefono antes de re-render
+  saveInputs();
   S.selectedSlot=label;
   renderSections();
   setTimeout(function(){
@@ -477,35 +489,63 @@ function pickSlot(label) {
   },100);
 }
 
+// FIX doble-submit: guard triple — submitLocked + submitting + disabled en el botón
 function submitBooking() {
-  if(S.submitting||S.submitLocked) return;
+  // Guard 1: si ya está procesando o bloqueado, salir inmediatamente
+  if(S.submitting || S.submitLocked) return;
+
   saveInputs();
-  var svc=S.selectedService,staff=S.selectedStaff,slot=S.selectedSlot,date=S.selectedDate;
-  var name=S.name,phone=S.phone,notes=S.notes;
+  var svc=S.selectedService, staff=S.selectedStaff, slot=S.selectedSlot, date=S.selectedDate;
+  var name=S.name, phone=S.phone, notes=S.notes;
   if(!svc||!slot||!name.trim()||!phone.trim()) return;
-  if(!validPhone(phone)){showErr('Ingresa un n&#xFA;mero de tel&#xE9;fono v&#xE1;lido.');return;}
-  S.submitLocked=true; S.submitting=true;
+
+  // Validacion de telefono con feedback visual
+  if(!validPhone(phone)){
+    var err=document.getElementById('phone-error');
+    var inp=document.getElementById('inp-phone');
+    if(err){err.classList.add('visible');}
+    if(inp){inp.classList.add('invalid'); inp.focus();}
+    showErr('Ingresa un n&#xFA;mero de tel&#xE9;fono v&#xE1;lido (m&#xED;nimo 7 d&#xED;gitos).');
+    return;
+  }
+
+  // Guard 2: bloquear INMEDIATAMENTE antes del fetch
+  S.submitLocked = true;
+  S.submitting = true;
+
   var btn=document.getElementById('submit-btn');
-  if(btn){btn.disabled=true;btn.textContent='Confirmando tu cita...';}
+  if(btn){
+    btn.disabled=true;
+    btn.classList.add('loading');
+    btn.textContent='Confirmando tu cita...';
+  }
+
   fetch(SUPABASE_URL+'/functions/v1/create-booking-request',{
     method:'POST',
     headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
     body:JSON.stringify({
       slug:getSlug(),
-      clientName:name.trim(),clientPhone:phone.trim(),
-      serviceName:svc.name,serviceId:svc.id,
-      date:toDateStr(date),startTime:slot,
+      clientName:name.trim(), clientPhone:phone.trim(),
+      serviceName:svc.name, serviceId:svc.id,
+      date:toDateStr(date), startTime:slot,
       endTime:endT(slot,svc.duration_minutes),
-      serviceCost:svc.price,notes:notes.trim()||null,
+      serviceCost:svc.price, notes:notes.trim()||null,
       staff_id:(staff&&staff.id)?staff.id:null
     })
   }).then(function(r){return r.json().then(function(d){
     if(!r.ok||d.error) throw new Error(d.error||('Error '+r.status));
-    S.submitted=true; renderSuccess();
+    S.submitted=true;
+    renderSuccess();
   });}).catch(function(e){
-    S.submitting=false; S.submitLocked=false;
+    // Guard 3: solo desbloquear si hubo error — nunca si fue exitoso
+    S.submitting=false;
+    S.submitLocked=false;
     var btn=document.getElementById('submit-btn');
-    if(btn){btn.disabled=false;btn.textContent='Confirmar cita \u2192';}
+    if(btn){
+      btn.disabled=false;
+      btn.classList.remove('loading');
+      btn.textContent='Confirmar cita \u2192';
+    }
     refreshBtn();
     showErr(e.message);
   });
@@ -523,7 +563,7 @@ function renderError(title,desc) {
 }
 
 function renderSuccess() {
-  var svc=S.selectedService,staff=S.selectedStaff,slot=S.selectedSlot,date=S.selectedDate;
+  var svc=S.selectedService, staff=S.selectedStaff, slot=S.selectedSlot, date=S.selectedDate;
   var html='<div class="success-screen">';
   html+='<div class="success-icon">&#x2705;</div>';
   html+='<div class="success-title">&#xA1;Cita confirmada!</div>';
@@ -555,7 +595,7 @@ function init() {
       var p=(profiles&&profiles[0])||{};
       S.biz={business_name:p.business_name,business_type:p.business_type,logo_url:p.logo_url,phone:p.phone,linkId:link.id,userId:link.user_id};
       var bn=p.business_name||'Negocio';
-      document.title='Agendar cita &middot; '+bn;
+      document.title='Agendar cita \u00b7 '+bn;
       setMeta('og:title','Agenda tu cita en '+bn);
       setMeta('og:description','Reserva tu cita con '+bn+'. Elige servicio, fecha y hora.');
       if(p.logo_url) setMeta('og:image',p.logo_url);
@@ -567,7 +607,7 @@ function init() {
     });
   }).then(function(res){
     if(!res) return;
-    S.services=res[0]||[];S.hours=res[1]||[];S.staffMembers=res[2]||[];
+    S.services=res[0]||[]; S.hours=res[1]||[]; S.staffMembers=res[2]||[];
     if(S.staffMembers.length>0) S.selectedStaff=undefined;
     S.selectedDate=nextOpenDay(new Date());
     return loadSlots();
