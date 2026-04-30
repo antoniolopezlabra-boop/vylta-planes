@@ -118,6 +118,8 @@ var app = document.getElementById('app');
 
 var S = {
   biz: null, services: [], hours: [], staffMembers: [],
+  // Bloqueos de tiempo (comida, descansos) — cargados al inicio para filtrar slots
+  timeBlocks: [],
   selectedService: null, selectedDate: new Date(), selectedSlot: null,
   selectedStaff: undefined,
   takenSlots: [], loadingSlots: false,
@@ -200,6 +202,41 @@ function refreshBtn() {
   btn.disabled=!ok||S.submitting||S.submitLocked;
 }
 
+// ── Bloqueos de tiempo (horario de comida, descansos) ─────────────────
+// Convierte "HH:MM" (o "HH:MM:SS" de Postgres) a minutos desde medianoche.
+function tToMin(t) {
+  var p = (t || '00:00').split(':').map(Number);
+  return p[0] * 60 + p[1];
+}
+// Verifica si un rango [aS, aE) traslapa con [bS, bE).
+function rangesOverlap(aS, aE, bS, bE) { return aS < bE && aE > bS; }
+
+// Encuentra un bloqueo aplicable para un sub-slot dado (jsDay: 0=Dom..6=Sab).
+// La convención del proyecto en BD es 0=Lun..6=Dom, así que convertimos.
+function findBlockForSlot(slotStartMin, slotEndMin, dateStr, jsDay, staffId) {
+  var projectDay = jsDay === 0 ? 6 : jsDay - 1;
+  for (var i = 0; i < S.timeBlocks.length; i++) {
+    var b = S.timeBlocks[i];
+    if (!b.is_active) continue;
+    // Aplicabilidad por staff:
+    //   - Si bloqueo tiene staff_id específico, solo afecta a ese colaborador.
+    //   - Si bloqueo tiene staff_id NULL, afecta a TODOS (negocio entero).
+    if (b.staff_id) {
+      if (b.staff_id !== staffId) continue;
+    }
+    // Aplicabilidad temporal:
+    if (b.is_recurring) {
+      if (b.day_of_week !== projectDay) continue;
+    } else {
+      if (b.specific_date !== dateStr) continue;
+    }
+    var bStart = tToMin(b.start_time);
+    var bEnd = tToMin(b.end_time);
+    if (rangesOverlap(slotStartMin, slotEndMin, bStart, bEnd)) return b;
+  }
+  return null;
+}
+
 // ── Horarios ───────────────────────────────────────────────────────────────
 function staffOpenOnDay(dow) {
   if(S.selectedStaff&&S.selectedStaff.hours){
@@ -223,6 +260,14 @@ function loadSlots() {
   if(S.selectedStaff&&S.selectedStaff.id) q+='&staff_id=eq.'+S.selectedStaff.id;
   return supaFetch(q).then(function(a){S.takenSlots=a||[];S.loadingSlots=false;}).catch(function(){S.takenSlots=[];S.loadingSlots=false;});
 }
+
+// Construye los slots disponibles aplicando:
+//   1. Horario laboral del día (business_hours o staff_hours).
+//   2. Citas existentes (rango ocupado).
+//   3. Slots pasados si es hoy.
+//   4. Bloqueos de tiempo (comida, descansos) — incluye validación
+//      por DURACIÓN del servicio: el rango [t, t+duración] no debe
+//      tocar ningún bloqueo, cita ocupada, ni el cierre del día.
 function buildSlots() {
   var dow=S.selectedDate.getDay(),cfg=null;
   if(S.selectedStaff&&S.selectedStaff.hours&&S.selectedStaff.hours.length){
@@ -234,20 +279,47 @@ function buildSlots() {
     cfg=S.hours.find(function(h){return h.day_of_week===dow;})||def[dow];
   }
   if(!cfg||!cfg.is_open) return null;
+
   var sp=cfg.start_time.split(':').map(Number),ep=cfg.end_time.split(':').map(Number);
   var sm=sp[0]*60+sp[1],em=ep[0]*60+ep[1];
   var dur=S.selectedService?Math.ceil(S.selectedService.duration_minutes/30)*30:30;
   var now=new Date(),today=toDateStr(S.selectedDate)===toDateStr(now);
+  var dateStr = toDateStr(S.selectedDate);
+  var staffId = (S.selectedStaff && S.selectedStaff.id) ? S.selectedStaff.id : null;
+
   var slots=[];
   for(var t=sm;t+dur<=em;t+=30){
     var lbl=pad(Math.floor(t/60))+':'+pad(t%60);
+    var slotEndMin = t + dur;
+
+    // 1. Verificar conflicto con citas existentes
     var taken=S.takenSlots.some(function(a){
       var ap=(a.start_time||'00:00').split(':').map(Number);
       var ae=(a.end_time||'00:00').split(':').map(Number);
       return t<ae[0]*60+ae[1]&&t+dur>ap[0]*60+ap[1];
     });
+    if (taken) continue;
+
+    // 2. Verificar si es hora pasada (solo aplica para hoy)
     var past=today&&(Math.floor(t/60)<now.getHours()||(Math.floor(t/60)===now.getHours()&&t%60<=now.getMinutes()));
-    if(!taken&&!past) slots.push(lbl);
+    if (past) continue;
+
+    // 3. Verificar bloqueos de tiempo (comida, descansos):
+    //    El rango [t, t+dur] no debe tocar ningún bloqueo aplicable.
+    //    Recorremos cada sub-bloque de 30 min y validamos individualmente
+    //    para que un servicio de 90 min que iniciaría 30 min antes
+    //    de la comida también quede excluido.
+    var rangeBlocked = false;
+    for (var sub = t; sub < slotEndMin; sub += 30) {
+      var subEnd = Math.min(sub + 30, slotEndMin);
+      if (findBlockForSlot(sub, subEnd, dateStr, dow, staffId)) {
+        rangeBlocked = true;
+        break;
+      }
+    }
+    if (rangeBlocked) continue;
+
+    slots.push(lbl);
   }
   return slots;
 }
@@ -599,15 +671,19 @@ function init() {
       setMeta('og:title','Agenda tu cita en '+bn);
       setMeta('og:description','Reserva tu cita con '+bn+'. Elige servicio, fecha y hora.');
       if(p.logo_url) setMeta('og:image',p.logo_url);
+      // Cargamos servicios + horarios + colaboradores + bloqueos de tiempo en paralelo.
+      // Los time_blocks se filtran por is_active=true para que bloqueos pausados no afecten.
       return Promise.all([
         supaFetch('services?user_id=eq.'+link.user_id+'&is_active=eq.true&order=name'),
         supaFetch('business_hours?user_id=eq.'+link.user_id+'&order=day_of_week'),
-        supaFetch('staff_members?user_id=eq.'+link.user_id+'&is_active=eq.true&order=sort_order&select=id,name,role,color')
+        supaFetch('staff_members?user_id=eq.'+link.user_id+'&is_active=eq.true&order=sort_order&select=id,name,role,color'),
+        supaFetch('time_blocks?user_id=eq.'+link.user_id+'&is_active=eq.true&select=id,staff_id,label,start_time,end_time,is_recurring,day_of_week,specific_date,is_active').catch(function(){return [];})
       ]);
     });
   }).then(function(res){
     if(!res) return;
     S.services=res[0]||[]; S.hours=res[1]||[]; S.staffMembers=res[2]||[];
+    S.timeBlocks = res[3] || [];
     if(S.staffMembers.length>0) S.selectedStaff=undefined;
     S.selectedDate=nextOpenDay(new Date());
     return loadSlots();
