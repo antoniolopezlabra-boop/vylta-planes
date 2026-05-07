@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Restablecer contraseña · VYLTA</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="VYLTA" />
+  <meta property="og:title" content="Restablecer contraseña · VYLTA" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #F8FAFC;
+      color: #0F172A;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 24px;
+      border: 1px solid #F1F5F9;
+      padding: 32px 28px;
+      max-width: 440px;
+      width: 100%;
+      box-shadow: 0 4px 24px rgba(15, 23, 42, 0.04);
+    }
+    .brand {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .brand-logo {
+      font-size: 28px;
+      font-weight: 800;
+      color: #10B981;
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+    }
+    .brand-tagline {
+      font-size: 13px;
+      color: #94A3B8;
+    }
+    .icon-wrap {
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
+      background: #ECFDF5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 32px;
+    }
+    .title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0F172A;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: #64748B;
+      text-align: center;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+    .form-field { margin-bottom: 16px; }
+    .form-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748B;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .input-wrap { position: relative; }
+    .form-field input {
+      width: 100%;
+      padding: 14px 44px 14px 14px;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 12px;
+      font-size: 15px;
+      color: #0F172A;
+      background: #fff;
+      font-family: inherit;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+    .form-field input:focus { border-color: #10B981; }
+    .form-field input.invalid { border-color: #EF4444; }
+    .toggle-eye {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      color: #94A3B8;
+      font-size: 18px;
+      line-height: 1;
+    }
+    .toggle-eye:hover { color: #64748B; }
+    .field-error {
+      font-size: 12px;
+      color: #EF4444;
+      margin-top: 6px;
+      display: none;
+      line-height: 1.5;
+    }
+    .field-error.visible { display: block; }
+    .strength-bar {
+      height: 4px;
+      background: #F1F5F9;
+      border-radius: 4px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+    .strength-fill {
+      height: 100%;
+      width: 0;
+      background: #EF4444;
+      border-radius: 4px;
+      transition: width 0.25s, background 0.25s;
+    }
+    .strength-label {
+      font-size: 11px;
+      color: #94A3B8;
+      margin-top: 4px;
+      font-weight: 600;
+    }
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      background: #10B981;
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .submit-btn:hover:not(:disabled) { opacity: 0.92; }
+    .submit-btn:active:not(:disabled) { transform: scale(0.98); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .spinner-inline {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: -2px;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 32px 0;
+    }
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #E2E8F0;
+      border-top-color: #10B981;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    .loader-text { font-size: 14px; color: #94A3B8; }
+    .alert {
+      padding: 14px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .alert.visible { display: block; }
+    .alert.error {
+      background: #FEF2F2;
+      color: #B91C1C;
+      border: 1px solid #FECACA;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 12px;
+      color: #CBD5E1;
+    }
+    .footer a { color: #10B981; text-decoration: none; font-weight: 600; }
+    .footer a:hover { text-decoration: underline; }
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: #ECFDF5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      margin: 0 auto 20px;
+      color: #10B981;
+      font-weight: 800;
+    }
+    .return-btn {
+      display: block;
+      text-align: center;
+      width: 100%;
+      padding: 14px;
+      background: #0F172A;
+      color: #fff;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      margin-top: 16px;
+    }
+    .return-btn:hover { background: #1E293B; }
+  </style>
+</head>
+<body>
+  <div class="card" id="card">
+    <div class="brand">
+      <div class="brand-logo">VYLTA</div>
+      <div class="brand-tagline">Cada cliente regresa</div>
+    </div>
+    <div class="loader-screen">
+      <div class="spinner"></div>
+      <div class="loader-text">Verificando tu link...</div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    var SUPABASE_URL = 'https://nhjmwmkaduiaifgztymi.supabase.co';
+    var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oam13bWthZHVpYWlmZ3p0eW1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1ODk3MTYsImV4cCI6MjA4ODE2NTcxNn0.p53BZPf6qygAYw29bIJ0bA5VwZ_lRxw-aocV8LuGB1c';
+
+    var supabase = window.supabase.createClient(SUPABASE_URL, ANON_KEY, {
+      auth: {
+        detectSessionInUrl: true,
+        persistSession: false,
+        autoRefreshToken: false,
+      }
+    });
+
+    var card = document.getElementById('card');
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    function brandHeader() {
+      return '<div class="brand">' +
+        '<div class="brand-logo">VYLTA</div>' +
+        '<div class="brand-tagline">Cada cliente regresa</div>' +
+        '</div>';
+    }
+
+    function showInvalidLink(reason) {
+      card.innerHTML = brandHeader() +
+        '<div class="icon-wrap" style="background:#FEF2F2;">⚠️</div>' +
+        '<div class="title">Link inválido o expirado</div>' +
+        '<div class="subtitle">' + escapeHtml(reason || 'Este link no es válido o ya expiró. Los links de restablecimiento expiran 1 hora después de solicitarlos.') + '</div>' +
+        '<a href="https://book.vylta.lat" class="return-btn">Ir al sitio de VYLTA</a>' +
+        '<div class="footer">Si necesitas ayuda escríbenos a <a href="mailto:hola@vylta.lat">hola@vylta.lat</a></div>';
+    }
+
+    function showSuccessScreen() {
+      card.innerHTML = brandHeader() +
+        '<div class="success-icon">✓</div>' +
+        '<div class="title">¡Contraseña actualizada!</div>' +
+        '<div class="subtitle">Tu contraseña fue cambiada con éxito. Ya puedes abrir la app de VYLTA e iniciar sesión con tu nueva contraseña.</div>' +
+        '<a href="https://book.vylta.lat" class="return-btn">Volver al sitio</a>' +
+        '<div class="footer">¿Necesitas ayuda? Escríbenos a <a href="mailto:hola@vylta.lat">hola@vylta.lat</a></div>';
+    }
+
+    function evaluateStrength(pwd) {
+      var score = 0;
+      if (pwd.length >= 8) score++;
+      if (pwd.length >= 12) score++;
+      if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score++;
+      if (/[0-9]/.test(pwd)) score++;
+      if (/[^A-Za-z0-9]/.test(pwd)) score++;
+
+      if (pwd.length === 0) return { pct: 0, label: '', color: '#EF4444' };
+      if (score <= 1) return { pct: 25, label: 'Débil', color: '#EF4444' };
+      if (score === 2) return { pct: 50, label: 'Regular', color: '#F59E0B' };
+      if (score === 3) return { pct: 75, label: 'Buena', color: '#10B981' };
+      return { pct: 100, label: 'Excelente', color: '#10B981' };
+    }
+
+    function showResetForm() {
+      card.innerHTML = brandHeader() +
+        '<div class="icon-wrap">🔒</div>' +
+        '<div class="title">Crear nueva contraseña</div>' +
+        '<div class="subtitle">Elige una contraseña segura que recuerdes. Después podrás iniciar sesión en la app de VYLTA.</div>' +
+        '<div class="alert error" id="alert-error"></div>' +
+        '<div class="form-field">' +
+          '<label for="pwd1">Nueva contraseña</label>' +
+          '<div class="input-wrap">' +
+            '<input id="pwd1" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres" />' +
+            '<button type="button" class="toggle-eye" id="toggle1" aria-label="Mostrar contraseña">👁</button>' +
+          '</div>' +
+          '<div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>' +
+          '<div class="strength-label" id="strength-label"></div>' +
+          '<div class="field-error" id="err-pwd1"></div>' +
+        '</div>' +
+        '<div class="form-field">' +
+          '<label for="pwd2">Confirmar contraseña</label>' +
+          '<div class="input-wrap">' +
+            '<input id="pwd2" type="password" autocomplete="new-password" placeholder="Escríbela de nuevo" />' +
+            '<button type="button" class="toggle-eye" id="toggle2" aria-label="Mostrar contraseña">👁</button>' +
+          '</div>' +
+          '<div class="field-error" id="err-pwd2"></div>' +
+        '</div>' +
+        '<button class="submit-btn" id="submit-btn">Actualizar contraseña</button>' +
+        '<div class="footer">Si no solicitaste este cambio, ignora el correo y tu cuenta seguirá segura.</div>';
+
+      var pwd1 = document.getElementById('pwd1');
+      var pwd2 = document.getElementById('pwd2');
+      var err1 = document.getElementById('err-pwd1');
+      var err2 = document.getElementById('err-pwd2');
+      var alertBox = document.getElementById('alert-error');
+      var btn = document.getElementById('submit-btn');
+      var fill = document.getElementById('strength-fill');
+      var lbl = document.getElementById('strength-label');
+      var toggle1 = document.getElementById('toggle1');
+      var toggle2 = document.getElementById('toggle2');
+      var submitting = false;
+
+      function setupToggle(toggleBtn, input) {
+        toggleBtn.addEventListener('click', function () {
+          var isPwd = input.type === 'password';
+          input.type = isPwd ? 'text' : 'password';
+          toggleBtn.textContent = isPwd ? '🙈' : '👁';
+        });
+      }
+      setupToggle(toggle1, pwd1);
+      setupToggle(toggle2, pwd2);
+
+      pwd1.addEventListener('input', function () {
+        var s = evaluateStrength(pwd1.value);
+        fill.style.width = s.pct + '%';
+        fill.style.background = s.color;
+        lbl.textContent = s.label;
+        lbl.style.color = s.color;
+        pwd1.classList.remove('invalid');
+        err1.classList.remove('visible');
+      });
+      pwd2.addEventListener('input', function () {
+        pwd2.classList.remove('invalid');
+        err2.classList.remove('visible');
+      });
+
+      btn.addEventListener('click', function () {
+        if (submitting) return;
+
+        var p1 = pwd1.value;
+        var p2 = pwd2.value;
+
+        alertBox.classList.remove('visible');
+        err1.classList.remove('visible');
+        err2.classList.remove('visible');
+        pwd1.classList.remove('invalid');
+        pwd2.classList.remove('invalid');
+
+        if (!p1 || p1.length < 8) {
+          err1.textContent = 'La contraseña debe tener al menos 8 caracteres.';
+          err1.classList.add('visible');
+          pwd1.classList.add('invalid');
+          return;
+        }
+        if (p1.length > 72) {
+          err1.textContent = 'La contraseña no puede tener más de 72 caracteres.';
+          err1.classList.add('visible');
+          pwd1.classList.add('invalid');
+          return;
+        }
+        if (p1 !== p2) {
+          err2.textContent = 'Las contraseñas no coinciden.';
+          err2.classList.add('visible');
+          pwd2.classList.add('invalid');
+          return;
+        }
+
+        submitting = true;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-inline"></span>Actualizando...';
+
+        supabase.auth.updateUser({ password: p1 }).then(function (res) {
+          if (res.error) {
+            console.error('[Reset] updateUser error:', res.error);
+            alertBox.textContent = res.error.message === 'New password should be different from the old password.'
+              ? 'La nueva contraseña debe ser diferente a la anterior.'
+              : 'No pudimos actualizar tu contraseña. El link puede haber expirado. Solicita uno nuevo desde la app.';
+            alertBox.classList.add('visible');
+            submitting = false;
+            btn.disabled = false;
+            btn.textContent = 'Actualizar contraseña';
+            return;
+          }
+          supabase.auth.signOut().finally(function () {
+            showSuccessScreen();
+          });
+        }).catch(function (e) {
+          console.error('[Reset] unexpected:', e);
+          alertBox.textContent = 'Ocurrió un error inesperado. Intenta de nuevo o solicita un nuevo link desde la app.';
+          alertBox.classList.add('visible');
+          submitting = false;
+          btn.disabled = false;
+          btn.textContent = 'Actualizar contraseña';
+        });
+      });
+
+      [pwd1, pwd2].forEach(function (input) {
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); btn.click(); }
+        });
+      });
+
+      pwd1.focus();
+    }
+
+    function parseHash() {
+      var hash = window.location.hash.replace(/^#/, '');
+      var params = {};
+      hash.split('&').forEach(function (pair) {
+        var idx = pair.indexOf('=');
+        if (idx > -1) {
+          params[decodeURIComponent(pair.slice(0, idx))] = decodeURIComponent(pair.slice(idx + 1));
+        }
+      });
+      return params;
+    }
+
+    var hashParams = parseHash();
+
+    if (hashParams.error) {
+      var desc = hashParams.error_description || '';
+      var isExpired = /expired/i.test(desc) || hashParams.error_code === 'otp_expired';
+      showInvalidLink(isExpired
+        ? 'Este link expiró. Los links de restablecimiento son válidos solo durante 1 hora. Solicita uno nuevo desde la app.'
+        : 'Este link no es válido. Solicita un nuevo link desde la app.');
+    } else if (hashParams.type === 'recovery' && hashParams.access_token) {
+      var attempts = 0;
+      var checkSession = function () {
+        supabase.auth.getSession().then(function (res) {
+          if (res.data.session) {
+            showResetForm();
+          } else if (attempts < 10) {
+            attempts++;
+            setTimeout(checkSession, 150);
+          } else {
+            showInvalidLink('No pudimos verificar tu link. Solicita uno nuevo desde la app.');
+          }
+        });
+      };
+      checkSession();
+    } else {
+      showInvalidLink('Para restablecer tu contraseña, solicita un link desde la app de VYLTA tocando "¿Olvidaste tu contraseña?" en la pantalla de inicio de sesión.');
+    }
+  </script>
+</body>
+</html>
