@@ -663,7 +663,7 @@ function init() {
   .then(function(links){
     if(!links||!links.length){renderError('Negocio no encontrado','El enlace no est&#xE1; activo o no existe.');return Promise.reject('not found');}
     var link=links[0];
-    return supaFetch('business_profiles?user_id=eq.'+link.user_id+'&select=business_name,business_type,logo_url,phone')
+    return supaFetch('public_business_profiles?user_id=eq.'+link.user_id+'&select=business_name,business_type,logo_url,phone')
     .then(function(profiles){
       var p=(profiles&&profiles[0])||{};
       S.biz={business_name:p.business_name,business_type:p.business_type,logo_url:p.logo_url,phone:p.phone,linkId:link.id,userId:link.user_id};
