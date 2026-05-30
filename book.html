@@ -68,6 +68,7 @@
     .slot { padding: 10px 4px; border-radius: 10px; border: 1.5px solid #E2E8F0; text-align: center; font-size: 13px; font-weight: 600; color: #0F172A; cursor: pointer; transition: all 0.15s; background: #fff; }
     .slot:hover { border-color: #10B981; color: #10B981; background: #F0FDF4; }
     .slot.selected { background: #10B981; border-color: #10B981; color: #fff; box-shadow: 0 2px 8px rgba(16,185,129,0.3); }
+    .slot:focus-visible, .service-item:focus-visible, .staff-card:focus-visible, .staff-any:focus-visible { outline: 2px solid #10B981; outline-offset: 2px; }
     .slots-empty { padding: 20px 16px; text-align: center; color: #94A3B8; font-size: 14px; }
     .slots-count { padding: 8px 16px 0; font-size: 11px; color: #94A3B8; }
     .form-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
@@ -176,6 +177,11 @@ function validPhone(p) {
   return digits.length >= 7 && digits.length <= 15;
 }
 
+// U7: validacion de nombre — minimo 2 caracteres (evita nombres de 1 letra)
+function validName(n) {
+  return (n || '').trim().length >= 2;
+}
+
 function beforeToday(d) { var t=new Date(); t.setHours(0,0,0,0); var c=new Date(d); c.setHours(0,0,0,0); return c<t; }
 function endT(start,dur) { var p=start.split(':').map(Number),e=p[0]*60+p[1]+dur; return pad(Math.floor(e/60))+':'+pad(e%60); }
 function setMeta(prop,val) {
@@ -198,7 +204,7 @@ function refreshBtn() {
   if(!btn) return;
   var staffOk=S.staffMembers.length===0||S.selectedStaff!==undefined;
   var phoneOk=validPhone(S.phone);
-  var ok=S.selectedService&&staffOk&&S.selectedSlot&&S.name.trim()&&phoneOk;
+  var ok=S.selectedService&&staffOk&&S.selectedSlot&&validName(S.name)&&phoneOk;
   // FIX doble-submit: si submitLocked es true, el botón queda deshabilitado permanentemente hasta éxito/error
   btn.disabled=!ok||S.submitting||S.submitLocked;
 }
@@ -283,7 +289,9 @@ function buildSlots() {
 
   var sp=cfg.start_time.split(':').map(Number),ep=cfg.end_time.split(':').map(Number);
   var sm=sp[0]*60+sp[1],em=ep[0]*60+ep[1];
-  var dur=S.selectedService?Math.ceil(S.selectedService.duration_minutes/30)*30:30;
+  // B5: piso de 30 min. Si un servicio quedo con duracion 0/null, usamos 30
+  // como minimo para no generar slots invalidos (duracion de bloque cero).
+  var dur=S.selectedService?Math.max(30,Math.ceil((S.selectedService.duration_minutes||30)/30)*30):30;
   var now=new Date(),today=toDateStr(S.selectedDate)===toDateStr(now);
   var dateStr = toDateStr(S.selectedDate);
   var staffId = (S.selectedStaff && S.selectedStaff.id) ? S.selectedStaff.id : null;
@@ -350,7 +358,7 @@ function renderFull() {
   html+='<div class="card"><div class="form-body">';
   html+='<div class="form-field"><label>Tu nombre *</label><input id="inp-name" type="text" placeholder="Ej: Mar&#xED;a L&#xF3;pez" autocomplete="name" /></div>';
   html+='<div class="form-field"><label>Tu WhatsApp / tel&#xE9;fono *</label><input id="inp-phone" type="tel" placeholder="Ej: 442 123 4567" autocomplete="tel" /><div id="phone-error" class="field-error">Ingresa un n&#xFA;mero v&#xE1;lido (7&#x2013;15 d&#xED;gitos)</div></div>';
-  html+='<div class="form-field"><label>Notas (opcional)</label><textarea id="inp-notes" placeholder="Primera vez, tipo de u&#xF1;as, alergias..."></textarea></div>';
+  html+='<div class="form-field"><label>Notas (opcional)</label><textarea id="inp-notes" maxlength="300" placeholder="Primera vez, tipo de u&#xF1;as, alergias..."></textarea></div>';
   html+='</div></div>';
   html+='<div id="sect-summary"></div>';
   // FIX doble-submit: onclick llama submitBooking que tiene su propio guard interno
@@ -362,7 +370,7 @@ function renderFull() {
   document.getElementById('inp-name').addEventListener('input',function(){
     S.name=this.value; refreshBtn();
     var b=document.getElementById('badge-info');
-    if(b){if(S.name.trim()&&validPhone(S.phone))b.classList.add('done');else b.classList.remove('done');}
+    if(b){if(validName(S.name)&&validPhone(S.phone))b.classList.add('done');else b.classList.remove('done');}
   });
   document.getElementById('inp-phone').addEventListener('input',function(){
     S.phone=this.value; refreshBtn();
@@ -371,7 +379,7 @@ function renderFull() {
     var inp=document.getElementById('inp-phone');
     if(err&&inp){err.classList.remove('visible');inp.classList.remove('invalid');}
     var b=document.getElementById('badge-info');
-    if(b){if(S.name.trim()&&validPhone(S.phone))b.classList.add('done');else b.classList.remove('done');}
+    if(b){if(validName(S.name)&&validPhone(S.phone))b.classList.add('done');else b.classList.remove('done');}
   });
   document.getElementById('inp-phone').addEventListener('blur',function(){
     var err=document.getElementById('phone-error');
@@ -401,7 +409,7 @@ function renderSections() {
   renderSummary();
   refreshBtn();
   var b=document.getElementById('badge-info');
-  if(b){if(S.name.trim()&&validPhone(S.phone))b.classList.add('done');else b.classList.remove('done');}
+  if(b){if(validName(S.name)&&validPhone(S.phone))b.classList.add('done');else b.classList.remove('done');}
 }
 
 function renderSvcSection() {
@@ -413,7 +421,7 @@ function renderSvcSection() {
   } else {
     S.services.forEach(function(s){
       var sel=S.selectedService&&S.selectedService.id===s.id;
-      html+='<div class="service-item'+(sel?' selected':'')+'" onclick="selectSvc(\''+s.id+'\')">';
+      html+='<div class="service-item'+(sel?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(sel?'true':'false')+'" onclick="selectSvc(\''+s.id+'\')">';
       html+='<div class="service-icon">'+svcIcon(s.name)+'</div>';
       html+='<div class="service-info"><div class="service-name">'+s.name+'</div>';
       html+='<div class="service-meta">'+durLabel(s.duration_minutes)+(s.description?' &middot; '+s.description:'')+'</div></div>';
@@ -436,7 +444,7 @@ function renderStaffSection() {
   S.staffMembers.forEach(function(m){
     var sel=S.selectedStaff&&S.selectedStaff.id===m.id;
     var bg=hexRgba(m.color,0.1);
-    html+='<div class="staff-card'+(sel?' selected':'')+'" onclick="selectStaff(\''+m.id+'\')" style="'+(sel?'border-color:'+m.color+';background:'+bg+';':'')+'">'
+    html+='<div class="staff-card'+(sel?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(sel?'true':'false')+'" onclick="selectStaff(\''+m.id+'\')" style="'+(sel?'border-color:'+m.color+';background:'+bg+';':'')+'">'
     html+='<div class="staff-avatar" style="background:'+bg+';color:'+m.color+';'+(sel?'border-color:'+m.color+';':'')+'">'+getInitials(m.name)+'</div>';
     html+='<div class="staff-card-name">'+m.name+'</div>';
     html+=(m.role?'<div class="staff-card-role">'+m.role+'</div>':'');
@@ -445,7 +453,7 @@ function renderStaffSection() {
   });
   html+='</div>';
   var anySel=S.selectedStaff===null;
-  html+='<div class="staff-any'+(anySel?' selected':'')+'" onclick="selectStaff(null)">';
+  html+='<div class="staff-any'+(anySel?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(anySel?'true':'false')+'" onclick="selectStaff(null)">';
   html+='<div class="staff-any-icon">&#x1F464;</div>';
   html+='<div class="staff-any-info"><div class="staff-any-name">Sin preferencia</div><div class="staff-any-sub">Cualquier colaborador disponible</div></div>';
   html+=(anySel?'<div class="staff-any-check">&#x2713;</div>':'');
@@ -482,7 +490,7 @@ function renderDateSection() {
   } else {
     shtml='<div class="slots-count">'+slots.length+' horario'+(slots.length!==1?'s':'')+'</div><div class="slots-grid">';
     slots.forEach(function(s){
-      shtml+='<div class="slot'+(S.selectedSlot===s?' selected':'')+'" onclick="pickSlot(\''+s+'\')">'+ s +'</div>';
+      shtml+='<div class="slot'+(S.selectedSlot===s?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(S.selectedSlot===s?'true':'false')+'" aria-label="Horario '+s+'" onclick="pickSlot(\''+s+'\')">'+ s +'</div>';
     });
     shtml+='</div>';
   }
@@ -570,7 +578,7 @@ function submitBooking() {
   saveInputs();
   var svc=S.selectedService, staff=S.selectedStaff, slot=S.selectedSlot, date=S.selectedDate;
   var name=S.name, phone=S.phone, notes=S.notes;
-  if(!svc||!slot||!name.trim()||!phone.trim()) return;
+  if(!svc||!slot||!validName(name)||!phone.trim()) return;
 
   // Validacion de telefono con feedback visual
   if(!validPhone(phone)){
@@ -654,6 +662,18 @@ function renderSuccess() {
   html+='</div>';
   app.innerHTML=html;
 }
+
+// A1 (accesibilidad): permitir activar con teclado los elementos role="button"
+// (servicios, colaboradores y slots). Enter o Espacio disparan su onclick.
+document.addEventListener('keydown', function(e){
+  if(e.key!=='Enter' && e.key!==' ' && e.key!=='Spacebar') return;
+  var t=e.target;
+  if(t && t.getAttribute && t.getAttribute('role')==='button' &&
+     (t.classList.contains('slot')||t.classList.contains('service-item')||t.classList.contains('staff-card')||t.classList.contains('staff-any'))){
+    e.preventDefault();
+    t.click();
+  }
+});
 
 // ── Init ──────────────────────────────────────────────────────────────────
 function init() {
