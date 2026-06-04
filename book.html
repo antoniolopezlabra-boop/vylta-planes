@@ -134,7 +134,7 @@ var S = {
   submitting: false, submitted: false, submitLocked: false
 };
 
-// ── Utilidades ─────────────────────────────────────────────────────────
+// ── Utilidades ────────────────────────────────────────────────
 function supaFetch(path) {
   return fetch(SUPABASE_URL + '/rest/v1/' + path, {
     headers: { 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY }
@@ -341,16 +341,22 @@ function buildSlots() {
 // Modo "bloques": en lugar de la rejilla de 30 min, el cliente solo ve las
 // ventanas fijas que definio el dueno (booking_blocks) para ese dia. La cita
 // ocupa TODO el bloque (start..end), sin importar la duracion del servicio.
-// La capacidad la dan los colaboradores: un bloque se marca lleno si el
-// colaborador elegido ya tiene una cita que lo traslapa (o, sin colaborador,
-// si cualquier cita del negocio lo traslapa).
+//
+// Capacidad y horario POR COLABORADOR (Luxury):
+//   - Colaborador especifico: el bloque solo se ofrece si CABE COMPLETO dentro
+//     del turno de ese colaborador ese dia (staff_hours), no lo pisa una cita
+//     suya, ni un bloqueo (comida/descanso) suyo o global.
+//   - "Sin preferencia": el bloque se ofrece si AL MENOS UN colaborador activo
+//     lo cubre (turno + libre).
+//   - Sin colaboradores: los bloques son la fuente de verdad; solo se filtran
+//     citas existentes (capacidad 1) y bloqueos globales.
 function buildBlocks() {
   var dow = S.selectedDate.getDay();          // 0=Dom..6=Sab (JS)
   var projectDay = dow === 0 ? 6 : dow - 1;   // 0=Lun..6=Dom (proyecto)
   var dateStr = toDateStr(S.selectedDate);
-  var staffId = (S.selectedStaff && S.selectedStaff.id) ? S.selectedStaff.id : null;
   var now = new Date(), today = dateStr === toDateStr(now);
   var nowMin = now.getHours() * 60 + now.getMinutes();
+  var hasStaff = S.staffMembers.length > 0;
 
   var dayBlocks = S.bookingBlocks.filter(function(b){
     return b.is_active !== false && b.day_of_week === projectDay;
@@ -358,24 +364,69 @@ function buildBlocks() {
 
   if (!dayBlocks.length) return [];
 
+  // ¿El colaborador m puede tomar el bloque [bStart,bEnd) este dia?
+  // Su turno debe abarcar TODO el bloque, y no debe tener cita propia ni un
+  // bloqueo (propio o global) que lo pise. Si no tiene staff_hours para el dia,
+  // se usa el horario del negocio como respaldo (igual que el modo normal).
+  function staffCoversBlock(m, bStart, bEnd) {
+    var ss = null, se = null;
+    var hrs = m.hours || [];
+    if (hrs.length) {
+      var sh = hrs.find(function(x){ return x.day_of_week === dow; });
+      if (sh) {
+        if (!sh.is_open) return false;
+        ss = tToMin(sh.start_time); se = tToMin(sh.end_time);
+      }
+    }
+    if (ss === null) {
+      var bh = S.hours.find(function(h){ return h.day_of_week === dow; });
+      if (bh) {
+        if (!bh.is_open) return false;
+        ss = tToMin(bh.start_time); se = tToMin(bh.end_time);
+      } else { ss = 0; se = 24 * 60; }
+    }
+    if (bStart < ss || bEnd > se) return false;
+    var busy = S.takenSlots.some(function(a){
+      if (a.staff_id !== m.id) return false;
+      var as = tToMin(a.start_time), ae = tToMin(a.end_time);
+      return bStart < ae && bEnd > as;
+    });
+    if (busy) return false;
+    for (var sub = bStart; sub < bEnd; sub += 30) {
+      if (findBlockForSlot(sub, Math.min(sub + 30, bEnd), dateStr, dow, m.id)) return false;
+    }
+    return true;
+  }
+
   var out = [];
   dayBlocks.forEach(function(b){
     var bStart = tToMin(b.start_time), bEnd = tToMin(b.end_time);
     if (bEnd <= bStart) return;
-    // Pasado (solo hoy): si el bloque ya inicio, no se ofrece.
-    if (today && bStart <= nowMin) return;
-    // Traslape con cita existente (capacidad via colaborador).
-    var taken = S.takenSlots.some(function(a){
-      var as = tToMin(a.start_time), ae = tToMin(a.end_time);
-      return bStart < ae && bEnd > as;
-    });
-    if (taken) return;
-    // Traslape con bloqueo (comida/descanso).
-    var blocked = false;
-    for (var sub = bStart; sub < bEnd; sub += 30) {
-      if (findBlockForSlot(sub, Math.min(sub + 30, bEnd), dateStr, dow, staffId)) { blocked = true; break; }
+    if (today && bStart <= nowMin) return; // pasado (solo hoy)
+
+    if (hasStaff) {
+      if (S.selectedStaff && S.selectedStaff.id) {
+        // Colaborador especifico: debe cubrir el bloque completo.
+        if (!staffCoversBlock(S.selectedStaff, bStart, bEnd)) return;
+      } else {
+        // "Sin preferencia": basta con que un colaborador activo lo cubra.
+        var anyone = S.staffMembers.some(function(m){ return staffCoversBlock(m, bStart, bEnd); });
+        if (!anyone) return;
+      }
+    } else {
+      // Sin colaboradores: capacidad 1 a nivel negocio.
+      var taken = S.takenSlots.some(function(a){
+        var as = tToMin(a.start_time), ae = tToMin(a.end_time);
+        return bStart < ae && bEnd > as;
+      });
+      if (taken) return;
+      var blocked = false;
+      for (var sub = bStart; sub < bEnd; sub += 30) {
+        if (findBlockForSlot(sub, Math.min(sub + 30, bEnd), dateStr, dow, null)) { blocked = true; break; }
+      }
+      if (blocked) return;
     }
-    if (blocked) return;
+
     out.push({ start: b.start_time.slice(0,5), end: b.end_time.slice(0,5) });
   });
   return out;
@@ -797,6 +848,19 @@ function init() {
     S.bookingBlocks = res[4] || [];
     if(S.staffMembers.length>0) S.selectedStaff=undefined;
     S.selectedDate=nextOpenDay(new Date());
+    // En modo bloques con colaboradores, precargamos staff_hours de TODOS para
+    // poder filtrar cada bloque por el turno de cada quien (incluido "sin
+    // preferencia", que necesita las horas de todos para saber si alguien lo cubre).
+    if(S.bookingMode==='bloques' && S.staffMembers.length>0){
+      var ids=S.staffMembers.map(function(m){return m.id;}).join(',');
+      return supaFetch('staff_hours?staff_id=in.('+ids+')&order=day_of_week')
+        .then(function(rows){
+          rows=rows||[];
+          S.staffMembers.forEach(function(m){ m.hours=rows.filter(function(r){return r.staff_id===m.id;}); });
+          return loadSlots();
+        })
+        .catch(function(){ return loadSlots(); });
+    }
     return loadSlots();
   }).then(function(){renderFull();})
   .catch(function(e){
