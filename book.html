@@ -249,6 +249,24 @@ function findBlockForSlot(slotStartMin, slotEndMin, dateStr, jsDay, staffId) {
   return null;
 }
 
+// En modo bloques un bloqueo (comida / descanso / cierre) solo descarta una
+// ventana si la CUBRE POR COMPLETO. Asi una comida que solo roza el borde de
+// un bloque NO lo oculta (el dueno ya definio esa ventana y el hueco entre
+// bloques ya representa el descanso), pero un cierre o vacacion que abarca
+// todo el bloque si lo quita. (jsDay: 0=Dom..6=Sab; BD usa 0=Lun..6=Dom.)
+function timeBlockCoversWindow(bStart, bEnd, dateStr, jsDay, staffId) {
+  var projectDay = jsDay === 0 ? 6 : jsDay - 1;
+  for (var i = 0; i < S.timeBlocks.length; i++) {
+    var b = S.timeBlocks[i];
+    if (!b.is_active) continue;
+    if (b.staff_id && b.staff_id !== staffId) continue;
+    if (b.is_recurring) { if (b.day_of_week !== projectDay) continue; }
+    else { if (b.specific_date !== dateStr) continue; }
+    if (bStart >= tToMin(b.start_time) && bEnd <= tToMin(b.end_time)) return true;
+  }
+  return false;
+}
+
 // ── Horarios ───────────────────────────────────────────────────────────────
 function staffOpenOnDay(dow) {
   if(S.selectedStaff&&S.selectedStaff.hours){
@@ -345,11 +363,13 @@ function buildSlots() {
 // Capacidad y horario POR COLABORADOR (Luxury):
 //   - Colaborador especifico: el bloque solo se ofrece si CABE COMPLETO dentro
 //     del turno de ese colaborador ese dia (staff_hours), no lo pisa una cita
-//     suya, ni un bloqueo (comida/descanso) suyo o global.
+//     suya, ni un bloqueo (comida/cierre) que lo CUBRA POR COMPLETO.
 //   - "Sin preferencia": el bloque se ofrece si AL MENOS UN colaborador activo
 //     lo cubre (turno + libre).
 //   - Sin colaboradores: los bloques son la fuente de verdad; solo se filtran
-//     citas existentes (capacidad 1) y bloqueos globales.
+//     citas existentes (capacidad 1) y bloqueos que cubran todo el bloque.
+// Nota: una comida que solo roza el borde de un bloque NO lo oculta; en modo
+// bloques el hueco entre ventanas ya representa el descanso.
 function buildBlocks() {
   var dow = S.selectedDate.getDay();          // 0=Dom..6=Sab (JS)
   var projectDay = dow === 0 ? 6 : dow - 1;   // 0=Lun..6=Dom (proyecto)
@@ -366,8 +386,8 @@ function buildBlocks() {
 
   // ¿El colaborador m puede tomar el bloque [bStart,bEnd) este dia?
   // Su turno debe abarcar TODO el bloque, y no debe tener cita propia ni un
-  // bloqueo (propio o global) que lo pise. Si no tiene staff_hours para el dia,
-  // se usa el horario del negocio como respaldo (igual que el modo normal).
+  // bloqueo (propio o global) que CUBRA todo el bloque. Si no tiene staff_hours
+  // para el dia, se usa el horario del negocio como respaldo (igual que normal).
   function staffCoversBlock(m, bStart, bEnd) {
     var ss = null, se = null;
     var hrs = m.hours || [];
@@ -392,9 +412,7 @@ function buildBlocks() {
       return bStart < ae && bEnd > as;
     });
     if (busy) return false;
-    for (var sub = bStart; sub < bEnd; sub += 30) {
-      if (findBlockForSlot(sub, Math.min(sub + 30, bEnd), dateStr, dow, m.id)) return false;
-    }
+    if (timeBlockCoversWindow(bStart, bEnd, dateStr, dow, m.id)) return false;
     return true;
   }
 
@@ -420,11 +438,7 @@ function buildBlocks() {
         return bStart < ae && bEnd > as;
       });
       if (taken) return;
-      var blocked = false;
-      for (var sub = bStart; sub < bEnd; sub += 30) {
-        if (findBlockForSlot(sub, Math.min(sub + 30, bEnd), dateStr, dow, null)) { blocked = true; break; }
-      }
-      if (blocked) return;
+      if (timeBlockCoversWindow(bStart, bEnd, dateStr, dow, null)) return;
     }
 
     out.push({ start: b.start_time.slice(0,5), end: b.end_time.slice(0,5) });
