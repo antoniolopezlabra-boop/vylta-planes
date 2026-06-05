@@ -125,7 +125,10 @@ var S = {
   // Recepcion por bloques (modo alternativo): ventanas fijas definidas por el dueno.
   // bookingMode: 'normal' (rejilla de 30 min) | 'bloques' (solo ventanas fijas).
   bookingMode: 'normal', bookingBlocks: [],
-  selectedService: null, selectedDate: new Date(), selectedSlot: null,
+  // Multi-servicio: lista de servicios elegidos (no uno solo). allowMulti se
+  // resuelve por plan (Premium+) via RPC public_business_can_multiservice.
+  selectedServices: [], allowMulti: false,
+  selectedDate: new Date(), selectedSlot: null,
   // En modo bloques guardamos tambien el fin del bloque (la cita ocupa todo el bloque).
   selectedBlockEnd: null,
   selectedStaff: undefined,
@@ -163,7 +166,7 @@ function hexRgba(hex,a) {
 }
 function svcIcon(name) {
   var n=(name||'').toLowerCase();
-  if (/u[\xf1n]a|manicur|gel|acr[\xed]l/.test(n)) return '&#x1F485;';
+  if (/u[ñn]a|manicur|gel|acríl/.test(n)) return '&#x1F485;';
   if (/barber|corte|pelo|cabello|color/.test(n))   return '&#x2702;&#xFE0F;';
   if (/spa|masaje|relax|facial/.test(n))           return '&#x1F486;';
   if (/dental|diente|odonto/.test(n))              return '&#x1F9B7;';
@@ -172,13 +175,13 @@ function svcIcon(name) {
   if (/foto|imagen|retra/.test(n))                 return '&#x1F4F8;';
   if (/makeup|maquilla/.test(n))                   return '&#x1F484;';
   if (/tatuaje|tattoo|piercing/.test(n))           return '&#x1F58B;&#xFE0F;';
-  if (/consulta|m[e\xe9]dico|doctor/.test(n))      return '&#x1FA7A;';
+  if (/consulta|m[eé]dico|doctor/.test(n))         return '&#x1FA7A;';
   return '&#x2B50;';
 }
 
 // Validacion de telefono: minimo 7 digitos numericos
 function validPhone(p) {
-  var digits = p.replace(/\D/g,'');
+  var digits = p.replace(/[^0-9]/g,'');
   return digits.length >= 7 && digits.length <= 15;
 }
 
@@ -195,6 +198,24 @@ function setMeta(prop,val) {
   el.setAttribute('content',val);
 }
 
+// ── Multi-servicio: helpers de totales ────────────────────────
+function svcTotalDur() {
+  var t=0;
+  for(var i=0;i<S.selectedServices.length;i++) t+=(S.selectedServices[i].duration_minutes||0);
+  return t;
+}
+function svcTotalCost() {
+  var t=0;
+  for(var i=0;i<S.selectedServices.length;i++) t+=(Number(S.selectedServices[i].price)||0);
+  return t;
+}
+function svcCombinedName() {
+  return S.selectedServices.map(function(s){return s.name;}).join(' + ');
+}
+function svcPicked(id) {
+  return S.selectedServices.some(function(s){return s.id===id;});
+}
+
 function saveInputs() {
   var n=document.getElementById('inp-name');
   var p=document.getElementById('inp-phone');
@@ -209,7 +230,7 @@ function refreshBtn() {
   if(!btn) return;
   var staffOk=S.staffMembers.length===0||S.selectedStaff!==undefined;
   var phoneOk=validPhone(S.phone);
-  var ok=S.selectedService&&staffOk&&S.selectedSlot&&validName(S.name)&&phoneOk;
+  var ok=S.selectedServices.length>0&&staffOk&&S.selectedSlot&&validName(S.name)&&phoneOk;
   // FIX doble-submit: si submitLocked es true, el botón queda deshabilitado permanentemente hasta éxito/error
   btn.disabled=!ok||S.submitting||S.submitLocked;
 }
@@ -298,6 +319,7 @@ function loadSlots() {
 //   4. Bloqueos de tiempo (comida, descansos) — incluye validación
 //      por DURACIÓN del servicio: el rango [t, t+duración] no debe
 //      tocar ningún bloqueo, cita ocupada, ni el cierre del día.
+// Multi-servicio: la duración usada es la SUMA de los servicios elegidos.
 function buildSlots() {
   var dow=S.selectedDate.getDay(),cfg=null;
   if(S.selectedStaff&&S.selectedStaff.hours&&S.selectedStaff.hours.length){
@@ -312,9 +334,10 @@ function buildSlots() {
 
   var sp=cfg.start_time.split(':').map(Number),ep=cfg.end_time.split(':').map(Number);
   var sm=sp[0]*60+sp[1],em=ep[0]*60+ep[1];
-  // B5: piso de 30 min. Si un servicio quedo con duracion 0/null, usamos 30
+  // B5: piso de 30 min. Si la suma de servicios quedo en 0/null, usamos 30
   // como minimo para no generar slots invalidos (duracion de bloque cero).
-  var dur=S.selectedService?Math.max(30,Math.ceil((S.selectedService.duration_minutes||30)/30)*30):30;
+  var td=svcTotalDur();
+  var dur=td>0?Math.max(30,Math.ceil(td/30)*30):30;
   var now=new Date(),today=toDateStr(S.selectedDate)===toDateStr(now);
   var dateStr = toDateStr(S.selectedDate);
   var staffId = (S.selectedStaff && S.selectedStaff.id) ? S.selectedStaff.id : null;
@@ -527,14 +550,17 @@ function renderSections() {
 
 function renderSvcSection() {
   var el=document.getElementById('sect-svc'); if(!el) return;
-  var s1=!!S.selectedService;
-  var html='<div class="section-title"><span class="step-badge'+(s1?' done':'')+'">1</span>Elige un servicio</div><div class="card">';
+  var s1=S.selectedServices.length>0;
+  var multi=S.allowMulti;
+  var html='<div class="section-title"><span class="step-badge'+(s1?' done':'')+'">1</span>'+(multi?'Elige tus servicios':'Elige un servicio')+'</div>';
+  if(multi){ html+='<div style="font-size:12px;color:#10B981;font-weight:600;margin:-4px 0 8px">Puedes elegir varios &mdash; se suman duraci&#xF3;n y precio.</div>'; }
+  html+='<div class="card">';
   if(!S.services.length){
     html+='<div style="padding:20px;text-align:center;color:#94A3B8;font-size:14px">Sin servicios publicados.</div>';
   } else {
     S.services.forEach(function(s){
-      var sel=S.selectedService&&S.selectedService.id===s.id;
-      html+='<div class="service-item'+(sel?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(sel?'true':'false')+'" onclick="selectSvc(\''+s.id+'\')">';
+      var sel=svcPicked(s.id);
+      html+='<div class="service-item'+(sel?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(sel?'true':'false')+'" onclick="selectSvc(&quot;'+s.id+'&quot;)">';
       html+='<div class="service-icon">'+svcIcon(s.name)+'</div>';
       html+='<div class="service-info"><div class="service-name">'+s.name+'</div>';
       html+='<div class="service-meta">'+durLabel(s.duration_minutes)+(s.description?' &middot; '+s.description:'')+'</div></div>';
@@ -544,6 +570,12 @@ function renderSvcSection() {
     });
   }
   html+='</div>';
+  if(S.selectedServices.length>1){
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;background:#ECFDF5;border:1px solid #10B981;border-radius:12px;padding:12px 14px;margin-top:10px">';
+    html+='<span style="font-size:13px;font-weight:700;color:#065F46">'+S.selectedServices.length+' servicios &middot; '+durLabel(svcTotalDur())+'</span>';
+    html+='<span style="font-size:15px;font-weight:800;color:#10B981">$'+svcTotalCost().toLocaleString('es-MX')+' MXN</span>';
+    html+='</div>';
+  }
   el.innerHTML=html;
 }
 
@@ -557,7 +589,7 @@ function renderStaffSection() {
   S.staffMembers.forEach(function(m){
     var sel=S.selectedStaff&&S.selectedStaff.id===m.id;
     var bg=hexRgba(m.color,0.1);
-    html+='<div class="staff-card'+(sel?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(sel?'true':'false')+'" onclick="selectStaff(\''+m.id+'\')" style="'+(sel?'border-color:'+m.color+';background:'+bg+';':'')+'">'
+    html+='<div class="staff-card'+(sel?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(sel?'true':'false')+'" onclick="selectStaff(&quot;'+m.id+'&quot;)" style="'+(sel?'border-color:'+m.color+';background:'+bg+';':'')+'">'
     html+='<div class="staff-avatar" style="background:'+bg+';color:'+m.color+';'+(sel?'border-color:'+m.color+';':'')+'">'+getInitials(m.name)+'</div>';
     html+='<div class="staff-card-name">'+m.name+'</div>';
     html+=(m.role?'<div class="staff-card-role">'+m.role+'</div>':'');
@@ -591,7 +623,7 @@ function renderDateSection() {
   html+='<span class="date-label">'+fmtDate(S.selectedDate)+'</span>';
   html+='<button class="date-btn" onclick="changeDate(1)">&#8250;</button></div>';
   var shtml='';
-  if(!S.selectedService){
+  if(!S.selectedServices.length){
     shtml='<div class="slots-empty">&#x1F446; Primero selecciona un servicio.</div>';
   } else if(hasStaff&&!staffSel){
     shtml='<div class="slots-empty">&#x1F465; Elige un colaborador para ver los horarios.</div>';
@@ -606,7 +638,7 @@ function renderDateSection() {
       blocks.forEach(function(b){
         var lbl=b.start+' &ndash; '+b.end;
         var selected=(S.selectedSlot===b.start&&S.selectedBlockEnd===b.end);
-        shtml+='<div class="slot'+(selected?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(selected?'true':'false')+'" aria-label="Bloque '+lbl+'" onclick="pickBlock(\''+b.start+'\',\''+b.end+'\')">'+ lbl +'</div>';
+        shtml+='<div class="slot'+(selected?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(selected?'true':'false')+'" aria-label="Bloque '+lbl+'" onclick="pickBlock(&quot;'+b.start+'&quot;,&quot;'+b.end+'&quot;)">'+ lbl +'</div>';
       });
       shtml+='</div>';
     }
@@ -618,7 +650,7 @@ function renderDateSection() {
   } else {
     shtml='<div class="slots-count">'+slots.length+' horario'+(slots.length!==1?'s':'')+'</div><div class="slots-grid">';
     slots.forEach(function(s){
-      shtml+='<div class="slot'+(S.selectedSlot===s?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(S.selectedSlot===s?'true':'false')+'" aria-label="Horario '+s+'" onclick="pickSlot(\''+s+'\')">'+ s +'</div>';
+      shtml+='<div class="slot'+(S.selectedSlot===s?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(S.selectedSlot===s?'true':'false')+'" aria-label="Horario '+s+'" onclick="pickSlot(&quot;'+s+'&quot;)">'+ s +'</div>';
     });
     shtml+='</div>';
   }
@@ -628,22 +660,31 @@ function renderDateSection() {
 
 function renderSummary() {
   var el=document.getElementById('sect-summary'); if(!el) return;
-  if(!S.selectedService||!S.selectedSlot){el.innerHTML='';return;}
-  var endLbl = S.selectedBlockEnd || endT(S.selectedSlot,S.selectedService.duration_minutes);
+  if(!S.selectedServices.length||!S.selectedSlot){el.innerHTML='';return;}
+  var endLbl = S.selectedBlockEnd || endT(S.selectedSlot, svcTotalDur());
+  var multi = S.selectedServices.length>1;
   var html='<div class="summary">';
-  html+='<div class="summary-row"><span class="summary-key">Servicio</span><span class="summary-val">'+S.selectedService.name+'</span></div>';
+  html+='<div class="summary-row"><span class="summary-key">'+(multi?'Servicios':'Servicio')+'</span><span class="summary-val">'+svcCombinedName()+'</span></div>';
+  if(multi) html+='<div class="summary-row"><span class="summary-key">Duraci&#xF3;n</span><span class="summary-val">'+durLabel(svcTotalDur())+'</span></div>';
   if(S.selectedStaff) html+='<div class="summary-row"><span class="summary-key">Con</span><span class="summary-val">'+S.selectedStaff.name+'</span></div>';
   html+='<div class="summary-row"><span class="summary-key">Fecha</span><span class="summary-val">'+fmtDate(S.selectedDate)+'</span></div>';
   html+='<div class="summary-row"><span class="summary-key">Hora</span><span class="summary-val">'+S.selectedSlot+' &mdash; '+endLbl+'</span></div>';
-  html+='<div class="summary-row"><span class="summary-key">Total</span><span class="summary-price">$'+Number(S.selectedService.price).toLocaleString('es-MX')+' MXN</span></div>';
+  html+='<div class="summary-row"><span class="summary-key">Total</span><span class="summary-price">$'+svcTotalCost().toLocaleString('es-MX')+' MXN</span></div>';
   html+='</div>';
   el.innerHTML=html;
 }
 
 // ── Acciones
+// Multi-servicio: selectSvc ahora ALTERNA (agrega/quita) un servicio. En
+// negocios sin multi (Gratuito) se comporta como antes: un solo servicio.
 function selectSvc(id) {
   saveInputs();
-  S.selectedService=S.services.find(function(s){return s.id===id;})||null;
+  var svc=S.services.find(function(s){return s.id===id;});
+  if(!svc) return;
+  var idx=S.selectedServices.findIndex(function(s){return s.id===id;});
+  if(idx>=0){ S.selectedServices.splice(idx,1); }
+  else if(S.allowMulti){ S.selectedServices.push(svc); }
+  else { S.selectedServices=[svc]; }
   S.selectedSlot=null;
   S.selectedBlockEnd=null;
   S.loadingSlots=true;
@@ -723,9 +764,9 @@ function submitBooking() {
   if(S.submitting || S.submitLocked) return;
 
   saveInputs();
-  var svc=S.selectedService, staff=S.selectedStaff, slot=S.selectedSlot, date=S.selectedDate;
+  var staff=S.selectedStaff, slot=S.selectedSlot, date=S.selectedDate;
   var name=S.name, phone=S.phone, notes=S.notes;
-  if(!svc||!slot||!validName(name)||!phone.trim()) return;
+  if(!S.selectedServices.length||!slot||!validName(name)||!phone.trim()) return;
 
   // Validacion de telefono con feedback visual
   if(!validPhone(phone)){
@@ -737,8 +778,9 @@ function submitBooking() {
     return;
   }
 
-  // En modo bloques la cita ocupa todo el bloque; si no, se calcula por duracion.
-  var endTime = S.selectedBlockEnd || endT(slot, svc.duration_minutes);
+  // En modo bloques la cita ocupa todo el bloque; si no, se calcula por la
+  // duracion TOTAL de los servicios elegidos.
+  var endTime = S.selectedBlockEnd || endT(slot, svcTotalDur());
 
   // Guard 2: bloquear INMEDIATAMENTE antes del fetch
   S.submitLocked = true;
@@ -757,10 +799,11 @@ function submitBooking() {
     body:JSON.stringify({
       slug:getSlug(),
       clientName:name.trim(), clientPhone:phone.trim(),
-      serviceName:svc.name, serviceId:svc.id,
+      serviceName:svcCombinedName(), serviceId:(S.selectedServices[0]?S.selectedServices[0].id:null),
+      services:S.selectedServices.map(function(s){return {serviceId:s.id,name:s.name,price:Number(s.price)||0,durationMinutes:s.duration_minutes||30};}),
       date:toDateStr(date), startTime:slot,
       endTime:endTime,
-      serviceCost:svc.price, notes:notes.trim()||null,
+      serviceCost:svcTotalCost(), notes:notes.trim()||null,
       staff_id:(staff&&staff.id)?staff.id:null
     })
   }).then(function(r){return r.json().then(function(d){
@@ -785,7 +828,7 @@ function submitBooking() {
 function showErr(msg) {
   var prev=document.getElementById('vylta-modal');if(prev)prev.remove();
   var o=document.createElement('div');o.id='vylta-modal';o.className='error-modal-overlay';
-  o.innerHTML='<div class="error-modal"><div class="error-modal-icon">&#x26A0;&#xFE0F;</div><div class="error-modal-title">Ocurri&#xF3; un problema</div><div class="error-modal-msg">'+msg+'</div><button class="error-modal-btn" onclick="document.getElementById(\'vylta-modal\').remove()">Entendido</button></div>';
+  o.innerHTML='<div class="error-modal"><div class="error-modal-icon">&#x26A0;&#xFE0F;</div><div class="error-modal-title">Ocurri&#xF3; un problema</div><div class="error-modal-msg">'+msg+'</div><button class="error-modal-btn" onclick="document.getElementById(&quot;vylta-modal&quot;).remove()">Entendido</button></div>';
   document.body.appendChild(o);
 }
 
@@ -794,19 +837,20 @@ function renderError(title,desc) {
 }
 
 function renderSuccess() {
-  var svc=S.selectedService, staff=S.selectedStaff, slot=S.selectedSlot, date=S.selectedDate;
-  var endLbl = S.selectedBlockEnd || endT(slot,svc.duration_minutes);
+  var staff=S.selectedStaff, slot=S.selectedSlot, date=S.selectedDate;
+  var endLbl = S.selectedBlockEnd || endT(slot, svcTotalDur());
+  var multi = S.selectedServices.length>1;
   var html='<div class="success-screen">';
   html+='<div class="success-icon">&#x2705;</div>';
   html+='<div class="success-title">&#xA1;Cita confirmada!</div>';
   html+='<div class="success-desc">Tu cita con <strong>'+S.biz.business_name+'</strong> est&#xE1; agendada. &#xA1;Te esperamos!</div>';
   html+='<div class="success-card">';
   html+='<div class="success-card-row"><span class="success-card-key">Nombre</span><span class="success-card-val">'+S.name+'</span></div>';
-  html+='<div class="success-card-row"><span class="success-card-key">Servicio</span><span class="success-card-val">'+svc.name+'</span></div>';
+  html+='<div class="success-card-row"><span class="success-card-key">'+(multi?'Servicios':'Servicio')+'</span><span class="success-card-val">'+svcCombinedName()+'</span></div>';
   if(staff) html+='<div class="success-card-row"><span class="success-card-key">Con</span><span class="success-card-val">'+staff.name+'</span></div>';
   html+='<div class="success-card-row"><span class="success-card-key">Fecha</span><span class="success-card-val">'+fmtDate(date)+'</span></div>';
   html+='<div class="success-card-row"><span class="success-card-key">Hora</span><span class="success-card-val">'+slot+' &mdash; '+endLbl+'</span></div>';
-  html+='<div class="success-card-row"><span class="success-card-key">Total</span><span class="success-card-val" style="color:#10B981;font-size:18px">$'+Number(svc.price).toLocaleString('es-MX')+' MXN</span></div>';
+  html+='<div class="success-card-row"><span class="success-card-key">Total</span><span class="success-card-val" style="color:#10B981;font-size:18px">$'+svcTotalCost().toLocaleString('es-MX')+' MXN</span></div>';
   html+='</div>';
   if(S.biz.phone) html+='<div class="whatsapp-hint">&#x1F4F1; Guarda el n&#xFA;mero: <strong>'+S.biz.phone+'</strong></div>';
   html+='<div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div>';
@@ -845,14 +889,15 @@ function init() {
       setMeta('og:description','Reserva tu cita con '+bn+'. Elige servicio, fecha y hora.');
       if(p.logo_url) setMeta('og:image',p.logo_url);
       // Cargamos servicios + horarios + colaboradores + bloqueos de tiempo + bloques de
-      // recepcion en paralelo. Los time_blocks y booking_blocks se filtran por
-      // is_active=true para que registros pausados no afecten.
+      // recepcion + flag multi-servicio (por plan) en paralelo. Los time_blocks y
+      // booking_blocks se filtran por is_active=true para que registros pausados no afecten.
       return Promise.all([
         supaFetch('services?user_id=eq.'+link.user_id+'&is_active=eq.true&order=name'),
         supaFetch('business_hours?user_id=eq.'+link.user_id+'&order=day_of_week'),
         supaFetch('staff_members?user_id=eq.'+link.user_id+'&is_active=eq.true&order=sort_order&select=id,name,role,color'),
         supaFetch('time_blocks?user_id=eq.'+link.user_id+'&is_active=eq.true&select=id,staff_id,label,start_time,end_time,is_recurring,day_of_week,specific_date,is_active').catch(function(){return [];}),
-        supaFetch('booking_blocks?user_id=eq.'+link.user_id+'&is_active=eq.true&select=id,day_of_week,start_time,end_time,is_active&order=sort_order').catch(function(){return [];})
+        supaFetch('booking_blocks?user_id=eq.'+link.user_id+'&is_active=eq.true&select=id,day_of_week,start_time,end_time,is_active&order=sort_order').catch(function(){return [];}),
+        supaFetch('rpc/public_business_can_multiservice?p_user_id='+link.user_id).catch(function(){return false;})
       ]);
     });
   }).then(function(res){
@@ -860,6 +905,7 @@ function init() {
     S.services=res[0]||[]; S.hours=res[1]||[]; S.staffMembers=res[2]||[];
     S.timeBlocks = res[3] || [];
     S.bookingBlocks = res[4] || [];
+    S.allowMulti = res[5] === true;
     if(S.staffMembers.length>0) S.selectedStaff=undefined;
     S.selectedDate=nextOpenDay(new Date());
     // En modo bloques con colaboradores, precargamos staff_hours de TODOS para
