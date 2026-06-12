@@ -192,6 +192,8 @@ function validName(n) {
 
 function beforeToday(d) { var t=new Date(); t.setHours(0,0,0,0); var c=new Date(d); c.setHours(0,0,0,0); return c<t; }
 function endT(start,dur) { var p=start.split(':').map(Number),e=p[0]*60+p[1]+dur; return pad(Math.floor(e/60))+':'+pad(e%60); }
+// SEC: escapa texto controlado por el visitante (nombre) antes de innerHTML.
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function setMeta(prop,val) {
   var el=document.querySelector('meta[property="'+prop+'"]');
   if(!el){el=document.createElement('meta');el.setAttribute('property',prop);document.head.appendChild(el);}
@@ -845,9 +847,9 @@ function renderSuccess() {
   html+='<div class="success-title">&#xA1;Cita confirmada!</div>';
   html+='<div class="success-desc">Tu cita con <strong>'+S.biz.business_name+'</strong> est&#xE1; agendada. &#xA1;Te esperamos!</div>';
   html+='<div class="success-card">';
-  html+='<div class="success-card-row"><span class="success-card-key">Nombre</span><span class="success-card-val">'+S.name+'</span></div>';
+  html+='<div class="success-card-row"><span class="success-card-key">Nombre</span><span class="success-card-val">'+esc(S.name)+'</span></div>';
   html+='<div class="success-card-row"><span class="success-card-key">'+(multi?'Servicios':'Servicio')+'</span><span class="success-card-val">'+svcCombinedName()+'</span></div>';
-  if(staff) html+='<div class="success-card-row"><span class="success-card-key">Con</span><span class="success-card-val">'+staff.name+'</span></div>';
+  if(staff) html+='<div class="success-card-row"><span class="success-card-key">Con</span><span class="success-card-val">'+esc(staff.name)+'</span></div>';
   html+='<div class="success-card-row"><span class="success-card-key">Fecha</span><span class="success-card-val">'+fmtDate(date)+'</span></div>';
   html+='<div class="success-card-row"><span class="success-card-key">Hora</span><span class="success-card-val">'+slot+' &mdash; '+endLbl+'</span></div>';
   html+='<div class="success-card-row"><span class="success-card-key">Total</span><span class="success-card-val" style="color:#10B981;font-size:18px">$'+svcTotalCost().toLocaleString('es-MX')+' MXN</span></div>';
