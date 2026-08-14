@@ -98,6 +98,29 @@
     .success-card-row:last-child { border-bottom: none; }
     .success-card-key { color: #94A3B8; }
     .success-card-val { font-weight: 600; color: #0F172A; }
+
+    /* ── Tarjeta de lealtad (Ago 2026) ── */
+    .loy-card { width: 100%; max-width: 360px; background: linear-gradient(135deg,#FFFBEB 0%,#FEF3C7 100%); border: 1px solid #FDE68A; border-radius: 16px; padding: 18px; text-align: left; }
+    .loy-card.win { background: linear-gradient(135deg,#F59E0B 0%,#D97706 100%); border-color: #B45309; }
+    .loy-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .loy-logo { width: 40px; height: 40px; border-radius: 11px; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; color: #B45309; overflow: hidden; flex-shrink: 0; }
+    .loy-logo img { width: 100%; height: 100%; object-fit: cover; }
+    .loy-titles { flex: 1; min-width: 0; }
+    .loy-title { font-size: 14px; font-weight: 800; color: #78350F; line-height: 1.25; }
+    .loy-card.win .loy-title { color: #fff; }
+    .loy-sub { font-size: 11.5px; color: #B45309; margin-top: 1px; }
+    .loy-card.win .loy-sub { color: #FEF3C7; }
+    .loy-count { font-size: 15px; font-weight: 800; color: #B45309; white-space: nowrap; }
+    .loy-card.win .loy-count { color: #fff; }
+    .loy-dots { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .loy-dot { width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,.75); border: 1px solid #FDE68A; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #B45309; }
+    .loy-dot.done { background: #F59E0B; border-color: #D97706; color: #fff; }
+    .loy-card.win .loy-dot { background: rgba(255,255,255,.3); border-color: rgba(255,255,255,.5); }
+    .loy-card.win .loy-dot.done { background: #fff; color: #B45309; border-color: #fff; }
+    .loy-msg { font-size: 12.5px; color: #92400E; line-height: 1.55; }
+    .loy-card.win .loy-msg { color: #fff; font-weight: 600; }
+    .loy-msg strong { color: #78350F; }
+    .loy-card.win .loy-msg strong { color: #fff; }
     .whatsapp-hint { background: #F0FDF4; border-radius: 12px; padding: 14px 16px; font-size: 13px; color: #10B981; font-weight: 500; max-width: 360px; width: 100%; }
     .powered { text-align: center; padding: 24px; font-size: 12px; color: #CBD5E1; }
     .powered a { font-weight: 700; color: #10B981; text-decoration: none; }
@@ -854,10 +877,77 @@ function renderSuccess() {
   html+='<div class="success-card-row"><span class="success-card-key">Hora</span><span class="success-card-val">'+slot+' &mdash; '+endLbl+'</span></div>';
   html+='<div class="success-card-row"><span class="success-card-key">Total</span><span class="success-card-val" style="color:#10B981;font-size:18px">$'+svcTotalCost().toLocaleString('es-MX')+' MXN</span></div>';
   html+='</div>';
+  // Contenedor de la tarjeta de lealtad — se rellena async (ver loadLoyaltyCard)
+  html+='<div id="loyalty-slot"></div>';
   if(S.biz.phone) html+='<div class="whatsapp-hint">&#x1F4F1; Guarda el n&#xFA;mero: <strong>'+S.biz.phone+'</strong></div>';
   html+='<div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div>';
   html+='</div>';
   app.innerHTML=html;
+  loadLoyaltyCard();
+}
+
+// ── Tarjeta de lealtad (Ago 2026) ─────────────────────────────────────────
+// Tras confirmar la cita mostramos al cliente cuántas visitas lleva y
+// cuánto le falta para su recompensa. Solo aparece si el negocio activó
+// la función (la RPC pública devuelve enabled=false en caso contrario).
+// La cita recién agendada aún NO cuenta (es futura): por eso, si con ella
+// completa la tarjeta, se lo anticipamos en el mensaje.
+function loadLoyaltyCard() {
+  try {
+    if(!S.biz || !S.biz.userId || !S.phone) return;
+    fetch(SUPABASE_URL+'/rest/v1/rpc/get_loyalty_progress_public',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
+      body:JSON.stringify({p_user_id:S.biz.userId,p_phone:S.phone})
+    })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d){
+      var p = Array.isArray(d) ? d[0] : d;
+      if(!p || !p.enabled) return;
+      var slot=document.getElementById('loyalty-slot');
+      if(!slot) return;
+
+      var req=p.visits_required, cur=p.visits_in_cycle, pct=p.reward_percent;
+      var willComplete = (cur+1) >= req;           // la cita que acaba de agendar la completa
+      var win = p.is_eligible;                      // ya tenía la recompensa lista
+      var rewardTxt = pct===100 ? 'totalmente gratis' : pct+'% de descuento';
+
+      var bizInit=(S.biz.business_name||'?').trim().charAt(0).toUpperCase();
+      var logo = S.biz.logo_url
+        ? '<img src="'+S.biz.logo_url+'" alt="" onerror="this.parentNode.textContent=\''+bizInit+'\'" />'
+        : bizInit;
+
+      var msg;
+      if(win){
+        msg='&#x1F389; &#xA1;Ya tienes tu recompensa! Tu pr&#xF3;xima visita es <strong>'+rewardTxt+'</strong>. Mu&#xE9;strale este mensaje a '+esc(S.biz.business_name)+'.';
+      } else if(willComplete){
+        msg='&#x1F31F; &#xA1;Con esta cita completas tu tarjeta! Despu&#xE9;s de tu visita, la siguiente ser&#xE1; <strong>'+rewardTxt+'</strong>.';
+      } else {
+        var falta=req-cur-1;
+        msg='Te faltan <strong>'+falta+' visita'+(falta!==1?'s':'')+'</strong> (sin contar esta) para que tu pr&#xF3;xima sea <strong>'+rewardTxt+'</strong>.';
+      }
+
+      var dots='';
+      var shown=Math.min(req,12);
+      for(var i=0;i<shown;i++){
+        dots+='<div class="loy-dot'+(i<Math.min(cur,req)?' done':'')+'">'+(i<Math.min(cur,req)?'&#x2713;':'')+'</div>';
+      }
+      if(req>12) dots+='<div class="loy-dot">+'+(req-12)+'</div>';
+
+      var h='<div class="loy-card'+(win?' win':'')+'">';
+      h+='<div class="loy-head">';
+      h+='<div class="loy-logo">'+logo+'</div>';
+      h+='<div class="loy-titles"><div class="loy-title">Tu tarjeta de lealtad</div>';
+      h+='<div class="loy-sub">'+esc(S.biz.business_name)+'</div></div>';
+      h+='<div class="loy-count">'+Math.min(cur,req)+'/'+req+'</div>';
+      h+='</div>';
+      h+='<div class="loy-dots">'+dots+'</div>';
+      h+='<div class="loy-msg">'+msg+'</div>';
+      h+='</div>';
+      slot.innerHTML=h;
+    })
+    .catch(function(){ /* silencioso: la tarjeta es un extra, nunca rompe la confirmación */ });
+  } catch(e) { /* noop */ }
 }
 
 // A1 (accesibilidad): permitir activar con teclado los elementos role="button"
