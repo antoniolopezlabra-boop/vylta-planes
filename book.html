@@ -121,6 +121,29 @@
     .loy-card.win .loy-msg { color: #fff; font-weight: 600; }
     .loy-msg strong { color: #78350F; }
     .loy-card.win .loy-msg strong { color: #fff; }
+
+    /* ── Cobro anticipado (Ago 2026) ── */
+    .prepay-note { display: flex; gap: 10px; background: #EEF2FF; border: 1px solid #C7D2FE; border-radius: 12px; padding: 12px 14px; margin-top: 12px; }
+    .prepay-note-ico { font-size: 18px; line-height: 1.2; }
+    .prepay-note-txt { font-size: 12.5px; color: #3730A3; line-height: 1.55; }
+    .prepay-note-txt strong { color: #312E81; }
+    .pay-screen { padding: 24px 20px 40px; max-width: 460px; margin: 0 auto; }
+    .pay-head { text-align: center; margin-bottom: 18px; }
+    .pay-title { font-size: 21px; font-weight: 800; color: #0F172A; }
+    .pay-sub { font-size: 13.5px; color: #64748B; margin-top: 5px; line-height: 1.6; }
+    .pay-amount { background: linear-gradient(135deg,#6366F1,#4F46E5); border-radius: 16px; padding: 18px; text-align: center; color: #fff; margin-bottom: 16px; }
+    .pay-amount-lbl { font-size: 12px; opacity: .85; }
+    .pay-amount-val { font-size: 32px; font-weight: 800; margin: 2px 0; }
+    .pay-amount-note { font-size: 11.5px; opacity: .9; }
+    .pay-timer { display: flex; align-items: center; justify-content: center; gap: 6px; background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; border-radius: 10px; padding: 8px; font-size: 12.5px; font-weight: 600; margin-bottom: 16px; }
+    .pay-timer.urgent { background: #FEF2F2; border-color: #FECACA; color: #B91C1C; }
+    .pay-box { background: #fff; border: 1px solid #E2E8F0; border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+    .pay-policy { font-size: 11.5px; color: #64748B; background: #F8FAFC; border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; line-height: 1.55; }
+    .pay-btn { width: 100%; background: #6366F1; color: #fff; border: none; border-radius: 12px; padding: 15px; font-size: 15.5px; font-weight: 700; cursor: pointer; }
+    .pay-btn:disabled { opacity: .6; cursor: not-allowed; }
+    .pay-cancel { display: block; width: 100%; margin-top: 10px; background: none; border: none; color: #64748B; font-size: 13px; cursor: pointer; text-decoration: underline; }
+    .pay-err { background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C; border-radius: 10px; padding: 11px; font-size: 13px; margin-bottom: 12px; }
+    .pay-secure { text-align: center; font-size: 11.5px; color: #94A3B8; margin-top: 14px; }
     .whatsapp-hint { background: #F0FDF4; border-radius: 12px; padding: 14px 16px; font-size: 13px; color: #10B981; font-weight: 500; max-width: 360px; width: 100%; }
     .powered { text-align: center; padding: 24px; font-size: 12px; color: #CBD5E1; }
     .powered a { font-weight: 700; color: #10B981; text-decoration: none; }
@@ -133,6 +156,7 @@
     .error-modal-btn { width: 100%; padding: 14px; background: #0F172A; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; }
     .error-modal-btn:hover { background: #1E293B; }
   </style>
+  <script src="https://js.stripe.com/v3/"></script>
 </head>
 <body>
 <div id="app"><div class="loader"><div class="spinner"></div><span class="loader-text">Cargando...</span></div></div>
@@ -696,7 +720,25 @@ function renderSummary() {
   html+='<div class="summary-row"><span class="summary-key">Hora</span><span class="summary-val">'+S.selectedSlot+' &mdash; '+endLbl+'</span></div>';
   html+='<div class="summary-row"><span class="summary-key">Total</span><span class="summary-price">$'+svcTotalCost().toLocaleString('es-MX')+' MXN</span></div>';
   html+='</div>';
+  html+=prepayNoteHtml();
   el.innerHTML=html;
+}
+
+// ── Cobro anticipado: aviso en el resumen ────────────────────────────────
+// Solo informativo. El monto REAL lo calcula el servidor con los precios de
+// la base de datos (aqui nunca se decide cuanto se cobra).
+function prepayNoteHtml() {
+  var p=S.prepay;
+  if(!p||!p.enabled) return '';
+  var scopeTxt = p.scope==='first' ? ' (solo en tu primera visita)' : '';
+  var amount = Math.round(svcTotalCost()*(p.percent/100));
+  var txt = p.percent===100
+    ? '<strong>Este negocio pide el pago completo por adelantado</strong>'+scopeTxt+'. Al reservar te pediremos pagar <strong>$'+amount.toLocaleString('es-MX')+' MXN</strong> con tarjeta.'
+    : '<strong>Este negocio pide un anticipo del '+p.percent+'%</strong>'+scopeTxt+'. Al reservar te pediremos pagar <strong>$'+amount.toLocaleString('es-MX')+' MXN</strong> con tarjeta; el resto lo pagas en el negocio.';
+  var h='<div class="prepay-note"><div class="prepay-note-ico">&#x1F4B3;</div><div class="prepay-note-txt">'+txt;
+  if(p.refund_policy) h+='<br><span style="opacity:.85">'+esc(p.refund_policy)+'</span>';
+  h+='</div></div>';
+  return h;
 }
 
 // ── Acciones
@@ -818,6 +860,22 @@ function submitBooking() {
     btn.textContent='Confirmando tu cita...';
   }
 
+  // ── COBRO ANTICIPADO ──────────────────────────────────────────────────
+  // Si el negocio lo exige, primero apartamos el horario (10 min) y cobramos.
+  // La cita se crea DESPUES de que Stripe confirme el pago. El servidor decide
+  // si aplica y cuanto: aqui no se calcula ningun monto.
+  if(S.prepay && S.prepay.enabled && !S.prepaidHold){
+    startPrepayFlow({
+      slug:getSlug(), clientName:name.trim(), clientPhone:phone.trim(),
+      serviceName:svcCombinedName(), serviceId:(S.selectedServices[0]?S.selectedServices[0].id:null),
+      services:S.selectedServices.map(function(sv){return {serviceId:sv.id,name:sv.name,price:Number(sv.price)||0,durationMinutes:sv.duration_minutes||30};}),
+      date:toDateStr(date), startTime:slot, endTime:endTime,
+      serviceCost:svcTotalCost(), notes:notes.trim()||null,
+      staff_id:(staff&&staff.id)?staff.id:null
+    });
+    return;
+  }
+
   fetch(SUPABASE_URL+'/functions/v1/create-booking-request',{
     method:'POST',
     headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
@@ -857,6 +915,158 @@ function showErr(msg) {
   document.body.appendChild(o);
 }
 
+
+// ══════════════════════════════════════════════════════════════════════════
+// FLUJO DE COBRO ANTICIPADO (Ago 2026)
+//
+// 1. booking-prepay      -> aparta el horario 10 min y crea el PaymentIntent
+// 2. Stripe Payment Element -> el cliente paga con tarjeta (3D Secure incluido)
+// 3. confirm-prepaid-booking -> reverifica el pago y crea la cita
+// 4. renderSuccess       -> WhatsApp de confirmacion como siempre
+//
+// Nunca se toca dinero en el navegador: los montos y la validacion viven en
+// el servidor. Si algo falla, el horario se libera solo al expirar el hold.
+// ══════════════════════════════════════════════════════════════════════════
+var PAY = { stripe:null, elements:null, timer:null };
+
+function startPrepayFlow(payload) {
+  var btn=document.getElementById('submit-btn');
+  if(btn) btn.textContent='Verificando disponibilidad...';
+
+  fetch(SUPABASE_URL+'/functions/v1/booking-prepay',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
+    body:JSON.stringify(payload)
+  }).then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});})
+  .then(function(res){
+    var d=res.d;
+    if(!res.ok||d.error){
+      S.submitLocked=false; S.submitting=false;
+      if(btn){btn.disabled=false;btn.classList.remove('loading');btn.textContent='Confirmar cita';}
+      alert(d.error||'No se pudo iniciar el pago. Intenta de nuevo.');
+      if(d.code==='SLOT_TAKEN'||d.code==='SLOT_HELD'){ S.selectedSlot=null; renderFull(); }
+      return;
+    }
+    // El negocio no exige pago para este caso (ej. cliente recurrente): seguimos normal.
+    if(!d.requiresPayment){
+      S.prepay=null;
+      submitBooking();
+      return;
+    }
+    S.prepaidHold={holdId:d.holdId, payload:payload};
+    renderPayment(d, payload);
+  }).catch(function(){
+    S.submitLocked=false; S.submitting=false;
+    if(btn){btn.disabled=false;btn.classList.remove('loading');btn.textContent='Confirmar cita';}
+    alert('No pudimos conectar para procesar el pago. Revisa tu internet.');
+  });
+}
+
+function renderPayment(info, payload) {
+  var h='<div class="pay-screen">';
+  h+='<div class="pay-head"><div class="pay-title">Aparta tu cita</div>';
+  h+='<div class="pay-sub">'+esc(S.biz.business_name)+' pide '+(info.percent===100?'el pago completo':'un anticipo del '+info.percent+'%')+' para confirmar tu reservaci&#xF3;n.</div></div>';
+
+  h+='<div class="pay-amount"><div class="pay-amount-lbl">A pagar ahora</div>';
+  h+='<div class="pay-amount-val">$'+Number(info.amountPrepay).toLocaleString('es-MX')+'</div>';
+  h+='<div class="pay-amount-note">MXN'+(info.percent<100?(' &middot; Restante en el negocio: $'+(Number(info.amountTotal)-Number(info.amountPrepay)).toLocaleString('es-MX')):'')+'</div></div>';
+
+  h+='<div class="pay-timer" id="pay-timer">&#x23F1;&#xFE0F; <span id="pay-count">10:00</span> para completar tu pago</div>';
+
+  if(S.prepay&&S.prepay.refund_policy){
+    h+='<div class="pay-policy"><strong>Pol&#xED;tica de cancelaci&#xF3;n:</strong> '+esc(S.prepay.refund_policy)+'</div>';
+  }
+
+  h+='<div id="pay-error"></div>';
+  h+='<div class="pay-box"><div id="payment-element"></div></div>';
+  h+='<button class="pay-btn" id="pay-btn" onclick="confirmPayment()">Pagar $'+Number(info.amountPrepay).toLocaleString('es-MX')+' MXN</button>';
+  h+='<button class="pay-cancel" onclick="cancelPayment()">Cancelar y elegir otro horario</button>';
+  h+='<div class="pay-secure">&#x1F512; Pago protegido por Stripe. VYLTA no almacena los datos de tu tarjeta.</div>';
+  h+='</div>';
+  app.innerHTML=h;
+
+  try{
+    PAY.stripe = Stripe(info.publishableKey);
+    PAY.elements = PAY.stripe.elements({
+      clientSecret: info.clientSecret,
+      appearance:{ theme:'stripe', variables:{ colorPrimary:'#6366F1', borderRadius:'10px' } }
+    });
+    PAY.elements.create('payment',{layout:'tabs'}).mount('#payment-element');
+  }catch(e){
+    document.getElementById('pay-error').innerHTML='<div class="pay-err">No se pudo cargar el formulario de pago. Recarga la p&#xE1;gina.</div>';
+  }
+
+  startPayTimer(new Date(info.expiresAt).getTime());
+}
+
+function startPayTimer(endsAt) {
+  clearInterval(PAY.timer);
+  PAY.timer=setInterval(function(){
+    var left=Math.max(0, Math.floor((endsAt-Date.now())/1000));
+    var el=document.getElementById('pay-count');
+    if(!el){clearInterval(PAY.timer);return;}
+    var m=Math.floor(left/60), sec=left%60;
+    el.textContent=m+':'+(sec<10?'0':'')+sec;
+    var box=document.getElementById('pay-timer');
+    if(box&&left<=120) box.classList.add('urgent');
+    if(left<=0){
+      clearInterval(PAY.timer);
+      var b=document.getElementById('pay-btn');
+      if(b){b.disabled=true;b.textContent='Tiempo agotado';}
+      document.getElementById('pay-error').innerHTML='<div class="pay-err">Se agot&#xF3; el tiempo para pagar y liberamos el horario. Puedes elegirlo de nuevo si sigue disponible.</div>';
+    }
+  },1000);
+}
+
+function confirmPayment() {
+  var btn=document.getElementById('pay-btn');
+  var errBox=document.getElementById('pay-error');
+  if(!PAY.stripe||!PAY.elements){ errBox.innerHTML='<div class="pay-err">El formulario de pago no est&#xE1; listo.</div>'; return; }
+  btn.disabled=true; btn.textContent='Procesando tu pago...';
+  errBox.innerHTML='';
+
+  PAY.stripe.confirmPayment({ elements:PAY.elements, redirect:'if_required' })
+  .then(function(result){
+    if(result.error){
+      btn.disabled=false; btn.textContent='Reintentar pago';
+      errBox.innerHTML='<div class="pay-err">'+esc(result.error.message||'No se pudo procesar el pago.')+'</div>';
+      return;
+    }
+    var pi=result.paymentIntent;
+    if(!pi||pi.status!=='succeeded'){
+      btn.disabled=false; btn.textContent='Reintentar pago';
+      errBox.innerHTML='<div class="pay-err">El pago no se complet&#xF3;. Intenta con otra tarjeta.</div>';
+      return;
+    }
+    btn.textContent='Confirmando tu cita...';
+    clearInterval(PAY.timer);
+    return fetch(SUPABASE_URL+'/functions/v1/confirm-prepaid-booking',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
+      body:JSON.stringify({holdId:S.prepaidHold.holdId, paymentIntentId:pi.id})
+    }).then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});})
+    .then(function(res){
+      if(!res.ok||res.d.error){
+        errBox.innerHTML='<div class="pay-err">'+esc(res.d.error||'Tu pago se realiz&#xF3;, pero hubo un problema al agendar. El negocio te contactar&#xE1;.')+'</div>';
+        btn.textContent='Pago realizado';
+        return;
+      }
+      S.paidAmount=res.d.amountPaid; S.receiptUrl=res.d.receiptUrl||null;
+      S.submitted=true;
+      renderSuccess();
+    });
+  }).catch(function(){
+    btn.disabled=false; btn.textContent='Reintentar pago';
+    errBox.innerHTML='<div class="pay-err">Error de conexi&#xF3;n al procesar el pago.</div>';
+  });
+}
+
+function cancelPayment() {
+  clearInterval(PAY.timer);
+  S.prepaidHold=null; S.submitLocked=false; S.submitting=false; S.selectedSlot=null;
+  renderFull();
+}
+
 function renderError(title,desc) {
   app.innerHTML='<div class="error-screen"><div class="error-icon">&#x1F50D;</div><div class="error-title">'+title+'</div><div class="error-desc">'+desc+'</div></div>';
 }
@@ -876,7 +1086,13 @@ function renderSuccess() {
   html+='<div class="success-card-row"><span class="success-card-key">Fecha</span><span class="success-card-val">'+fmtDate(date)+'</span></div>';
   html+='<div class="success-card-row"><span class="success-card-key">Hora</span><span class="success-card-val">'+slot+' &mdash; '+endLbl+'</span></div>';
   html+='<div class="success-card-row"><span class="success-card-key">Total</span><span class="success-card-val" style="color:#10B981;font-size:18px">$'+svcTotalCost().toLocaleString('es-MX')+' MXN</span></div>';
+  if(S.paidAmount){
+    html+='<div class="success-card-row" style="border-top:1px solid #F1F5F9;margin-top:4px;padding-top:10px"><span class="success-card-key">&#x2705; Pagado por adelantado</span><span class="success-card-val" style="color:#6366F1">$'+Number(S.paidAmount).toLocaleString('es-MX')+' MXN</span></div>';
+  }
   html+='</div>';
+  if(S.paidAmount){
+    html+='<div style="font-size:12.5px;color:#64748B;max-width:360px;line-height:1.6">Tu comprobante de pago llegar&#xE1; por correo desde Stripe.'+(S.receiptUrl?' Tambi&#xE9;n puedes <a href="'+S.receiptUrl+'" target="_blank" style="color:#6366F1">verlo aqu&#xED;</a>.':'')+'</div>';
+  }
   // Contenedor de la tarjeta de lealtad — se rellena async (ver loadLoyaltyCard)
   html+='<div id="loyalty-slot"></div>';
   if(S.biz.phone) html+='<div class="whatsapp-hint">&#x1F4F1; Guarda el n&#xFA;mero: <strong>'+S.biz.phone+'</strong></div>';
@@ -975,6 +1191,15 @@ function init() {
     .then(function(profiles){
       var p=(profiles&&profiles[0])||{};
       S.biz={business_name:p.business_name,business_type:p.business_type,logo_url:p.logo_url,phone:p.phone,linkId:link.id,userId:link.user_id};
+      // Config de cobro anticipado (silenciosa: si falla, el flujo sigue sin pago)
+      fetch(SUPABASE_URL+'/rest/v1/rpc/get_prepay_config_public',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
+        body:JSON.stringify({p_user_id:link.user_id})
+      }).then(function(r){return r.ok?r.json():null;}).then(function(d){
+        var c=Array.isArray(d)?d[0]:d;
+        if(c&&c.enabled){S.prepay=c;if(S.step)renderFull();}
+      }).catch(function(){});
       var bn=p.business_name||'Negocio';
       document.title='Agendar cita \u00b7 '+bn;
       setMeta('og:title','Agenda tu cita en '+bn);
