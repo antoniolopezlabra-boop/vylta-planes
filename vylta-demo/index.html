@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="facebook-domain-verification" content="b324lmgpszya98ykunzepkczvjlfqi" />
+  <title>Agendar cita</title>
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="VYLTA" />
+  <meta name="twitter:card" content="summary" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F8FAFC; color: #0F172A; min-height: 100vh; }
+    .loader { display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column; gap: 16px; }
+    .spinner { width: 36px; height: 36px; border: 3px solid #E2E8F0; border-top-color: #10B981; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    .loader-text { font-size: 14px; color: #94A3B8; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 32px; text-align: center; gap: 12px; }
+    .error-icon { font-size: 48px; }
+    .error-title { font-size: 20px; font-weight: 700; color: #0F172A; }
+    .error-desc { font-size: 14px; color: #64748B; line-height: 1.7; max-width: 320px; }
+    .container { max-width: 480px; margin: 0 auto; padding: 0 16px 80px; }
+    .biz-header { background: #fff; border-radius: 20px; padding: 24px; margin: 20px 0 16px; text-align: center; border: 1px solid #F1F5F9; }
+    .biz-logo { width: 72px; height: 72px; border-radius: 18px; background: #10B981; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; color: #fff; margin: 0 auto 12px; overflow: hidden; }
+    .biz-logo img { width: 100%; height: 100%; object-fit: cover; }
+    .biz-name { font-size: 22px; font-weight: 800; color: #0F172A; }
+    .biz-type { font-size: 14px; color: #64748B; margin-top: 4px; }
+    .biz-badge { display: inline-flex; align-items: center; gap: 6px; background: #ECFDF5; color: #10B981; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; margin-top: 8px; }
+    .biz-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #10B981; }
+    .section-title { font-size: 13px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.8px; margin: 20px 0 10px; display: flex; align-items: center; gap: 8px; }
+    .step-badge { width: 20px; height: 20px; border-radius: 50%; background: #E2E8F0; color: #94A3B8; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+    .step-badge.done { background: #10B981; color: #fff; }
+    .card { background: #fff; border-radius: 16px; border: 1px solid #F1F5F9; overflow: hidden; margin-bottom: 16px; }
+    .service-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; transition: background 0.15s; border-bottom: 1px solid #F8FAFC; }
+    .service-item:last-child { border-bottom: none; }
+    .service-item:hover { background: #F8FAFC; }
+    .service-item.selected { background: #ECFDF5; }
+    .service-icon { width: 40px; height: 40px; border-radius: 12px; background: #F1F5F9; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .service-item.selected .service-icon { background: #D1FAE5; }
+    .service-info { flex: 1; }
+    .service-name { font-size: 15px; font-weight: 600; color: #0F172A; }
+    .service-meta { font-size: 12px; color: #94A3B8; margin-top: 2px; }
+    .service-price { font-size: 16px; font-weight: 800; color: #10B981; }
+    .service-check { width: 22px; height: 22px; border-radius: 50%; background: #10B981; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; flex-shrink: 0; }
+    .staff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; padding: 14px 16px; }
+    .staff-card { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 12px; border-radius: 14px; border: 2px solid #F1F5F9; background: #fff; cursor: pointer; transition: all 0.15s; text-align: center; }
+    .staff-card:hover { border-color: #E2E8F0; background: #F8FAFC; }
+    .staff-avatar { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; border: 2.5px solid transparent; }
+    .staff-card-name { font-size: 14px; font-weight: 700; color: #0F172A; line-height: 1.2; }
+    .staff-card-role { font-size: 11px; color: #94A3B8; margin-top: 1px; }
+    .staff-check { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; margin-top: 2px; }
+    .staff-any { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; transition: background 0.15s; border-top: 1px solid #F1F5F9; }
+    .staff-any:hover { background: #F8FAFC; }
+    .staff-any.selected { background: #ECFDF5; }
+    .staff-any-icon { width: 44px; height: 44px; border-radius: 12px; background: #F1F5F9; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .staff-any.selected .staff-any-icon { background: #D1FAE5; }
+    .staff-any-info { flex: 1; }
+    .staff-any-name { font-size: 15px; font-weight: 600; color: #0F172A; }
+    .staff-any-sub { font-size: 12px; color: #94A3B8; margin-top: 2px; }
+    .staff-any-check { width: 22px; height: 22px; border-radius: 50%; background: #10B981; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; }
+    .date-nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #F8FAFC; }
+    .date-label { font-size: 15px; font-weight: 600; color: #0F172A; }
+    .date-btn { width: 32px; height: 32px; border-radius: 10px; border: 1px solid #E2E8F0; background: #fff; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; color: #64748B; }
+    .date-btn:hover { background: #F8FAFC; }
+    .date-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .closed-banner { padding: 20px 16px; text-align: center; color: #94A3B8; font-size: 14px; }
+    .slots-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 14px 16px; }
+    .slot { padding: 10px 4px; border-radius: 10px; border: 1.5px solid #E2E8F0; text-align: center; font-size: 13px; font-weight: 600; color: #0F172A; cursor: pointer; transition: all 0.15s; background: #fff; }
+    .slot:hover { border-color: #10B981; color: #10B981; background: #F0FDF4; }
+    .slot.selected { background: #10B981; border-color: #10B981; color: #fff; box-shadow: 0 2px 8px rgba(16,185,129,0.3); }
+    .slot:focus-visible, .service-item:focus-visible, .staff-card:focus-visible, .staff-any:focus-visible { outline: 2px solid #10B981; outline-offset: 2px; }
+    .slots-empty { padding: 20px 16px; text-align: center; color: #94A3B8; font-size: 14px; }
+    .slots-count { padding: 8px 16px 0; font-size: 11px; color: #94A3B8; }
+    .form-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    .form-field label { display: block; font-size: 12px; font-weight: 600; color: #64748B; margin-bottom: 6px; }
+    .form-field input, .form-field textarea { width: 100%; padding: 12px 14px; border: 1.5px solid #E2E8F0; border-radius: 12px; font-size: 15px; color: #0F172A; background: #fff; font-family: inherit; transition: border-color 0.15s; outline: none; }
+    .form-field input:focus, .form-field textarea:focus { border-color: #10B981; }
+    .form-field input.invalid { border-color: #EF4444; }
+    .field-error { font-size: 11px; color: #EF4444; margin-top: 4px; display: none; }
+    .field-error.visible { display: block; }
+    .form-field textarea { resize: none; height: 80px; }
+    .summary { background: #0F172A; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+    .summary-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .summary-row:last-child { margin-bottom: 0; padding-top: 8px; border-top: 1px solid #1E293B; }
+    .summary-key { font-size: 12px; color: #64748B; }
+    .summary-val { font-size: 13px; font-weight: 600; color: #F8FAFC; }
+    .summary-price { font-size: 18px; font-weight: 800; color: #10B981; }
+    .submit-btn { width: 100%; padding: 18px; background: #10B981; color: #fff; border: none; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; position: relative; }
+    .submit-btn:hover:not(:disabled) { opacity: 0.9; }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .submit-btn.loading { opacity: 0.8; }
+    .success-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 32px; text-align: center; gap: 16px; }
+    .success-icon { width: 80px; height: 80px; border-radius: 50%; background: #ECFDF5; display: flex; align-items: center; justify-content: center; font-size: 36px; }
+    .success-title { font-size: 24px; font-weight: 800; color: #0F172A; }
+    .success-desc { font-size: 15px; color: #64748B; line-height: 1.7; max-width: 320px; }
+    .success-card { background: #fff; border-radius: 16px; border: 1px solid #F1F5F9; padding: 20px; width: 100%; max-width: 360px; text-align: left; }
+    .success-card-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #F8FAFC; font-size: 14px; }
+    .success-card-row:last-child { border-bottom: none; }
+    .success-card-key { color: #94A3B8; }
+    .success-card-val { font-weight: 600; color: #0F172A; }
+
+    /* ── Tarjeta de lealtad (Ago 2026) ── */
+    .loy-card { width: 100%; max-width: 360px; background: linear-gradient(135deg,#FFFBEB 0%,#FEF3C7 100%); border: 1px solid #FDE68A; border-radius: 16px; padding: 18px; text-align: left; }
+    .loy-card.win { background: linear-gradient(135deg,#F59E0B 0%,#D97706 100%); border-color: #B45309; }
+    .loy-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .loy-logo { width: 40px; height: 40px; border-radius: 11px; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; color: #B45309; overflow: hidden; flex-shrink: 0; }
+    .loy-logo img { width: 100%; height: 100%; object-fit: cover; }
+    .loy-titles { flex: 1; min-width: 0; }
+    .loy-title { font-size: 14px; font-weight: 800; color: #78350F; line-height: 1.25; }
+    .loy-card.win .loy-title { color: #fff; }
+    .loy-sub { font-size: 11.5px; color: #B45309; margin-top: 1px; }
+    .loy-card.win .loy-sub { color: #FEF3C7; }
+    .loy-count { font-size: 15px; font-weight: 800; color: #B45309; white-space: nowrap; }
+    .loy-card.win .loy-count { color: #fff; }
+    .loy-dots { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .loy-dot { width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,.75); border: 1px solid #FDE68A; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #B45309; }
+    .loy-dot.done { background: #F59E0B; border-color: #D97706; color: #fff; }
+    .loy-card.win .loy-dot { background: rgba(255,255,255,.3); border-color: rgba(255,255,255,.5); }
+    .loy-card.win .loy-dot.done { background: #fff; color: #B45309; border-color: #fff; }
+    .loy-msg { font-size: 12.5px; color: #92400E; line-height: 1.55; }
+    .loy-card.win .loy-msg { color: #fff; font-weight: 600; }
+    .loy-msg strong { color: #78350F; }
+    .loy-card.win .loy-msg strong { color: #fff; }
+
+    /* ── Cobro anticipado (Ago 2026) ── */
+    .prepay-note { display: flex; gap: 10px; background: #EEF2FF; border: 1px solid #C7D2FE; border-radius: 12px; padding: 12px 14px; margin-top: 12px; }
+    .prepay-note-ico { font-size: 18px; line-height: 1.2; }
+    .prepay-note-txt { font-size: 12.5px; color: #3730A3; line-height: 1.55; }
+    .prepay-note-txt strong { color: #312E81; }
+    .pay-screen { padding: 24px 20px 40px; max-width: 460px; margin: 0 auto; }
+    .pay-head { text-align: center; margin-bottom: 18px; }
+    .pay-title { font-size: 21px; font-weight: 800; color: #0F172A; }
+    .pay-sub { font-size: 13.5px; color: #64748B; margin-top: 5px; line-height: 1.6; }
+    .pay-amount { background: linear-gradient(135deg,#6366F1,#4F46E5); border-radius: 16px; padding: 18px; text-align: center; color: #fff; margin-bottom: 16px; }
+    .pay-amount-lbl { font-size: 12px; opacity: .85; }
+    .pay-amount-val { font-size: 32px; font-weight: 800; margin: 2px 0; }
+    .pay-amount-note { font-size: 11.5px; opacity: .9; }
+    .pay-timer { display: flex; align-items: center; justify-content: center; gap: 6px; background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; border-radius: 10px; padding: 8px; font-size: 12.5px; font-weight: 600; margin-bottom: 16px; }
+    .pay-timer.urgent { background: #FEF2F2; border-color: #FECACA; color: #B91C1C; }
+    .pay-box { background: #fff; border: 1px solid #E2E8F0; border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+    .pay-policy { font-size: 11.5px; color: #64748B; background: #F8FAFC; border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; line-height: 1.55; }
+    .pay-btn { width: 100%; background: #6366F1; color: #fff; border: none; border-radius: 12px; padding: 15px; font-size: 15.5px; font-weight: 700; cursor: pointer; }
+    .pay-btn:disabled { opacity: .6; cursor: not-allowed; }
+    .pay-cancel { display: block; width: 100%; margin-top: 10px; background: none; border: none; color: #64748B; font-size: 13px; cursor: pointer; text-decoration: underline; }
+    .pay-err { background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C; border-radius: 10px; padding: 11px; font-size: 13px; margin-bottom: 12px; }
+    .pay-secure { text-align: center; font-size: 11.5px; color: #94A3B8; margin-top: 14px; }
+    .whatsapp-hint { background: #F0FDF4; border-radius: 12px; padding: 14px 16px; font-size: 13px; color: #10B981; font-weight: 500; max-width: 360px; width: 100%; }
+    .powered { text-align: center; padding: 24px; font-size: 12px; color: #CBD5E1; }
+    .powered a { font-weight: 700; color: #10B981; text-decoration: none; }
+    .powered a:hover { text-decoration: underline; }
+    .error-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 24px; }
+    .error-modal { background: #fff; border-radius: 20px; padding: 28px 24px; max-width: 360px; width: 100%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .error-modal-icon { font-size: 40px; margin-bottom: 12px; }
+    .error-modal-title { font-size: 17px; font-weight: 700; color: #0F172A; margin-bottom: 8px; }
+    .error-modal-msg { font-size: 14px; color: #64748B; line-height: 1.6; margin-bottom: 20px; }
+    .error-modal-btn { width: 100%; padding: 14px; background: #0F172A; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; }
+    .error-modal-btn:hover { background: #1E293B; }
+  </style>
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+<div id="app"><div class="loader"><div class="spinner"></div><span class="loader-text">Cargando...</span></div></div>
+<script>
+var SUPABASE_URL = 'https://nhjmwmkaduiaifgztymi.supabase.co';
+var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oam13bWthZHVpYWlmZ3p0eW1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1ODk3MTYsImV4cCI6MjA4ODE2NTcxNn0.p53BZPf6qygAYw29bIJ0bA5VwZ_lRxw-aocV8LuGB1c';
+var app = document.getElementById('app');
+
+var S = {
+  biz: null, services: [], hours: [], staffMembers: [],
+  // Bloqueos de tiempo (comida, descansos) — cargados al inicio para filtrar slots
+  timeBlocks: [],
+  // Recepcion por bloques (modo alternativo): ventanas fijas definidas por el dueno.
+  // bookingMode: 'normal' (rejilla de 30 min) | 'bloques' (solo ventanas fijas).
+  bookingMode: 'normal', bookingBlocks: [],
+  // Multi-servicio: lista de servicios elegidos (no uno solo). allowMulti se
+  // resuelve por plan (Premium+) via RPC public_business_can_multiservice.
+  selectedServices: [], allowMulti: false,
+  selectedDate: new Date(), selectedSlot: null,
+  // En modo bloques guardamos tambien el fin del bloque (la cita ocupa todo el bloque).
+  selectedBlockEnd: null,
+  selectedStaff: undefined,
+  takenSlots: [], loadingSlots: false,
+  name: '', phone: '', notes: '',
+  submitting: false, submitted: false, submitLocked: false
+};
+
+// ── Utilidades ────────────────────────────────────────────────
+// ── supaFetch resiliente (Ago 2026) ──────────────────────────────────────
+// Antes, cualquier bache de Supabase (401 espurios por incidentes del API
+// Gateway, 5xx, cortes de red del celular) rompia la pagina de inmediato y
+// el cliente veia un error sin salida.
+//
+// Ahora:
+//   • TIMEOUT de 12s por peticion (fetch en moviles no expira solo: sin esto
+//     una red caida deja la pagina "cargando" para siempre).
+//   • REINTENTOS automaticos (3) con espera creciente ante fallos temporales:
+//     401 (incidente conocido de JWT en Supabase), 408, 429, 5xx y errores de
+//     red. Los errores permanentes (404, 400) NO se reintentan.
+var SUPA_RETRIES = 3;
+var SUPA_TIMEOUT_MS = 12000;
+
+function isTransient(status) {
+  return status === 401 || status === 408 || status === 425 ||
+         status === 429 || status >= 500;
+}
+
+function supaFetch(path, attempt) {
+  attempt = attempt || 1;
+  var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, SUPA_TIMEOUT_MS) : null;
+
+  return fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    headers: { 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY },
+    signal: ctrl ? ctrl.signal : undefined
+  }).then(function(r) {
+    if (timer) clearTimeout(timer);
+    if (!r.ok) {
+      if (isTransient(r.status) && attempt < SUPA_RETRIES) return supaRetry(path, attempt);
+      return r.text().then(function(b){ throw new Error(r.status + ': ' + b); });
+    }
+    return r.json();
+  }).catch(function(err) {
+    if (timer) clearTimeout(timer);
+    // Error de red o timeout -> reintentamos si quedan intentos
+    var isNet = (err && (err.name === 'AbortError' || err.name === 'TypeError'));
+    if (isNet && attempt < SUPA_RETRIES) return supaRetry(path, attempt);
+    throw err;
+  });
+}
+
+function supaRetry(path, attempt) {
+  var wait = 400 * Math.pow(2, attempt - 1); // 400ms, 800ms
+  return new Promise(function(res){ setTimeout(res, wait); })
+    .then(function(){ return supaFetch(path, attempt + 1); });
+}
+function getSlug() {
+  var p = window.location.pathname.split('/').filter(Boolean).pop();
+  var q = new URLSearchParams(window.location.search).get('n');
+  return (p && p !== 'book.html') ? p : (q || '');
+}
+function fmtDate(d) {
+  var s = d.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+function toDateStr(d) { return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function pad(n) { return String(n).padStart(2,'0'); }
+function addDays(d,n) { var r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function durLabel(min) { return min<60?min+' min':min===60?'1 hora':Math.floor(min/60)+'h'+(min%60?' '+min%60+'min':''); }
+function getInitials(name) { return (name||'?').split(' ').map(function(w){return w[0];}).slice(0,2).join('').toUpperCase(); }
+function hexRgba(hex,a) {
+  var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return 'rgba('+r+','+g+','+b+','+a+')';
+}
+function svcIcon(name) {
+  var n=(name||'').toLowerCase();
+  if (/u[ñn]a|manicur|gel|acríl/.test(n)) return '&#x1F485;';
+  if (/barber|corte|pelo|cabello|color/.test(n))   return '&#x2702;&#xFE0F;';
+  if (/spa|masaje|relax|facial/.test(n))           return '&#x1F486;';
+  if (/dental|diente|odonto/.test(n))              return '&#x1F9B7;';
+  if (/ceja|depilar|cera/.test(n))                 return '&#x2728;';
+  if (/vet|perro|gato|mascota/.test(n))            return '&#x1F43E;';
+  if (/foto|imagen|retra/.test(n))                 return '&#x1F4F8;';
+  if (/makeup|maquilla/.test(n))                   return '&#x1F484;';
+  if (/tatuaje|tattoo|piercing/.test(n))           return '&#x1F58B;&#xFE0F;';
+  if (/consulta|m[eé]dico|doctor/.test(n))         return '&#x1FA7A;';
+  return '&#x2B50;';
+}
+
+// Validacion de telefono: minimo 7 digitos numericos
+function validPhone(p) {
+  var digits = p.replace(/[^0-9]/g,'');
+  return digits.length >= 7 && digits.length <= 15;
+}
+
+// U7: validacion de nombre — minimo 2 caracteres (evita nombres de 1 letra)
+function validName(n) {
+  return (n || '').trim().length >= 2;
+}
+
+function beforeToday(d) { var t=new Date(); t.setHours(0,0,0,0); var c=new Date(d); c.setHours(0,0,0,0); return c<t; }
+function endT(start,dur) { var p=start.split(':').map(Number),e=p[0]*60+p[1]+dur; return pad(Math.floor(e/60))+':'+pad(e%60); }
+// SEC: escapa texto controlado por el visitante (nombre) antes de innerHTML.
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function setMeta(prop,val) {
+  var el=document.querySelector('meta[property="'+prop+'"]');
+  if(!el){el=document.createElement('meta');el.setAttribute('property',prop);document.head.appendChild(el);}
+  el.setAttribute('content',val);
+}
+
+// ── Multi-servicio: helpers de totales ────────────────────────
+function svcTotalDur() {
+  var t=0;
+  for(var i=0;i<S.selectedServices.length;i++) t+=(S.selectedServices[i].duration_minutes||0);
+  return t;
+}
+function svcTotalCost() {
+  var t=0;
+  for(var i=0;i<S.selectedServices.length;i++) t+=(Number(S.selectedServices[i].price)||0);
+  return t;
+}
+function svcCombinedName() {
+  return S.selectedServices.map(function(s){return s.name;}).join(' + ');
+}
+function svcPicked(id) {
+  return S.selectedServices.some(function(s){return s.id===id;});
+}
+
+function saveInputs() {
+  var n=document.getElementById('inp-name');
+  var p=document.getElementById('inp-phone');
+  var t=document.getElementById('inp-notes');
+  if(n) S.name=n.value;
+  if(p) S.phone=p.value;
+  if(t) S.notes=t.value;
+}
+
+function refreshBtn() {
+  var btn=document.getElementById('submit-btn');
+  if(!btn) return;
+  var staffOk=S.staffMembers.length===0||S.selectedStaff!==undefined;
+  var phoneOk=validPhone(S.phone);
+  var ok=S.selectedServices.length>0&&staffOk&&S.selectedSlot&&validName(S.name)&&phoneOk;
+  // FIX doble-submit: si submitLocked es true, el botón queda deshabilitado permanentemente hasta éxito/error
+  btn.disabled=!ok||S.submitting||S.submitLocked;
+}
+
+// ── Bloqueos de tiempo (horario de comida, descansos) ─────────────────
+// Convierte "HH:MM" (o "HH:MM:SS" de Postgres) a minutos desde medianoche.
+function tToMin(t) {
+  var p = (t || '00:00').split(':').map(Number);
+  return p[0] * 60 + p[1];
+}
+// Verifica si un rango [aS, aE) traslapa con [bS, bE).
+function rangesOverlap(aS, aE, bS, bE) { return aS < bE && aE > bS; }
+
+// Encuentra un bloqueo aplicable para un sub-slot dado (jsDay: 0=Dom..6=Sab).
+// La convención del proyecto en BD es 0=Lun..6=Dom, así que convertimos.
+function findBlockForSlot(slotStartMin, slotEndMin, dateStr, jsDay, staffId) {
+  var projectDay = jsDay === 0 ? 6 : jsDay - 1;
+  for (var i = 0; i < S.timeBlocks.length; i++) {
+    var b = S.timeBlocks[i];
+    if (!b.is_active) continue;
+    // Aplicabilidad por staff:
+    //   - Si bloqueo tiene staff_id específico, solo afecta a ese colaborador.
+    //   - Si bloqueo tiene staff_id NULL, afecta a TODOS (negocio entero).
+    if (b.staff_id) {
+      if (b.staff_id !== staffId) continue;
+    }
+    // Aplicabilidad temporal:
+    if (b.is_recurring) {
+      if (b.day_of_week !== projectDay) continue;
+    } else {
+      if (b.specific_date !== dateStr) continue;
+    }
+    var bStart = tToMin(b.start_time);
+    var bEnd = tToMin(b.end_time);
+    if (rangesOverlap(slotStartMin, slotEndMin, bStart, bEnd)) return b;
+  }
+  return null;
+}
+
+// En modo bloques un bloqueo (comida / descanso / cierre) solo descarta una
+// ventana si la CUBRE POR COMPLETO. Asi una comida que solo roza el borde de
+// un bloque NO lo oculta (el dueno ya definio esa ventana y el hueco entre
+// bloques ya representa el descanso), pero un cierre o vacacion que abarca
+// todo el bloque si lo quita. (jsDay: 0=Dom..6=Sab; BD usa 0=Lun..6=Dom.)
+function timeBlockCoversWindow(bStart, bEnd, dateStr, jsDay, staffId) {
+  var projectDay = jsDay === 0 ? 6 : jsDay - 1;
+  for (var i = 0; i < S.timeBlocks.length; i++) {
+    var b = S.timeBlocks[i];
+    if (!b.is_active) continue;
+    if (b.staff_id && b.staff_id !== staffId) continue;
+    if (b.is_recurring) { if (b.day_of_week !== projectDay) continue; }
+    else { if (b.specific_date !== dateStr) continue; }
+    if (bStart >= tToMin(b.start_time) && bEnd <= tToMin(b.end_time)) return true;
+  }
+  return false;
+}
+
+// ── Horarios ───────────────────────────────────────────────────────────────
+function staffOpenOnDay(dow) {
+  if(S.selectedStaff&&S.selectedStaff.hours){
+    var h=S.selectedStaff.hours.find(function(x){return x.day_of_week===dow;});
+    if(h) return h.is_open;
+  }
+  var c=S.hours.find(function(h){return h.day_of_week===dow;});
+  return c?c.is_open:(dow!==0&&dow!==6);
+}
+function nextOpenDay(from) {
+  var d=new Date(from);
+  for(var i=0;i<14;i++){if(staffOpenOnDay(d.getDay())) return d; d=addDays(d,1);}
+  return from;
+}
+function loadStaffHours(id) {
+  return supaFetch('staff_hours?staff_id=eq.'+id+'&order=day_of_week').catch(function(){return [];});
+}
+function loadSlots() {
+  S.loadingSlots=true;
+  var q='appointments?user_id=eq.'+S.biz.userId+'&date=eq.'+toDateStr(S.selectedDate)+'&status=not.in.(Cancelada,No%20asisti%C3%B3,Rechazada)&select=start_time,end_time,staff_id';
+  if(S.selectedStaff&&S.selectedStaff.id) q+='&staff_id=eq.'+S.selectedStaff.id;
+  return supaFetch(q).then(function(a){S.takenSlots=a||[];S.loadingSlots=false;}).catch(function(){S.takenSlots=[];S.loadingSlots=false;});
+}
+
+// Construye los slots disponibles aplicando:
+//   1. Horario laboral del día (business_hours o staff_hours).
+//   2. Citas existentes (rango ocupado).
+//   3. Slots pasados si es hoy.
+//   4. Bloqueos de tiempo (comida, descansos) — incluye validación
+//      por DURACIÓN del servicio: el rango [t, t+duración] no debe
+//      tocar ningún bloqueo, cita ocupada, ni el cierre del día.
+// Multi-servicio: la duración usada es la SUMA de los servicios elegidos.
+function buildSlots() {
+  var dow=S.selectedDate.getDay(),cfg=null;
+  if(S.selectedStaff&&S.selectedStaff.hours&&S.selectedStaff.hours.length){
+    var sh=S.selectedStaff.hours.find(function(x){return x.day_of_week===dow;});
+    if(sh) cfg={is_open:sh.is_open,start_time:sh.start_time,end_time:sh.end_time};
+  }
+  if(!cfg){
+    var def=[0,1,2,3,4,5,6].map(function(d){return{day_of_week:d,is_open:d>0&&d<6,start_time:'09:00',end_time:'18:00'};});
+    cfg=S.hours.find(function(h){return h.day_of_week===dow;})||def[dow];
+  }
+  if(!cfg||!cfg.is_open) return null;
+
+  var sp=cfg.start_time.split(':').map(Number),ep=cfg.end_time.split(':').map(Number);
+  var sm=sp[0]*60+sp[1],em=ep[0]*60+ep[1];
+  // B5: piso de 30 min. Si la suma de servicios quedo en 0/null, usamos 30
+  // como minimo para no generar slots invalidos (duracion de bloque cero).
+  var td=svcTotalDur();
+  var dur=td>0?Math.max(30,Math.ceil(td/30)*30):30;
+  var now=new Date(),today=toDateStr(S.selectedDate)===toDateStr(now);
+  var dateStr = toDateStr(S.selectedDate);
+  var staffId = (S.selectedStaff && S.selectedStaff.id) ? S.selectedStaff.id : null;
+
+  var slots=[];
+  for(var t=sm;t+dur<=em;t+=30){
+    var lbl=pad(Math.floor(t/60))+':'+pad(t%60);
+    var slotEndMin = t + dur;
+
+    // 1. Verificar conflicto con citas existentes
+    var taken=S.takenSlots.some(function(a){
+      var ap=(a.start_time||'00:00').split(':').map(Number);
+      var ae=(a.end_time||'00:00').split(':').map(Number);
+      return t<ae[0]*60+ae[1]&&t+dur>ap[0]*60+ap[1];
+    });
+    if (taken) continue;
+
+    // 2. Verificar si es hora pasada (solo aplica para hoy)
+    var past=today&&(Math.floor(t/60)<now.getHours()||(Math.floor(t/60)===now.getHours()&&t%60<=now.getMinutes()));
+    if (past) continue;
+
+    // 3. Verificar bloqueos de tiempo (comida, descansos):
+    //    El rango [t, t+dur] no debe tocar ningún bloqueo aplicable.
+    //    Recorremos cada sub-bloque de 30 min y validamos individualmente
+    //    para que un servicio de 90 min que iniciaría 30 min antes
+    //    de la comida también quede excluido.
+    var rangeBlocked = false;
+    for (var sub = t; sub < slotEndMin; sub += 30) {
+      var subEnd = Math.min(sub + 30, slotEndMin);
+      if (findBlockForSlot(sub, subEnd, dateStr, dow, staffId)) {
+        rangeBlocked = true;
+        break;
+      }
+    }
+    if (rangeBlocked) continue;
+
+    slots.push(lbl);
+  }
+  return slots;
+}
+
+// Modo "bloques": en lugar de la rejilla de 30 min, el cliente solo ve las
+// ventanas fijas que definio el dueno (booking_blocks) para ese dia. La cita
+// ocupa TODO el bloque (start..end), sin importar la duracion del servicio.
+//
+// Capacidad y horario POR COLABORADOR (Luxury):
+//   - Colaborador especifico: el bloque solo se ofrece si CABE COMPLETO dentro
+//     del turno de ese colaborador ese dia (staff_hours), no lo pisa una cita
+//     suya, ni un bloqueo (comida/cierre) que lo CUBRA POR COMPLETO.
+//   - "Sin preferencia": el bloque se ofrece si AL MENOS UN colaborador activo
+//     lo cubre (turno + libre).
+//   - Sin colaboradores: los bloques son la fuente de verdad; solo se filtran
+//     citas existentes (capacidad 1) y bloqueos que cubran todo el bloque.
+// Nota: una comida que solo roza el borde de un bloque NO lo oculta; en modo
+// bloques el hueco entre ventanas ya representa el descanso.
+function buildBlocks() {
+  var dow = S.selectedDate.getDay();          // 0=Dom..6=Sab (JS)
+  var projectDay = dow === 0 ? 6 : dow - 1;   // 0=Lun..6=Dom (proyecto)
+  var dateStr = toDateStr(S.selectedDate);
+  var now = new Date(), today = dateStr === toDateStr(now);
+  var nowMin = now.getHours() * 60 + now.getMinutes();
+  var hasStaff = S.staffMembers.length > 0;
+
+  var dayBlocks = S.bookingBlocks.filter(function(b){
+    return b.is_active !== false && b.day_of_week === projectDay;
+  }).sort(function(a,b){ return tToMin(a.start_time) - tToMin(b.start_time); });
+
+  if (!dayBlocks.length) return [];
+
+  // ¿El colaborador m puede tomar el bloque [bStart,bEnd) este dia?
+  // Su turno debe abarcar TODO el bloque, y no debe tener cita propia ni un
+  // bloqueo (propio o global) que CUBRA todo el bloque. Si no tiene staff_hours
+  // para el dia, se usa el horario del negocio como respaldo (igual que normal).
+  function staffCoversBlock(m, bStart, bEnd) {
+    var ss = null, se = null;
+    var hrs = m.hours || [];
+    if (hrs.length) {
+      var sh = hrs.find(function(x){ return x.day_of_week === dow; });
+      if (sh) {
+        if (!sh.is_open) return false;
+        ss = tToMin(sh.start_time); se = tToMin(sh.end_time);
+      }
+    }
+    if (ss === null) {
+      var bh = S.hours.find(function(h){ return h.day_of_week === dow; });
+      if (bh) {
+        if (!bh.is_open) return false;
+        ss = tToMin(bh.start_time); se = tToMin(bh.end_time);
+      } else { ss = 0; se = 24 * 60; }
+    }
+    if (bStart < ss || bEnd > se) return false;
+    var busy = S.takenSlots.some(function(a){
+      if (a.staff_id !== m.id) return false;
+      var as = tToMin(a.start_time), ae = tToMin(a.end_time);
+      return bStart < ae && bEnd > as;
+    });
+    if (busy) return false;
+    if (timeBlockCoversWindow(bStart, bEnd, dateStr, dow, m.id)) return false;
+    return true;
+  }
+
+  var out = [];
+  dayBlocks.forEach(function(b){
+    var bStart = tToMin(b.start_time), bEnd = tToMin(b.end_time);
+    if (bEnd <= bStart) return;
+    if (today && bStart <= nowMin) return; // pasado (solo hoy)
+
+    if (hasStaff) {
+      if (S.selectedStaff && S.selectedStaff.id) {
+        // Colaborador especifico: debe cubrir el bloque completo.
+        if (!staffCoversBlock(S.selectedStaff, bStart, bEnd)) return;
+      } else {
+        // "Sin preferencia": basta con que un colaborador activo lo cubra.
+        var anyone = S.staffMembers.some(function(m){ return staffCoversBlock(m, bStart, bEnd); });
+        if (!anyone) return;
+      }
+    } else {
+      // Sin colaboradores: capacidad 1 a nivel negocio.
+      var taken = S.takenSlots.some(function(a){
+        var as = tToMin(a.start_time), ae = tToMin(a.end_time);
+        return bStart < ae && bEnd > as;
+      });
+      if (taken) return;
+      if (timeBlockCoversWindow(bStart, bEnd, dateStr, dow, null)) return;
+    }
+
+    out.push({ start: b.start_time.slice(0,5), end: b.end_time.slice(0,5) });
+  });
+  return out;
+}
+
+// ── Render completo (primera vez) ───────────────────────────────────────────
+function renderFull() {
+  if(S.submitted){renderSuccess();return;}
+  var biz=S.biz;
+  var bizInit=getInitials(biz.business_name);
+  var hasStaff=S.staffMembers.length>0;
+  var stepNum=1;
+  var stepSvc=stepNum++;
+  var stepStaff=hasStaff?stepNum++:null;
+  var stepDate=stepNum++;
+  var stepInfo=stepNum++;
+  var logoHtml=biz.logo_url?'<img src="'+biz.logo_url+'" alt="" id="biz-logo-img" />':bizInit;
+
+  var html='<div id="vylta-container" class="container">';
+  html+='<div class="biz-header"><div class="biz-logo" id="biz-logo-wrap">'+logoHtml+'</div>';
+  html+='<div class="biz-name">'+(biz.business_name||'Negocio')+'</div>';
+  html+=(biz.business_type?'<div class="biz-type">'+biz.business_type+'</div>':'');
+  html+='<div class="biz-badge"><div class="biz-badge-dot"></div>Acepta citas en l&#xED;nea</div></div>';
+  html+='<div id="sect-svc"></div>';
+  html+='<div id="sect-staff"></div>';
+  html+='<div id="sect-date"></div>';
+  html+='<div class="section-title"><span class="step-badge" id="badge-info">'+stepInfo+'</span>Tus datos</div>';
+  html+='<div class="card"><div class="form-body">';
+  html+='<div class="form-field"><label>Tu nombre *</label><input id="inp-name" type="text" placeholder="Ej: Mar&#xED;a L&#xF3;pez" autocomplete="name" /></div>';
+  html+='<div class="form-field"><label>Tu WhatsApp / tel&#xE9;fono *</label><input id="inp-phone" type="tel" placeholder="Ej: 442 123 4567" autocomplete="tel" /><div id="phone-error" class="field-error">Ingresa un n&#xFA;mero v&#xE1;lido (7&#x2013;15 d&#xED;gitos)</div></div>';
+  html+='<div class="form-field"><label>Notas (opcional)</label><textarea id="inp-notes" maxlength="300" placeholder="Primera vez, tipo de u&#xF1;as, alergias..."></textarea></div>';
+  html+='</div></div>';
+  html+='<div id="sect-summary"></div>';
+  // FIX doble-submit: onclick llama submitBooking que tiene su propio guard interno
+  html+='<button id="submit-btn" class="submit-btn" disabled onclick="submitBooking()">Confirmar cita &#x2192;</button>';
+  html+='<div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div>';
+  html+='</div>';
+  app.innerHTML=html;
+
+  document.getElementById('inp-name').addEventListener('input',function(){
+    S.name=this.value; refreshBtn();
+    var b=document.getElementById('badge-info');
+    if(b){if(validName(S.name)&&validPhone(S.phone))b.classList.add('done');else b.classList.remove('done');}
+  });
+  document.getElementById('inp-phone').addEventListener('input',function(){
+    S.phone=this.value; refreshBtn();
+    // Limpiar error mientras escribe
+    var err=document.getElementById('phone-error');
+    var inp=document.getElementById('inp-phone');
+    if(err&&inp){err.classList.remove('visible');inp.classList.remove('invalid');}
+    var b=document.getElementById('badge-info');
+    if(b){if(validName(S.name)&&validPhone(S.phone))b.classList.add('done');else b.classList.remove('done');}
+  });
+  document.getElementById('inp-phone').addEventListener('blur',function(){
+    var err=document.getElementById('phone-error');
+    if(!err) return;
+    if(this.value.trim()&&!validPhone(this.value)){
+      this.classList.add('invalid');
+      err.classList.add('visible');
+    } else {
+      this.classList.remove('invalid');
+      err.classList.remove('visible');
+    }
+  });
+  document.getElementById('inp-notes').addEventListener('input',function(){S.notes=this.value;});
+
+  if(biz.logo_url){
+    var img=document.getElementById('biz-logo-img');
+    if(img) img.onerror=function(){var w=document.getElementById('biz-logo-wrap');if(w)w.innerHTML=bizInit;};
+  }
+
+  renderSections();
+}
+
+function renderSections() {
+  renderSvcSection();
+  renderStaffSection();
+  renderDateSection();
+  renderSummary();
+  refreshBtn();
+  var b=document.getElementById('badge-info');
+  if(b){if(validName(S.name)&&validPhone(S.phone))b.classList.add('done');else b.classList.remove('done');}
+}
+
+function renderSvcSection() {
+  var el=document.getElementById('sect-svc'); if(!el) return;
+  var s1=S.selectedServices.length>0;
+  var multi=S.allowMulti;
+  var html='<div class="section-title"><span class="step-badge'+(s1?' done':'')+'">1</span>'+(multi?'Elige tus servicios':'Elige un servicio')+'</div>';
+  if(multi){ html+='<div style="font-size:12px;color:#10B981;font-weight:600;margin:-4px 0 8px">Puedes elegir varios &mdash; se suman duraci&#xF3;n y precio.</div>'; }
+  html+='<div class="card">';
+  if(!S.services.length){
+    html+='<div style="padding:20px;text-align:center;color:#94A3B8;font-size:14px">Sin servicios publicados.</div>';
+  } else {
+    S.services.forEach(function(s){
+      var sel=svcPicked(s.id);
+      html+='<div class="service-item'+(sel?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(sel?'true':'false')+'" onclick="selectSvc(&quot;'+s.id+'&quot;)">';
+      html+='<div class="service-icon">'+svcIcon(s.name)+'</div>';
+      html+='<div class="service-info"><div class="service-name">'+s.name+'</div>';
+      html+='<div class="service-meta">'+durLabel(s.duration_minutes)+(s.description?' &middot; '+s.description:'')+'</div></div>';
+      html+='<div class="service-price">$'+Number(s.price).toLocaleString('es-MX')+'</div>';
+      html+=(sel?'<div class="service-check">&#x2713;</div>':'');
+      html+='</div>';
+    });
+  }
+  html+='</div>';
+  if(S.selectedServices.length>1){
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;background:#ECFDF5;border:1px solid #10B981;border-radius:12px;padding:12px 14px;margin-top:10px">';
+    html+='<span style="font-size:13px;font-weight:700;color:#065F46">'+S.selectedServices.length+' servicios &middot; '+durLabel(svcTotalDur())+'</span>';
+    html+='<span style="font-size:15px;font-weight:800;color:#10B981">$'+svcTotalCost().toLocaleString('es-MX')+' MXN</span>';
+    html+='</div>';
+  }
+  el.innerHTML=html;
+}
+
+function renderStaffSection() {
+  var el=document.getElementById('sect-staff'); if(!el) return;
+  if(!S.staffMembers.length){el.innerHTML='';return;}
+  var staffSel=S.selectedStaff!==undefined;
+  var stepNum=2;
+  var html='<div class="section-title"><span class="step-badge'+(staffSel?' done':'')+'">'+stepNum+'</span>&#xBF;Con qui&#xE9;n?</div>';
+  html+='<div class="card"><div class="staff-grid">';
+  S.staffMembers.forEach(function(m){
+    var sel=S.selectedStaff&&S.selectedStaff.id===m.id;
+    var bg=hexRgba(m.color,0.1);
+    html+='<div class="staff-card'+(sel?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(sel?'true':'false')+'" onclick="selectStaff(&quot;'+m.id+'&quot;)" style="'+(sel?'border-color:'+m.color+';background:'+bg+';':'')+'">'
+    html+='<div class="staff-avatar" style="background:'+bg+';color:'+m.color+';'+(sel?'border-color:'+m.color+';':'')+'">'+getInitials(m.name)+'</div>';
+    html+='<div class="staff-card-name">'+m.name+'</div>';
+    html+=(m.role?'<div class="staff-card-role">'+m.role+'</div>':'');
+    html+=(sel?'<div class="staff-check" style="background:'+m.color+'">&#x2713;</div>':'');
+    html+='</div>';
+  });
+  html+='</div>';
+  var anySel=S.selectedStaff===null;
+  html+='<div class="staff-any'+(anySel?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(anySel?'true':'false')+'" onclick="selectStaff(null)">';
+  html+='<div class="staff-any-icon">&#x1F464;</div>';
+  html+='<div class="staff-any-info"><div class="staff-any-name">Sin preferencia</div><div class="staff-any-sub">Cualquier colaborador disponible</div></div>';
+  html+=(anySel?'<div class="staff-any-check">&#x2713;</div>':'');
+  html+='</div></div>';
+  el.innerHTML=html;
+}
+
+function renderDateSection() {
+  var el=document.getElementById('sect-date'); if(!el) return;
+  var hasStaff=S.staffMembers.length>0;
+  var staffSel=S.selectedStaff!==undefined;
+  var s3=!!S.selectedSlot;
+  var stepDate=hasStaff?3:2;
+  var blockMode = S.bookingMode === 'bloques';
+  var slots = blockMode ? null : buildSlots();
+  var blocks = blockMode ? buildBlocks() : null;
+  var title='<span class="step-badge'+(s3?' done':'')+'">'+stepDate+'</span>Elige fecha y hora';
+  if(S.selectedStaff&&S.selectedStaff.name) title+='&nbsp;<span style="font-size:11px;color:#94A3B8;font-weight:500;text-transform:none;letter-spacing:0">con '+S.selectedStaff.name+'</span>';
+  var html='<div class="section-title">'+title+'</div>';
+  html+='<div class="card"><div class="date-nav">';
+  html+='<button class="date-btn" onclick="changeDate(-1)"'+(beforeToday(addDays(S.selectedDate,-1))?' disabled':'')+'>&#8249;</button>';
+  html+='<span class="date-label">'+fmtDate(S.selectedDate)+'</span>';
+  html+='<button class="date-btn" onclick="changeDate(1)">&#8250;</button></div>';
+  var shtml='';
+  if(!S.selectedServices.length){
+    shtml='<div class="slots-empty">&#x1F446; Primero selecciona un servicio.</div>';
+  } else if(hasStaff&&!staffSel){
+    shtml='<div class="slots-empty">&#x1F465; Elige un colaborador para ver los horarios.</div>';
+  } else if(S.loadingSlots){
+    shtml='<div class="slots-empty">Cargando horarios...</div>';
+  } else if(blockMode){
+    // Modo bloques: solo ventanas fijas definidas por el negocio.
+    if(!blocks||!blocks.length){
+      shtml='<div class="slots-empty">Sin horarios disponibles. Prueba con otra fecha.</div>';
+    } else {
+      shtml='<div class="slots-count">'+blocks.length+' bloque'+(blocks.length!==1?'s':'')+' disponible'+(blocks.length!==1?'s':'')+'</div><div class="slots-grid" style="grid-template-columns:repeat(2,1fr)">';
+      blocks.forEach(function(b){
+        var lbl=b.start+' &ndash; '+b.end;
+        var selected=(S.selectedSlot===b.start&&S.selectedBlockEnd===b.end);
+        shtml+='<div class="slot'+(selected?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(selected?'true':'false')+'" aria-label="Bloque '+lbl+'" onclick="pickBlock(&quot;'+b.start+'&quot;,&quot;'+b.end+'&quot;)">'+ lbl +'</div>';
+      });
+      shtml+='</div>';
+    }
+  } else if(!slots){
+    var who=(S.selectedStaff&&S.selectedStaff.name)?S.selectedStaff.name:'el negocio';
+    shtml='<div class="closed-banner">&#x1F6AB; '+who+' no tiene atenci&#xF3;n este d&#xED;a. Selecciona otra fecha.</div>';
+  } else if(!slots.length){
+    shtml='<div class="slots-empty">Sin horarios disponibles. Prueba con otra fecha.</div>';
+  } else {
+    shtml='<div class="slots-count">'+slots.length+' horario'+(slots.length!==1?'s':'')+'</div><div class="slots-grid">';
+    slots.forEach(function(s){
+      shtml+='<div class="slot'+(S.selectedSlot===s?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(S.selectedSlot===s?'true':'false')+'" aria-label="Horario '+s+'" onclick="pickSlot(&quot;'+s+'&quot;)">'+ s +'</div>';
+    });
+    shtml+='</div>';
+  }
+  html+=shtml+'</div>';
+  el.innerHTML=html;
+}
+
+function renderSummary() {
+  var el=document.getElementById('sect-summary'); if(!el) return;
+  if(!S.selectedServices.length||!S.selectedSlot){el.innerHTML='';return;}
+  var endLbl = S.selectedBlockEnd || endT(S.selectedSlot, svcTotalDur());
+  var multi = S.selectedServices.length>1;
+  var html='<div class="summary">';
+  html+='<div class="summary-row"><span class="summary-key">'+(multi?'Servicios':'Servicio')+'</span><span class="summary-val">'+svcCombinedName()+'</span></div>';
+  if(multi) html+='<div class="summary-row"><span class="summary-key">Duraci&#xF3;n</span><span class="summary-val">'+durLabel(svcTotalDur())+'</span></div>';
+  if(S.selectedStaff) html+='<div class="summary-row"><span class="summary-key">Con</span><span class="summary-val">'+S.selectedStaff.name+'</span></div>';
+  html+='<div class="summary-row"><span class="summary-key">Fecha</span><span class="summary-val">'+fmtDate(S.selectedDate)+'</span></div>';
+  html+='<div class="summary-row"><span class="summary-key">Hora</span><span class="summary-val">'+S.selectedSlot+' &mdash; '+endLbl+'</span></div>';
+  html+='<div class="summary-row"><span class="summary-key">Total</span><span class="summary-price">$'+svcTotalCost().toLocaleString('es-MX')+' MXN</span></div>';
+  html+='</div>';
+  html+=prepayNoteHtml();
+  el.innerHTML=html;
+}
+
+// ── Cobro anticipado: aviso en el resumen ────────────────────────────────
+// Solo informativo. El monto REAL lo calcula el servidor con los precios de
+// la base de datos (aqui nunca se decide cuanto se cobra).
+function prepayNoteHtml() {
+  var p=S.prepay;
+  if(!p||!p.enabled) return '';
+  var scopeTxt = p.scope==='first' ? ' (solo en tu primera visita)' : '';
+  var amount = Math.round(svcTotalCost()*(p.percent/100));
+  var txt = p.percent===100
+    ? '<strong>Este negocio pide el pago completo por adelantado</strong>'+scopeTxt+'. Al reservar te pediremos pagar <strong>$'+amount.toLocaleString('es-MX')+' MXN</strong> con tarjeta.'
+    : '<strong>Este negocio pide un anticipo del '+p.percent+'%</strong>'+scopeTxt+'. Al reservar te pediremos pagar <strong>$'+amount.toLocaleString('es-MX')+' MXN</strong> con tarjeta; el resto lo pagas en el negocio.';
+  var h='<div class="prepay-note"><div class="prepay-note-ico">&#x1F4B3;</div><div class="prepay-note-txt">'+txt;
+  if(p.refund_policy) h+='<br><span style="opacity:.85">'+esc(p.refund_policy)+'</span>';
+  h+='</div></div>';
+  return h;
+}
+
+// ── Acciones
+// Multi-servicio: selectSvc ahora ALTERNA (agrega/quita) un servicio. En
+// negocios sin multi (Gratuito) se comporta como antes: un solo servicio.
+function selectSvc(id) {
+  saveInputs();
+  var svc=S.services.find(function(s){return s.id===id;});
+  if(!svc) return;
+  var idx=S.selectedServices.findIndex(function(s){return s.id===id;});
+  if(idx>=0){ S.selectedServices.splice(idx,1); }
+  else if(S.allowMulti){ S.selectedServices.push(svc); }
+  else { S.selectedServices=[svc]; }
+  S.selectedSlot=null;
+  S.selectedBlockEnd=null;
+  S.loadingSlots=true;
+  renderSections();
+  loadSlots().then(renderSections);
+}
+
+function selectStaff(id) {
+  saveInputs();
+  if(id===null){
+    S.selectedStaff=null;
+    doAfterStaff();
+  } else {
+    var m=S.staffMembers.find(function(x){return x.id===id;});
+    if(!m) return;
+    if(m.hours){S.selectedStaff=m;doAfterStaff();return;}
+    loadStaffHours(id).then(function(hrs){m.hours=hrs;S.selectedStaff=m;doAfterStaff();});
+  }
+}
+function doAfterStaff() {
+  S.selectedDate=nextOpenDay(new Date());
+  S.selectedSlot=null;
+  S.selectedBlockEnd=null;
+  S.loadingSlots=true;
+  renderSections();
+  loadSlots().then(function(){
+    renderSections();
+    setTimeout(function(){
+      var els=document.querySelectorAll('.section-title');
+      var idx=S.staffMembers.length>0?2:1;
+      if(els[idx]) els[idx].scrollIntoView({behavior:'smooth',block:'start'});
+    },150);
+  });
+}
+
+function changeDate(delta) {
+  saveInputs();
+  var next=addDays(S.selectedDate,delta);
+  if(beforeToday(next)) return;
+  S.selectedDate=next;
+  S.selectedSlot=null;
+  S.selectedBlockEnd=null;
+  S.loadingSlots=true;
+  renderSections();
+  loadSlots().then(renderSections);
+}
+
+function pickSlot(label) {
+  saveInputs();
+  S.selectedSlot=label;
+  S.selectedBlockEnd=null;
+  renderSections();
+  setTimeout(function(){
+    var els=document.querySelectorAll('.section-title');
+    var idx=S.staffMembers.length>0?3:2;
+    if(els[idx]) els[idx].scrollIntoView({behavior:'smooth',block:'start'});
+  },100);
+}
+
+// Modo bloques: selecciona una ventana fija (start..end). La cita ocupara
+// todo el bloque, por eso guardamos tambien el fin.
+function pickBlock(start, end) {
+  saveInputs();
+  S.selectedSlot=start;
+  S.selectedBlockEnd=end;
+  renderSections();
+  setTimeout(function(){
+    var els=document.querySelectorAll('.section-title');
+    var idx=S.staffMembers.length>0?3:2;
+    if(els[idx]) els[idx].scrollIntoView({behavior:'smooth',block:'start'});
+  },100);
+}
+
+// FIX doble-submit: guard triple — submitLocked + submitting + disabled en el botón
+function submitBooking() {
+  // Guard 1: si ya está procesando o bloqueado, salir inmediatamente
+  if(S.submitting || S.submitLocked) return;
+
+  saveInputs();
+  var staff=S.selectedStaff, slot=S.selectedSlot, date=S.selectedDate;
+  var name=S.name, phone=S.phone, notes=S.notes;
+  if(!S.selectedServices.length||!slot||!validName(name)||!phone.trim()) return;
+
+  // Validacion de telefono con feedback visual
+  if(!validPhone(phone)){
+    var err=document.getElementById('phone-error');
+    var inp=document.getElementById('inp-phone');
+    if(err){err.classList.add('visible');}
+    if(inp){inp.classList.add('invalid'); inp.focus();}
+    showErr('Ingresa un n&#xFA;mero de tel&#xE9;fono v&#xE1;lido (m&#xED;nimo 7 d&#xED;gitos).');
+    return;
+  }
+
+  // En modo bloques la cita ocupa todo el bloque; si no, se calcula por la
+  // duracion TOTAL de los servicios elegidos.
+  var endTime = S.selectedBlockEnd || endT(slot, svcTotalDur());
+
+  // Guard 2: bloquear INMEDIATAMENTE antes del fetch
+  S.submitLocked = true;
+  S.submitting = true;
+
+  var btn=document.getElementById('submit-btn');
+  if(btn){
+    btn.disabled=true;
+    btn.classList.add('loading');
+    btn.textContent='Confirmando tu cita...';
+  }
+
+  // ── COBRO ANTICIPADO ──────────────────────────────────────────────────
+  // Si el negocio lo exige, primero apartamos el horario (10 min) y cobramos.
+  // La cita se crea DESPUES de que Stripe confirme el pago. El servidor decide
+  // si aplica y cuanto: aqui no se calcula ningun monto.
+  if(S.prepay && S.prepay.enabled && !S.prepaidHold){
+    startPrepayFlow({
+      slug:getSlug(), clientName:name.trim(), clientPhone:phone.trim(),
+      serviceName:svcCombinedName(), serviceId:(S.selectedServices[0]?S.selectedServices[0].id:null),
+      services:S.selectedServices.map(function(sv){return {serviceId:sv.id,name:sv.name,price:Number(sv.price)||0,durationMinutes:sv.duration_minutes||30};}),
+      date:toDateStr(date), startTime:slot, endTime:endTime,
+      serviceCost:svcTotalCost(), notes:notes.trim()||null,
+      staff_id:(staff&&staff.id)?staff.id:null
+    });
+    return;
+  }
+
+  fetch(SUPABASE_URL+'/functions/v1/create-booking-request',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
+    body:JSON.stringify({
+      slug:getSlug(),
+      clientName:name.trim(), clientPhone:phone.trim(),
+      serviceName:svcCombinedName(), serviceId:(S.selectedServices[0]?S.selectedServices[0].id:null),
+      services:S.selectedServices.map(function(s){return {serviceId:s.id,name:s.name,price:Number(s.price)||0,durationMinutes:s.duration_minutes||30};}),
+      date:toDateStr(date), startTime:slot,
+      endTime:endTime,
+      serviceCost:svcTotalCost(), notes:notes.trim()||null,
+      staff_id:(staff&&staff.id)?staff.id:null
+    })
+  }).then(function(r){return r.json().then(function(d){
+    if(!r.ok||d.error) throw new Error(d.error||('Error '+r.status));
+    S.submitted=true;
+    renderSuccess();
+  });}).catch(function(e){
+    // Guard 3: solo desbloquear si hubo error — nunca si fue exitoso
+    S.submitting=false;
+    S.submitLocked=false;
+    var btn=document.getElementById('submit-btn');
+    if(btn){
+      btn.disabled=false;
+      btn.classList.remove('loading');
+      btn.textContent='Confirmar cita \u2192';
+    }
+    refreshBtn();
+    showErr(e.message);
+  });
+}
+
+function showErr(msg) {
+  var prev=document.getElementById('vylta-modal');if(prev)prev.remove();
+  var o=document.createElement('div');o.id='vylta-modal';o.className='error-modal-overlay';
+  o.innerHTML='<div class="error-modal"><div class="error-modal-icon">&#x26A0;&#xFE0F;</div><div class="error-modal-title">Ocurri&#xF3; un problema</div><div class="error-modal-msg">'+msg+'</div><button class="error-modal-btn" onclick="document.getElementById(&quot;vylta-modal&quot;).remove()">Entendido</button></div>';
+  document.body.appendChild(o);
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// FLUJO DE COBRO ANTICIPADO (Ago 2026)
+//
+// 1. booking-prepay      -> aparta el horario 10 min y crea el PaymentIntent
+// 2. Stripe Payment Element -> el cliente paga con tarjeta (3D Secure incluido)
+// 3. confirm-prepaid-booking -> reverifica el pago y crea la cita
+// 4. renderSuccess       -> WhatsApp de confirmacion como siempre
+//
+// Nunca se toca dinero en el navegador: los montos y la validacion viven en
+// el servidor. Si algo falla, el horario se libera solo al expirar el hold.
+// ══════════════════════════════════════════════════════════════════════════
+var PAY = { stripe:null, elements:null, timer:null };
+
+function startPrepayFlow(payload) {
+  var btn=document.getElementById('submit-btn');
+  if(btn) btn.textContent='Verificando disponibilidad...';
+
+  fetch(SUPABASE_URL+'/functions/v1/booking-prepay',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
+    body:JSON.stringify(payload)
+  }).then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});})
+  .then(function(res){
+    var d=res.d;
+    if(!res.ok||d.error){
+      S.submitLocked=false; S.submitting=false;
+      if(btn){btn.disabled=false;btn.classList.remove('loading');btn.textContent='Confirmar cita';}
+      alert(d.error||'No se pudo iniciar el pago. Intenta de nuevo.');
+      if(d.code==='SLOT_TAKEN'||d.code==='SLOT_HELD'){ S.selectedSlot=null; renderFull(); }
+      return;
+    }
+    // El negocio no exige pago para este caso (ej. cliente recurrente): seguimos normal.
+    if(!d.requiresPayment){
+      S.prepay=null;
+      submitBooking();
+      return;
+    }
+    S.prepaidHold={holdId:d.holdId, payload:payload};
+    renderPayment(d, payload);
+  }).catch(function(){
+    S.submitLocked=false; S.submitting=false;
+    if(btn){btn.disabled=false;btn.classList.remove('loading');btn.textContent='Confirmar cita';}
+    alert('No pudimos conectar para procesar el pago. Revisa tu internet.');
+  });
+}
+
+function renderPayment(info, payload) {
+  var h='<div class="pay-screen">';
+  h+='<div class="pay-head"><div class="pay-title">Aparta tu cita</div>';
+  h+='<div class="pay-sub">'+esc(S.biz.business_name)+' pide '+(info.percent===100?'el pago completo':'un anticipo del '+info.percent+'%')+' para confirmar tu reservaci&#xF3;n.</div></div>';
+
+  h+='<div class="pay-amount"><div class="pay-amount-lbl">A pagar ahora</div>';
+  h+='<div class="pay-amount-val">$'+Number(info.amountPrepay).toLocaleString('es-MX')+'</div>';
+  h+='<div class="pay-amount-note">MXN'+(info.percent<100?(' &middot; Restante en el negocio: $'+(Number(info.amountTotal)-Number(info.amountPrepay)).toLocaleString('es-MX')):'')+'</div></div>';
+
+  h+='<div class="pay-timer" id="pay-timer">&#x23F1;&#xFE0F; <span id="pay-count">10:00</span> para completar tu pago</div>';
+
+  if(S.prepay&&S.prepay.refund_policy){
+    h+='<div class="pay-policy"><strong>Pol&#xED;tica de cancelaci&#xF3;n:</strong> '+esc(S.prepay.refund_policy)+'</div>';
+  }
+
+  h+='<div id="pay-error"></div>';
+  h+='<div class="pay-box"><div id="payment-element"></div></div>';
+  h+='<button class="pay-btn" id="pay-btn" onclick="confirmPayment()">Pagar $'+Number(info.amountPrepay).toLocaleString('es-MX')+' MXN</button>';
+  h+='<button class="pay-cancel" onclick="cancelPayment()">Cancelar y elegir otro horario</button>';
+  h+='<div class="pay-secure">&#x1F512; Pago protegido por Stripe. VYLTA no almacena los datos de tu tarjeta.</div>';
+  h+='</div>';
+  app.innerHTML=h;
+
+  try{
+    PAY.stripe = Stripe(info.publishableKey);
+    PAY.elements = PAY.stripe.elements({
+      clientSecret: info.clientSecret,
+      appearance:{ theme:'stripe', variables:{ colorPrimary:'#6366F1', borderRadius:'10px' } }
+    });
+    PAY.elements.create('payment',{layout:'tabs'}).mount('#payment-element');
+  }catch(e){
+    document.getElementById('pay-error').innerHTML='<div class="pay-err">No se pudo cargar el formulario de pago. Recarga la p&#xE1;gina.</div>';
+  }
+
+  startPayTimer(new Date(info.expiresAt).getTime());
+}
+
+function startPayTimer(endsAt) {
+  clearInterval(PAY.timer);
+  PAY.timer=setInterval(function(){
+    var left=Math.max(0, Math.floor((endsAt-Date.now())/1000));
+    var el=document.getElementById('pay-count');
+    if(!el){clearInterval(PAY.timer);return;}
+    var m=Math.floor(left/60), sec=left%60;
+    el.textContent=m+':'+(sec<10?'0':'')+sec;
+    var box=document.getElementById('pay-timer');
+    if(box&&left<=120) box.classList.add('urgent');
+    if(left<=0){
+      clearInterval(PAY.timer);
+      var b=document.getElementById('pay-btn');
+      if(b){b.disabled=true;b.textContent='Tiempo agotado';}
+      document.getElementById('pay-error').innerHTML='<div class="pay-err">Se agot&#xF3; el tiempo para pagar y liberamos el horario. Puedes elegirlo de nuevo si sigue disponible.</div>';
+    }
+  },1000);
+}
+
+function confirmPayment() {
+  var btn=document.getElementById('pay-btn');
+  var errBox=document.getElementById('pay-error');
+  if(!PAY.stripe||!PAY.elements){ errBox.innerHTML='<div class="pay-err">El formulario de pago no est&#xE1; listo.</div>'; return; }
+  btn.disabled=true; btn.textContent='Procesando tu pago...';
+  errBox.innerHTML='';
+
+  PAY.stripe.confirmPayment({ elements:PAY.elements, redirect:'if_required' })
+  .then(function(result){
+    if(result.error){
+      btn.disabled=false; btn.textContent='Reintentar pago';
+      errBox.innerHTML='<div class="pay-err">'+esc(result.error.message||'No se pudo procesar el pago.')+'</div>';
+      return;
+    }
+    var pi=result.paymentIntent;
+    if(!pi||pi.status!=='succeeded'){
+      btn.disabled=false; btn.textContent='Reintentar pago';
+      errBox.innerHTML='<div class="pay-err">El pago no se complet&#xF3;. Intenta con otra tarjeta.</div>';
+      return;
+    }
+    btn.textContent='Confirmando tu cita...';
+    clearInterval(PAY.timer);
+    return fetch(SUPABASE_URL+'/functions/v1/confirm-prepaid-booking',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
+      body:JSON.stringify({holdId:S.prepaidHold.holdId, paymentIntentId:pi.id})
+    }).then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});})
+    .then(function(res){
+      if(!res.ok||res.d.error){
+        errBox.innerHTML='<div class="pay-err">'+esc(res.d.error||'Tu pago se realiz&#xF3;, pero hubo un problema al agendar. El negocio te contactar&#xE1;.')+'</div>';
+        btn.textContent='Pago realizado';
+        return;
+      }
+      S.paidAmount=res.d.amountPaid; S.receiptUrl=res.d.receiptUrl||null;
+      S.submitted=true;
+      renderSuccess();
+    });
+  }).catch(function(){
+    btn.disabled=false; btn.textContent='Reintentar pago';
+    errBox.innerHTML='<div class="pay-err">Error de conexi&#xF3;n al procesar el pago.</div>';
+  });
+}
+
+function cancelPayment() {
+  clearInterval(PAY.timer);
+  S.prepaidHold=null; S.submitLocked=false; S.submitting=false; S.selectedSlot=null;
+  renderFull();
+}
+
+function renderError(title,desc,retry) {
+  var h='<div class="error-screen"><div class="error-icon">'+(retry?'&#x1F4F6;':'&#x1F50D;')+'</div>';
+  h+='<div class="error-title">'+title+'</div><div class="error-desc">'+desc+'</div>';
+  // Si el fallo puede ser temporal (red o servicio), ofrecemos reintentar en
+  // vez de dejar al cliente en una pantalla muerta.
+  if(retry) h+='<button class="pay-btn" style="max-width:260px;margin-top:18px" onclick="location.reload()">Reintentar</button>';
+  h+='</div>';
+  app.innerHTML=h;
+}
+
+function renderSuccess() {
+  var staff=S.selectedStaff, slot=S.selectedSlot, date=S.selectedDate;
+  var endLbl = S.selectedBlockEnd || endT(slot, svcTotalDur());
+  var multi = S.selectedServices.length>1;
+  var html='<div class="success-screen">';
+  html+='<div class="success-icon">&#x2705;</div>';
+  html+='<div class="success-title">&#xA1;Cita confirmada!</div>';
+  html+='<div class="success-desc">Tu cita con <strong>'+S.biz.business_name+'</strong> est&#xE1; agendada. &#xA1;Te esperamos!</div>';
+  html+='<div class="success-card">';
+  html+='<div class="success-card-row"><span class="success-card-key">Nombre</span><span class="success-card-val">'+esc(S.name)+'</span></div>';
+  html+='<div class="success-card-row"><span class="success-card-key">'+(multi?'Servicios':'Servicio')+'</span><span class="success-card-val">'+svcCombinedName()+'</span></div>';
+  if(staff) html+='<div class="success-card-row"><span class="success-card-key">Con</span><span class="success-card-val">'+esc(staff.name)+'</span></div>';
+  html+='<div class="success-card-row"><span class="success-card-key">Fecha</span><span class="success-card-val">'+fmtDate(date)+'</span></div>';
+  html+='<div class="success-card-row"><span class="success-card-key">Hora</span><span class="success-card-val">'+slot+' &mdash; '+endLbl+'</span></div>';
+  html+='<div class="success-card-row"><span class="success-card-key">Total</span><span class="success-card-val" style="color:#10B981;font-size:18px">$'+svcTotalCost().toLocaleString('es-MX')+' MXN</span></div>';
+  if(S.paidAmount){
+    html+='<div class="success-card-row" style="border-top:1px solid #F1F5F9;margin-top:4px;padding-top:10px"><span class="success-card-key">&#x2705; Pagado por adelantado</span><span class="success-card-val" style="color:#6366F1">$'+Number(S.paidAmount).toLocaleString('es-MX')+' MXN</span></div>';
+  }
+  html+='</div>';
+  if(S.paidAmount){
+    html+='<div style="font-size:12.5px;color:#64748B;max-width:360px;line-height:1.6">Tu comprobante de pago llegar&#xE1; por correo desde Stripe.'+(S.receiptUrl?' Tambi&#xE9;n puedes <a href="'+S.receiptUrl+'" target="_blank" style="color:#6366F1">verlo aqu&#xED;</a>.':'')+'</div>';
+  }
+  // Contenedor de la tarjeta de lealtad — se rellena async (ver loadLoyaltyCard)
+  html+='<div id="loyalty-slot"></div>';
+  if(S.biz.phone) html+='<div class="whatsapp-hint">&#x1F4F1; Guarda el n&#xFA;mero: <strong>'+S.biz.phone+'</strong></div>';
+  html+='<div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div>';
+  html+='</div>';
+  app.innerHTML=html;
+  loadLoyaltyCard();
+}
+
+// ── Tarjeta de lealtad (Ago 2026) ─────────────────────────────────────────
+// Tras confirmar la cita mostramos al cliente cuántas visitas lleva y
+// cuánto le falta para su recompensa. Solo aparece si el negocio activó
+// la función (la RPC pública devuelve enabled=false en caso contrario).
+// La cita recién agendada aún NO cuenta (es futura): por eso, si con ella
+// completa la tarjeta, se lo anticipamos en el mensaje.
+function loadLoyaltyCard() {
+  try {
+    if(!S.biz || !S.biz.userId || !S.phone) return;
+    fetch(SUPABASE_URL+'/rest/v1/rpc/get_loyalty_progress_public',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
+      body:JSON.stringify({p_user_id:S.biz.userId,p_phone:S.phone})
+    })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d){
+      var p = Array.isArray(d) ? d[0] : d;
+      if(!p || !p.enabled) return;
+      var slot=document.getElementById('loyalty-slot');
+      if(!slot) return;
+
+      var req=p.visits_required, cur=p.visits_in_cycle, pct=p.reward_percent;
+      var willComplete = (cur+1) >= req;           // la cita que acaba de agendar la completa
+      var win = p.is_eligible;                      // ya tenía la recompensa lista
+      var rewardTxt = pct===100 ? 'totalmente gratis' : pct+'% de descuento';
+
+      var bizInit=(S.biz.business_name||'?').trim().charAt(0).toUpperCase();
+      var logo = S.biz.logo_url
+        ? '<img src="'+S.biz.logo_url+'" alt="" onerror="this.parentNode.textContent=\''+bizInit+'\'" />'
+        : bizInit;
+
+      var msg;
+      if(win){
+        msg='&#x1F389; &#xA1;Ya tienes tu recompensa! Tu pr&#xF3;xima visita es <strong>'+rewardTxt+'</strong>. Mu&#xE9;strale este mensaje a '+esc(S.biz.business_name)+'.';
+      } else if(willComplete){
+        msg='&#x1F31F; &#xA1;Con esta cita completas tu tarjeta! Despu&#xE9;s de tu visita, la siguiente ser&#xE1; <strong>'+rewardTxt+'</strong>.';
+      } else {
+        var falta=req-cur-1;
+        msg='Te faltan <strong>'+falta+' visita'+(falta!==1?'s':'')+'</strong> (sin contar esta) para que tu pr&#xF3;xima sea <strong>'+rewardTxt+'</strong>.';
+      }
+
+      var dots='';
+      var shown=Math.min(req,12);
+      for(var i=0;i<shown;i++){
+        dots+='<div class="loy-dot'+(i<Math.min(cur,req)?' done':'')+'">'+(i<Math.min(cur,req)?'&#x2713;':'')+'</div>';
+      }
+      if(req>12) dots+='<div class="loy-dot">+'+(req-12)+'</div>';
+
+      var h='<div class="loy-card'+(win?' win':'')+'">';
+      h+='<div class="loy-head">';
+      h+='<div class="loy-logo">'+logo+'</div>';
+      h+='<div class="loy-titles"><div class="loy-title">Tu tarjeta de lealtad</div>';
+      h+='<div class="loy-sub">'+esc(S.biz.business_name)+'</div></div>';
+      h+='<div class="loy-count">'+Math.min(cur,req)+'/'+req+'</div>';
+      h+='</div>';
+      h+='<div class="loy-dots">'+dots+'</div>';
+      h+='<div class="loy-msg">'+msg+'</div>';
+      h+='</div>';
+      slot.innerHTML=h;
+    })
+    .catch(function(){ /* silencioso: la tarjeta es un extra, nunca rompe la confirmación */ });
+  } catch(e) { /* noop */ }
+}
+
+// A1 (accesibilidad): permitir activar con teclado los elementos role="button"
+// (servicios, colaboradores y slots). Enter o Espacio disparan su onclick.
+document.addEventListener('keydown', function(e){
+  if(e.key!=='Enter' && e.key!==' ' && e.key!=='Spacebar') return;
+  var t=e.target;
+  if(t && t.getAttribute && t.getAttribute('role')==='button' &&
+     (t.classList.contains('slot')||t.classList.contains('service-item')||t.classList.contains('staff-card')||t.classList.contains('staff-any'))){
+    e.preventDefault();
+    t.click();
+  }
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────
+function init() {
+  var slug=getSlug();
+  if(!slug){renderError('Link inv&#xE1;lido','Este enlace no tiene un negocio asociado.');return;}
+  supaFetch('booking_links?slug=eq.'+encodeURIComponent(slug)+'&is_active=eq.true&select=id,user_id,require_approval,whatsapp_confirmation,booking_mode')
+  .then(function(links){
+    if(!links||!links.length){renderError('Negocio no encontrado','El enlace no est&#xE1; activo o no existe.');return Promise.reject('not found');}
+    var link=links[0];
+    S.bookingMode = link.booking_mode || 'normal';
+    return supaFetch('public_business_profiles?user_id=eq.'+link.user_id+'&select=business_name,business_type,logo_url,phone')
+    .then(function(profiles){
+      var p=(profiles&&profiles[0])||{};
+      S.biz={business_name:p.business_name,business_type:p.business_type,logo_url:p.logo_url,phone:p.phone,linkId:link.id,userId:link.user_id};
+      // Config de cobro anticipado (silenciosa: si falla, el flujo sigue sin pago)
+      fetch(SUPABASE_URL+'/rest/v1/rpc/get_prepay_config_public',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
+        body:JSON.stringify({p_user_id:link.user_id})
+      }).then(function(r){return r.ok?r.json():null;}).then(function(d){
+        var c=Array.isArray(d)?d[0]:d;
+        if(c&&c.enabled){S.prepay=c;if(S.step)renderFull();}
+      }).catch(function(){});
+      var bn=p.business_name||'Negocio';
+      document.title='Agendar cita \u00b7 '+bn;
+      setMeta('og:title','Agenda tu cita en '+bn);
+      setMeta('og:description','Reserva tu cita con '+bn+'. Elige servicio, fecha y hora.');
+      if(p.logo_url) setMeta('og:image',p.logo_url);
+      // Cargamos servicios + horarios + colaboradores + bloqueos de tiempo + bloques de
+      // recepcion + flag multi-servicio (por plan) en paralelo. Los time_blocks y
+      // booking_blocks se filtran por is_active=true para que registros pausados no afecten.
+      return Promise.all([
+        supaFetch('services?user_id=eq.'+link.user_id+'&is_active=eq.true&order=name'),
+        supaFetch('business_hours?user_id=eq.'+link.user_id+'&order=day_of_week'),
+        supaFetch('staff_members?user_id=eq.'+link.user_id+'&is_active=eq.true&order=sort_order&select=id,name,role,color'),
+        supaFetch('time_blocks?user_id=eq.'+link.user_id+'&is_active=eq.true&select=id,staff_id,label,start_time,end_time,is_recurring,day_of_week,specific_date,is_active').catch(function(){return [];}),
+        supaFetch('booking_blocks?user_id=eq.'+link.user_id+'&is_active=eq.true&select=id,day_of_week,start_time,end_time,is_active&order=sort_order').catch(function(){return [];}),
+        supaFetch('rpc/public_business_can_multiservice?p_user_id='+link.user_id).catch(function(){return false;})
+      ]);
+    });
+  }).then(function(res){
+    if(!res) return;
+    S.services=res[0]||[]; S.hours=res[1]||[]; S.staffMembers=res[2]||[];
+    S.timeBlocks = res[3] || [];
+    S.bookingBlocks = res[4] || [];
+    S.allowMulti = res[5] === true;
+    if(S.staffMembers.length>0) S.selectedStaff=undefined;
+    S.selectedDate=nextOpenDay(new Date());
+    // En modo bloques con colaboradores, precargamos staff_hours de TODOS para
+    // poder filtrar cada bloque por el turno de cada quien (incluido "sin
+    // preferencia", que necesita las horas de todos para saber si alguien lo cubre).
+    if(S.bookingMode==='bloques' && S.staffMembers.length>0){
+      var ids=S.staffMembers.map(function(m){return m.id;}).join(',');
+      return supaFetch('staff_hours?staff_id=in.('+ids+')&order=day_of_week')
+        .then(function(rows){
+          rows=rows||[];
+          S.staffMembers.forEach(function(m){ m.hours=rows.filter(function(r){return r.staff_id===m.id;}); });
+          return loadSlots();
+        })
+        .catch(function(){ return loadSlots(); });
+    }
+    return loadSlots();
+  }).then(function(){renderFull();})
+  .catch(function(e){
+    if(e==='not found') return;
+    console.error('[VYLTA]',e);
+    renderError('No pudimos cargar la p&#xE1;gina','Revisa tu conexi&#xF3;n a internet e int&#xE9;ntalo de nuevo. Si el problema sigue, escr&#xED;bele al negocio para agendar.', true);
+  });
+}
+
+init();
+</script>
+</body>
+</html>
