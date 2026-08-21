@@ -1,0 +1,52 @@
+# Mantiene una pagina real por negocio (/<slug>.html) siempre al dia.
+#
+# Se dispara solo cuando:
+#   - cambia book.html o el generador (para que ningun negocio quede con
+#     una copia vieja de la pagina de citas)
+#   - cada 3 horas (para dar de alta negocios nuevos y de baja los
+#     desactivados sin intervencion manual)
+#   - a mano desde la pestana Actions
+#
+# Si no hay nada que cambiar, no commitea. Si la API de Supabase falla,
+# el script aborta sin tocar archivos y el workflow marca error.
+name: Paginas por negocio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'book.html'
+      - 'generate-slug-pages.sh'
+      - '.github/workflows/slug-pages.yml'
+  schedule:
+    - cron: '17 */3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: slug-pages
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  generar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generar paginas
+        run: ./generate-slug-pages.sh
+
+      - name: Publicar si hubo cambios
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Sin cambios. Nada que publicar."
+            exit 0
+          fi
+          git config user.name  "vylta-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore(booking): regenerar paginas por negocio [automatico]"
+          git push
+          echo "Publicado. GitHub Pages desplegara en ~1 min."
