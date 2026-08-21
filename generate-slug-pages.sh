@@ -8,7 +8,7 @@
 # lenta. Con una pagina real, la URL responde 200 al instante y sin saltos.
 #
 # book.html detecta el negocio por la ruta, asi que una copia funciona igual.
-# Volver a ejecutar tras cambiar book.html o dar de alta un negocio nuevo.
+# Regenerar tras cambiar book.html o dar de alta un negocio nuevo.
 # ══════════════════════════════════════════════════════════════════════
 set -e
 SB="https://nhjmwmkaduiaifgztymi.supabase.co"
@@ -24,8 +24,8 @@ SLUGS=$(curl -s --max-time 30 "$SB/rest/v1/booking_links?is_active=eq.true&selec
 N=0
 for s in $SLUGS; do
   case "$s" in book.html|index.html|assets|"") continue;; esac
-  mkdir -p "$s"
-  cp book.html "$s/index.html"
+  :
+  cp book.html "$s.html"
   N=$((N+1))
 done
 echo "Paginas generadas: $N"
