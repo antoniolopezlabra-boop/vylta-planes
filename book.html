@@ -185,13 +185,53 @@ var S = {
 };
 
 // ── Utilidades ────────────────────────────────────────────────
-function supaFetch(path) {
+// ── supaFetch resiliente (Ago 2026) ──────────────────────────────────────
+// Antes, cualquier bache de Supabase (401 espurios por incidentes del API
+// Gateway, 5xx, cortes de red del celular) rompia la pagina de inmediato y
+// el cliente veia un error sin salida.
+//
+// Ahora:
+//   • TIMEOUT de 12s por peticion (fetch en moviles no expira solo: sin esto
+//     una red caida deja la pagina "cargando" para siempre).
+//   • REINTENTOS automaticos (3) con espera creciente ante fallos temporales:
+//     401 (incidente conocido de JWT en Supabase), 408, 429, 5xx y errores de
+//     red. Los errores permanentes (404, 400) NO se reintentan.
+var SUPA_RETRIES = 3;
+var SUPA_TIMEOUT_MS = 12000;
+
+function isTransient(status) {
+  return status === 401 || status === 408 || status === 425 ||
+         status === 429 || status >= 500;
+}
+
+function supaFetch(path, attempt) {
+  attempt = attempt || 1;
+  var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, SUPA_TIMEOUT_MS) : null;
+
   return fetch(SUPABASE_URL + '/rest/v1/' + path, {
-    headers: { 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY }
+    headers: { 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY },
+    signal: ctrl ? ctrl.signal : undefined
   }).then(function(r) {
-    if (!r.ok) return r.text().then(function(b){ throw new Error(r.status+': '+b); });
+    if (timer) clearTimeout(timer);
+    if (!r.ok) {
+      if (isTransient(r.status) && attempt < SUPA_RETRIES) return supaRetry(path, attempt);
+      return r.text().then(function(b){ throw new Error(r.status + ': ' + b); });
+    }
     return r.json();
+  }).catch(function(err) {
+    if (timer) clearTimeout(timer);
+    // Error de red o timeout -> reintentamos si quedan intentos
+    var isNet = (err && (err.name === 'AbortError' || err.name === 'TypeError'));
+    if (isNet && attempt < SUPA_RETRIES) return supaRetry(path, attempt);
+    throw err;
   });
+}
+
+function supaRetry(path, attempt) {
+  var wait = 400 * Math.pow(2, attempt - 1); // 400ms, 800ms
+  return new Promise(function(res){ setTimeout(res, wait); })
+    .then(function(){ return supaFetch(path, attempt + 1); });
 }
 function getSlug() {
   var p = window.location.pathname.split('/').filter(Boolean).pop();
@@ -1067,8 +1107,14 @@ function cancelPayment() {
   renderFull();
 }
 
-function renderError(title,desc) {
-  app.innerHTML='<div class="error-screen"><div class="error-icon">&#x1F50D;</div><div class="error-title">'+title+'</div><div class="error-desc">'+desc+'</div></div>';
+function renderError(title,desc,retry) {
+  var h='<div class="error-screen"><div class="error-icon">'+(retry?'&#x1F4F6;':'&#x1F50D;')+'</div>';
+  h+='<div class="error-title">'+title+'</div><div class="error-desc">'+desc+'</div>';
+  // Si el fallo puede ser temporal (red o servicio), ofrecemos reintentar en
+  // vez de dejar al cliente en una pantalla muerta.
+  if(retry) h+='<button class="pay-btn" style="max-width:260px;margin-top:18px" onclick="location.reload()">Reintentar</button>';
+  h+='</div>';
+  app.innerHTML=h;
 }
 
 function renderSuccess() {
@@ -1243,7 +1289,7 @@ function init() {
   .catch(function(e){
     if(e==='not found') return;
     console.error('[VYLTA]',e);
-    renderError('Error de conexi&#xF3;n','No pudimos cargar la informaci&#xF3;n. '+e.message);
+    renderError('No pudimos cargar la p&#xE1;gina','Revisa tu conexi&#xF3;n a internet e int&#xE9;ntalo de nuevo. Si el problema sigue, escr&#xED;bele al negocio para agendar.', true);
   });
 }
 
