@@ -156,7 +156,6 @@
     .error-modal-btn { width: 100%; padding: 14px; background: #0F172A; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; }
     .error-modal-btn:hover { background: #1E293B; }
   </style>
-  <script src="https://js.stripe.com/v3/"></script>
 </head>
 <body>
 <div id="app"><div class="loader"><div class="spinner"></div><span class="loader-text">Cargando...</span></div></div>
@@ -1002,6 +1001,29 @@ function startPrepayFlow(payload) {
   });
 }
 
+// Stripe.js pesa ~290 KB (14 veces esta pagina) y antes se descargaba en el
+// <head> de forma bloqueante: cada cliente de cada negocio esperaba esa descarga
+// antes de ver algo, aunque el negocio no cobrara anticipos. Con red movil lenta
+// la pagina se quedaba en blanco y el cliente la cerraba sin llegar a cargar el
+// negocio. Ahora solo se descarga cuando el cliente llega a la pantalla de pago.
+var STRIPE_JS_TIMEOUT_MS = 20000;
+var stripeJsPromise = null;
+function loadStripeJs() {
+  if (window.Stripe) return Promise.resolve();
+  if (stripeJsPromise) return stripeJsPromise;
+  stripeJsPromise = new Promise(function(resolve, reject){
+    var s = document.createElement('script');
+    var timer = setTimeout(function(){ fail(); }, STRIPE_JS_TIMEOUT_MS);
+    function fail(){ clearTimeout(timer); stripeJsPromise = null; s.remove(); reject(new Error('stripe.js')); }
+    s.src = 'https://js.stripe.com/v3/';
+    s.async = true;
+    s.onload = function(){ clearTimeout(timer); window.Stripe ? resolve() : fail(); };
+    s.onerror = fail;
+    document.head.appendChild(s);
+  });
+  return stripeJsPromise;
+}
+
 function renderPayment(info, payload) {
   var h='<div class="pay-screen">';
   h+='<div class="pay-head"><div class="pay-title">Aparta tu cita</div>';
@@ -1025,16 +1047,17 @@ function renderPayment(info, payload) {
   h+='</div>';
   app.innerHTML=h;
 
-  try{
+  loadStripeJs().then(function(){
     PAY.stripe = Stripe(info.publishableKey);
     PAY.elements = PAY.stripe.elements({
       clientSecret: info.clientSecret,
       appearance:{ theme:'stripe', variables:{ colorPrimary:'#6366F1', borderRadius:'10px' } }
     });
     PAY.elements.create('payment',{layout:'tabs'}).mount('#payment-element');
-  }catch(e){
-    document.getElementById('pay-error').innerHTML='<div class="pay-err">No se pudo cargar el formulario de pago. Recarga la p&#xE1;gina.</div>';
-  }
+  }).catch(function(){
+    var el=document.getElementById('pay-error');
+    if(el) el.innerHTML='<div class="pay-err">No se pudo cargar el formulario de pago. Recarga la p&#xE1;gina.</div>';
+  });
 
   startPayTimer(new Date(info.expiresAt).getTime());
 }
