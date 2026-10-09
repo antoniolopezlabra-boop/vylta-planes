@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<link rel="preconnect" href="https://nhjmwmkaduiaifgztymi.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://app.vylta.lat">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="facebook-domain-verification" content="b324lmgpszya98ykunzepkczvjlfqi" />
@@ -164,6 +166,61 @@ var SUPABASE_URL = 'https://nhjmwmkaduiaifgztymi.supabase.co';
 var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oam13bWthZHVpYWlmZ3p0eW1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1ODk3MTYsImV4cCI6MjA4ODE2NTcxNn0.p53BZPf6qygAYw29bIJ0bA5VwZ_lRxw-aocV8LuGB1c';
 var app = document.getElementById('app');
 
+// ── Dos caminos hacia el servidor (Oct 2026) ─────────────────────────────
+// Algunos clientes no lograban abrir la pagina aunque Supabase no registraba
+// ningun error: la falla ocurria en su red (DNS del operador, incidentes del
+// dominio .co, navegadores internos de WhatsApp/Facebook) antes de llegar.
+// Ahora cada peticion puede ir directo a supabase.co o por la ruta de
+// respaldo app.vylta.lat/sb (proxy en Vercel, dominio propio). Si un camino
+// falla se reintenta por el otro, y el que funcione queda como preferido.
+var API_BASES = [SUPABASE_URL, 'https://app.vylta.lat/sb'];
+var apiIdx = 0;
+try { if (sessionStorage.getItem('vylta_api') === '1') apiIdx = 1; } catch (e) {}
+function api() { return API_BASES[apiIdx]; }
+function setApi(idx) {
+  if (idx === apiIdx) return;
+  apiIdx = idx;
+  try { sessionStorage.setItem('vylta_api', String(idx)); } catch (e) {}
+  track('failover', { via: idx ? 'respaldo' : 'directo' });
+}
+
+// ── Telemetria de carga ──────────────────────────────────────────────────
+// Registra cada apertura (ok / error / lenta) en booking_page_events para
+// diagnosticar con datos reales. Nunca bloquea ni rompe la pagina.
+var T0 = Date.now();
+var LOAD_STEP = 'inicio';
+var trackCount = 0;
+function track(event, extra) {
+  try {
+    if (++trackCount > 12) return;
+    extra = extra || {};
+    var c = navigator.connection || {};
+    var row = {
+      slug: String(getSlug() || '').slice(0, 80), event: event,
+      ms: Math.min(Date.now() - T0, 600000),
+      via: extra.via || (apiIdx ? 'respaldo' : 'directo'),
+      step: extra.step ? String(extra.step).slice(0, 60) : null,
+      error: extra.error ? String(extra.error).slice(0, 400) : null,
+      ua: String(navigator.userAgent || '').slice(0, 300),
+      net: String((c.effectiveType || '') + (c.type ? '/' + c.type : '') + (navigator.onLine === false ? ' offline' : '')).slice(0, 40) || null,
+      attempts: extra.attempts || null
+    };
+    var send = function (base) {
+      return fetch(base + '/rest/v1/booking_page_events', {
+        method: 'POST', keepalive: true,
+        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY, 'Prefer': 'return=minimal' },
+        body: JSON.stringify(row)
+      });
+    };
+    send(api()).then(function (r) { if (!r.ok) throw 0; })
+      .catch(function () { return send(API_BASES[1 - apiIdx]); })
+      .catch(function () {});
+  } catch (e) {}
+}
+window.addEventListener('error', function (e) {
+  track('js_error', { step: LOAD_STEP, error: (e && e.message || 'error') + ' @' + (e && e.lineno || '?') });
+});
+
 var S = {
   biz: null, services: [], hours: [], staffMembers: [],
   // Bloqueos de tiempo (comida, descansos) — cargados al inicio para filtrar slots
@@ -195,8 +252,11 @@ var S = {
 //   • REINTENTOS automaticos (3) con espera creciente ante fallos temporales:
 //     401 (incidente conocido de JWT en Supabase), 408, 429, 5xx y errores de
 //     red. Los errores permanentes (404, 400) NO se reintentan.
+//   • Oct 2026: cada reintento alterna entre el camino directo y el de
+//     respaldo (ver API_BASES); timeout bajado a 8s para no dejar al cliente
+//     esperando mas de ~25s en el peor caso.
 var SUPA_RETRIES = 3;
-var SUPA_TIMEOUT_MS = 12000;
+var SUPA_TIMEOUT_MS = 8000;
 
 function isTransient(status) {
   return status === 401 || status === 408 || status === 425 ||
@@ -205,14 +265,16 @@ function isTransient(status) {
 
 function supaFetch(path, attempt) {
   attempt = attempt || 1;
+  var idx = (apiIdx + attempt - 1) % API_BASES.length;
   var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
   var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, SUPA_TIMEOUT_MS) : null;
 
-  return fetch(SUPABASE_URL + '/rest/v1/' + path, {
+  return fetch(API_BASES[idx] + '/rest/v1/' + path, {
     headers: { 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY },
     signal: ctrl ? ctrl.signal : undefined
   }).then(function(r) {
     if (timer) clearTimeout(timer);
+    if (r.ok || !isTransient(r.status)) setApi(idx);
     if (!r.ok) {
       if (isTransient(r.status) && attempt < SUPA_RETRIES) return supaRetry(path, attempt);
       return r.text().then(function(b){ throw new Error(r.status + ': ' + b); });
@@ -223,12 +285,14 @@ function supaFetch(path, attempt) {
     // Error de red o timeout -> reintentamos si quedan intentos
     var isNet = (err && (err.name === 'AbortError' || err.name === 'TypeError'));
     if (isNet && attempt < SUPA_RETRIES) return supaRetry(path, attempt);
+    if (err && typeof err === 'object') err.attempts = attempt;
     throw err;
   });
 }
 
 function supaRetry(path, attempt) {
-  var wait = 400 * Math.pow(2, attempt - 1); // 400ms, 800ms
+  // El primer reintento va de inmediato por el otro camino; despues, espera.
+  var wait = attempt === 1 ? 0 : 400 * Math.pow(2, attempt - 1);
   return new Promise(function(res){ setTimeout(res, wait); })
     .then(function(){ return supaFetch(path, attempt + 1); });
 }
@@ -915,7 +979,7 @@ function submitBooking() {
     return;
   }
 
-  fetch(SUPABASE_URL+'/functions/v1/create-booking-request',{
+  fetch(api()+'/functions/v1/create-booking-request',{
     method:'POST',
     headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
     body:JSON.stringify({
@@ -931,8 +995,10 @@ function submitBooking() {
   }).then(function(r){return r.json().then(function(d){
     if(!r.ok||d.error) throw new Error(d.error||('Error '+r.status));
     S.submitted=true;
+    track('booked');
     renderSuccess();
   });}).catch(function(e){
+    track('book_error',{error:e&&e.message});
     // Guard 3: solo desbloquear si hubo error — nunca si fue exitoso
     S.submitting=false;
     S.submitLocked=false;
@@ -972,7 +1038,7 @@ function startPrepayFlow(payload) {
   var btn=document.getElementById('submit-btn');
   if(btn) btn.textContent='Verificando disponibilidad...';
 
-  fetch(SUPABASE_URL+'/functions/v1/booking-prepay',{
+  fetch(api()+'/functions/v1/booking-prepay',{
     method:'POST',
     headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
     body:JSON.stringify(payload)
@@ -1103,7 +1169,7 @@ function confirmPayment() {
     }
     btn.textContent='Confirmando tu cita...';
     clearInterval(PAY.timer);
-    return fetch(SUPABASE_URL+'/functions/v1/confirm-prepaid-booking',{
+    return fetch(api()+'/functions/v1/confirm-prepaid-booking',{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
       body:JSON.stringify({holdId:S.prepaidHold.holdId, paymentIntentId:pi.id})
@@ -1180,7 +1246,7 @@ function renderSuccess() {
 function loadLoyaltyCard() {
   try {
     if(!S.biz || !S.biz.userId || !S.phone) return;
-    fetch(SUPABASE_URL+'/rest/v1/rpc/get_loyalty_progress_public',{
+    fetch(api()+'/rest/v1/rpc/get_loyalty_progress_public',{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
       body:JSON.stringify({p_user_id:S.biz.userId,p_phone:S.phone})
@@ -1251,17 +1317,27 @@ document.addEventListener('keydown', function(e){
 function init() {
   var slug=getSlug();
   if(!slug){renderError('Link inv&#xE1;lido','Este enlace no tiene un negocio asociado.');return;}
+  var loaded=false;
+  // Si tarda, se avisa al cliente para que no cierre pensando que no sirve.
+  setTimeout(function(){
+    if(loaded) return;
+    var t=document.querySelector('.loader-text');
+    if(t) t.innerHTML='Est&#xE1; tardando m&#xE1;s de lo normal&#x2026;<br>seguimos intentando.';
+    track('slow',{step:LOAD_STEP});
+  },7000);
+  LOAD_STEP='negocio';
   supaFetch('booking_links?slug=eq.'+encodeURIComponent(slug)+'&is_active=eq.true&select=id,user_id,require_approval,whatsapp_confirmation,booking_mode')
   .then(function(links){
     if(!links||!links.length){renderError('Negocio no encontrado','El enlace no est&#xE1; activo o no existe.');return Promise.reject('not found');}
     var link=links[0];
     S.bookingMode = link.booking_mode || 'normal';
+    LOAD_STEP='perfil';
     return supaFetch('public_business_profiles?user_id=eq.'+link.user_id+'&select=business_name,business_type,logo_url,phone')
     .then(function(profiles){
       var p=(profiles&&profiles[0])||{};
-      S.biz={business_name:p.business_name,business_type:p.business_type,logo_url:p.logo_url,phone:p.phone,linkId:link.id,userId:link.user_id};
+      S.biz={business_name:p.business_name,business_type:p.business_type,logo_url:(p.logo_url&&apiIdx?String(p.logo_url).replace(SUPABASE_URL,API_BASES[1]):p.logo_url),phone:p.phone,linkId:link.id,userId:link.user_id};
       // Config de cobro anticipado (silenciosa: si falla, el flujo sigue sin pago)
-      fetch(SUPABASE_URL+'/rest/v1/rpc/get_prepay_config_public',{
+      fetch(api()+'/rest/v1/rpc/get_prepay_config_public',{
         method:'POST',
         headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
         body:JSON.stringify({p_user_id:link.user_id})
@@ -1277,6 +1353,7 @@ function init() {
       // Cargamos servicios + horarios + colaboradores + bloqueos de tiempo + bloques de
       // recepcion + flag multi-servicio (por plan) en paralelo. Los time_blocks y
       // booking_blocks se filtran por is_active=true para que registros pausados no afecten.
+      LOAD_STEP='servicios';
       return Promise.all([
         supaFetch('services?user_id=eq.'+link.user_id+'&is_active=eq.true&order=name'),
         supaFetch('business_hours?user_id=eq.'+link.user_id+'&order=day_of_week'),
@@ -1288,6 +1365,7 @@ function init() {
     });
   }).then(function(res){
     if(!res) return;
+    LOAD_STEP='horarios';
     S.services=res[0]||[]; S.hours=res[1]||[]; S.staffMembers=res[2]||[];
     S.timeBlocks = res[3] || [];
     S.bookingBlocks = res[4] || [];
@@ -1308,10 +1386,18 @@ function init() {
         .catch(function(){ return loadSlots(); });
     }
     return loadSlots();
-  }).then(function(){renderFull();})
+  }).then(function(){
+    LOAD_STEP='pantalla';
+    renderFull();
+    loaded=true;
+    LOAD_STEP='listo';
+    track('load_ok');
+  })
   .catch(function(e){
-    if(e==='not found') return;
+    loaded=true;
+    if(e==='not found'){ track('load_error',{step:'no_encontrado',error:slug}); return; }
     console.error('[VYLTA]',e);
+    track('load_error',{step:LOAD_STEP,error:(e&&(e.name+': '+e.message))||String(e),attempts:e&&e.attempts});
     renderError('No pudimos cargar la p&#xE1;gina','Revisa tu conexi&#xF3;n a internet e int&#xE9;ntalo de nuevo. Si el problema sigue, escr&#xED;bele al negocio para agendar.', true);
   });
 }
