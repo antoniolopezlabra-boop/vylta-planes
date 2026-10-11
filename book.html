@@ -91,6 +91,20 @@
     .submit-btn:hover:not(:disabled) { opacity: 0.9; }
     .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .submit-btn.loading { opacity: 0.8; }
+    /* Reagendar cita (Oct 2026) */
+    .resched-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; background: #fff; border: 1.5px solid #6366F1; color: #6366F1; font-size: 13px; font-weight: 700; padding: 8px 16px; border-radius: 20px; cursor: pointer; }
+    .resched-back { background: none; border: none; color: #64748B; font-size: 13px; font-weight: 600; cursor: pointer; padding: 4px 0 12px; }
+    .resched-intro { font-size: 13.5px; color: #64748B; line-height: 1.6; margin: -4px 0 12px; }
+    .resched-msg { font-size: 13.5px; line-height: 1.55; border-radius: 12px; padding: 12px 14px; margin-top: 12px; }
+    .resched-msg.err { background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; }
+    .resched-msg.info { background: #EEF2FF; color: #3730A3; border: 1px solid #C7D2FE; }
+    .resched-appt { padding: 16px; border-bottom: 1px solid #F1F5F9; }
+    .resched-appt:last-child { border-bottom: none; }
+    .resched-appt-svc { font-size: 15px; font-weight: 700; color: #0F172A; }
+    .resched-appt-when { font-size: 14px; color: #334155; margin-top: 4px; }
+    .resched-appt-who { font-size: 12.5px; color: #94A3B8; margin-top: 2px; }
+    .resched-appt .submit-btn { margin-top: 12px; padding: 13px; font-size: 14px; background: #6366F1; }
+    .resched-current { background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 12px; padding: 12px 14px; font-size: 13.5px; color: #475569; margin-bottom: 14px; line-height: 1.5; }
     .success-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 32px; text-align: center; gap: 16px; }
     .success-icon { width: 80px; height: 80px; border-radius: 50%; background: #ECFDF5; display: flex; align-items: center; justify-content: center; font-size: 36px; }
     .success-title { font-size: 24px; font-weight: 800; color: #0F172A; }
@@ -237,7 +251,9 @@ var S = {
   selectedStaff: undefined,
   takenSlots: [], loadingSlots: false,
   name: '', phone: '', notes: '',
-  submitting: false, submitted: false, submitLocked: false
+  submitting: false, submitted: false, submitLocked: false,
+  // Reagendar (Oct 2026): null = flujo normal de reserva. Ver startResched().
+  resched: null
 };
 
 // ── Utilidades ────────────────────────────────────────────────
@@ -459,9 +475,10 @@ function loadStaffHours(id) {
 }
 function loadSlots() {
   S.loadingSlots=true;
-  var q='appointments?user_id=eq.'+S.biz.userId+'&date=eq.'+toDateStr(S.selectedDate)+'&status=not.in.(Cancelada,No%20asisti%C3%B3,Rechazada)&select=start_time,end_time,staff_id';
+  var q='appointments?user_id=eq.'+S.biz.userId+'&date=eq.'+toDateStr(S.selectedDate)+'&status=not.in.(Cancelada,No%20asisti%C3%B3,Rechazada)&select=id,start_time,end_time,staff_id';
   if(S.selectedStaff&&S.selectedStaff.id) q+='&staff_id=eq.'+S.selectedStaff.id;
-  return supaFetch(q).then(function(a){S.takenSlots=a||[];S.loadingSlots=false;}).catch(function(){S.takenSlots=[];S.loadingSlots=false;});
+  var ownId=(S.resched&&S.resched.appt)?S.resched.appt.id:null;
+  return supaFetch(q).then(function(a){S.takenSlots=(a||[]).filter(function(x){return x.id!==ownId;});S.loadingSlots=false;}).catch(function(){S.takenSlots=[];S.loadingSlots=false;});
 }
 
 // Construye los slots disponibles aplicando:
@@ -622,7 +639,18 @@ function buildBlocks() {
 }
 
 // ── Render completo (primera vez) ───────────────────────────────────────────
+function bizHeaderHtml(extra) {
+  var biz=S.biz, bizInit=getInitials(biz.business_name);
+  var logoHtml=biz.logo_url?'<img src="'+biz.logo_url+'" alt="" id="biz-logo-img" onerror="this.parentNode.textContent=\''+bizInit+'\'" />':bizInit;
+  var h='<div class="biz-header"><div class="biz-logo" id="biz-logo-wrap">'+logoHtml+'</div>';
+  h+='<div class="biz-name">'+(biz.business_name||'Negocio')+'</div>';
+  h+=(biz.business_type?'<div class="biz-type">'+biz.business_type+'</div>':'');
+  h+='<div class="biz-badge"><div class="biz-badge-dot"></div>Acepta citas en l&#xED;nea</div>';
+  return h+(extra||'')+'</div>';
+}
+
 function renderFull() {
+  if(S.resched){renderResched();return;}
   if(S.submitted){renderSuccess();return;}
   var biz=S.biz;
   var bizInit=getInitials(biz.business_name);
@@ -632,13 +660,9 @@ function renderFull() {
   var stepStaff=hasStaff?stepNum++:null;
   var stepDate=stepNum++;
   var stepInfo=stepNum++;
-  var logoHtml=biz.logo_url?'<img src="'+biz.logo_url+'" alt="" id="biz-logo-img" />':bizInit;
 
   var html='<div id="vylta-container" class="container">';
-  html+='<div class="biz-header"><div class="biz-logo" id="biz-logo-wrap">'+logoHtml+'</div>';
-  html+='<div class="biz-name">'+(biz.business_name||'Negocio')+'</div>';
-  html+=(biz.business_type?'<div class="biz-type">'+biz.business_type+'</div>':'');
-  html+='<div class="biz-badge"><div class="biz-badge-dot"></div>Acepta citas en l&#xED;nea</div></div>';
+  html+=bizHeaderHtml('<button class="resched-link" onclick="startResched()">&#x1F504; &#xBF;Ya tienes cita? Reag&#xE9;ndala aqu&#xED;</button>');
   html+='<div id="sect-svc"></div>';
   html+='<div id="sect-staff"></div>';
   html+='<div id="sect-date"></div>';
@@ -691,6 +715,7 @@ function renderFull() {
 }
 
 function renderSections() {
+  if(S.resched){ renderDateSection(); renderSummary(); reschedBtnRefresh(); return; }
   renderSvcSection();
   renderStaffSection();
   renderDateSection();
@@ -767,7 +792,7 @@ function renderDateSection() {
   var blockMode = S.bookingMode === 'bloques';
   var slots = blockMode ? null : buildSlots();
   var blocks = blockMode ? buildBlocks() : null;
-  var title='<span class="step-badge'+(s3?' done':'')+'">'+stepDate+'</span>Elige fecha y hora';
+  var title='<span class="step-badge'+(s3?' done':'')+'">'+(S.resched?2:stepDate)+'</span>'+(S.resched?'Elige tu nuevo horario':'Elige fecha y hora');
   if(S.selectedStaff&&S.selectedStaff.name) title+='&nbsp;<span style="font-size:11px;color:#94A3B8;font-weight:500;text-transform:none;letter-spacing:0">con '+S.selectedStaff.name+'</span>';
   var html='<div class="section-title">'+title+'</div>';
   html+='<div class="card"><div class="date-nav">';
@@ -823,7 +848,7 @@ function renderSummary() {
   html+='<div class="summary-row"><span class="summary-key">Hora</span><span class="summary-val">'+S.selectedSlot+' &mdash; '+endLbl+'</span></div>';
   html+='<div class="summary-row"><span class="summary-key">Total</span><span class="summary-price">$'+svcTotalCost().toLocaleString('es-MX')+' MXN</span></div>';
   html+='</div>';
-  html+=prepayNoteHtml();
+  if(!S.resched) html+=prepayNoteHtml();
   el.innerHTML=html;
 }
 
@@ -1206,6 +1231,185 @@ function renderError(title,desc,retry) {
   app.innerHTML=h;
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// REAGENDAR CITA (Oct 2026)
+//
+// Antes el cliente solo podia reagendar desde el boton del recordatorio de
+// WhatsApp. Ahora, desde este mismo link:
+//   1. find   -> telefono + nombre con los que reservo
+//   2. choose -> sus citas proximas en este negocio; confirma cual mover
+//   3. pick   -> elige el nuevo horario (misma duracion y colaborador)
+//   4. done   -> la cita original queda cancelada y se crea la nueva
+// Toda la validacion vive en la edge function reschedule-booking (identidad,
+// minimo 100 min de anticipacion, horario libre). Aqui solo es la interfaz.
+// Tambien se abre directo con ?reagendar=1 en el link.
+// ══════════════════════════════════════════════════════════════════════════
+function startResched() {
+  saveInputs();
+  S.resched={step:'find', phone:S.phone||'', name:S.name||'', list:[], appt:null, busy:false, msg:null};
+  renderResched();
+  window.scrollTo(0,0);
+}
+function exitResched() {
+  S.resched=null;
+  S.selectedServices=[]; S.selectedSlot=null; S.selectedBlockEnd=null;
+  S.selectedStaff=S.staffMembers.length>0?undefined:S.selectedStaff;
+  S.selectedDate=nextOpenDay(new Date());
+  renderFull();
+  loadSlots().then(renderSections);
+  window.scrollTo(0,0);
+}
+function reschedCall(payload) {
+  var R=S.resched;
+  payload.slug=getSlug(); payload.phone=R.phone; payload.name=R.name;
+  return fetch(api()+'/functions/v1/reschedule-booking',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY},
+    body:JSON.stringify(payload)
+  }).then(function(r){return r.json().catch(function(){return {};}).then(function(d){
+    if(!r.ok){ var e=new Error(d.error||('Error '+r.status)); e.code=d.code; throw e; }
+    return d;
+  });});
+}
+function reschedMsgHtml() {
+  var m=S.resched.msg;
+  return m?'<div class="resched-msg '+(m.type||'err')+'">'+esc(m.text)+'</div>':'';
+}
+function renderResched() {
+  var R=S.resched;
+  if(R.step==='done'){ renderReschedDone(); return; }
+  var html='<div id="vylta-container" class="container">';
+  html+=bizHeaderHtml('');
+  html+='<button class="resched-back" onclick="exitResched()">&#x2190; Agendar una cita nueva</button>';
+
+  if(R.step==='find'){
+    html+='<div class="section-title"><span class="step-badge">1</span>Reagendar mi cita</div>';
+    html+='<div class="resched-intro">Escribe el tel&#xE9;fono y el nombre con los que reservaste para encontrar tu cita.</div>';
+    html+='<div class="card"><div class="form-body">';
+    html+='<div class="form-field"><label>Tu WhatsApp / tel&#xE9;fono *</label><input id="rs-phone" type="tel" placeholder="Ej: 442 123 4567" autocomplete="tel" value="'+esc(R.phone)+'" /></div>';
+    html+='<div class="form-field"><label>Tu nombre *</label><input id="rs-name" type="text" placeholder="Ej: Mar&#xED;a L&#xF3;pez" autocomplete="name" value="'+esc(R.name)+'" /></div>';
+    html+='</div></div>';
+    html+=reschedMsgHtml();
+    html+='<button id="resched-btn" class="submit-btn" style="margin-top:16px" onclick="reschedFind()">'+(R.busy?'Buscando&#x2026;':'Buscar mi cita &#x2192;')+'</button>';
+  }
+
+  if(R.step==='choose'){
+    html+='<div class="section-title"><span class="step-badge done">1</span>&#xBF;Es esta la cita que quieres reagendar?</div>';
+    html+='<div class="card">';
+    R.list.forEach(function(a){
+      html+='<div class="resched-appt">';
+      html+='<div class="resched-appt-svc">'+esc(a.serviceName)+'</div>';
+      html+='<div class="resched-appt-when">&#x1F4C5; '+esc(cap(a.dateLabel))+' &middot; '+esc(a.startTime)+' &ndash; '+esc(a.endTime)+'</div>';
+      if(a.staffName) html+='<div class="resched-appt-who">Con '+esc(a.staffName)+'</div>';
+      if(a.canReschedule){
+        html+='<button class="submit-btn" onclick="reschedChoose(&quot;'+a.id+'&quot;)">S&#xED;, reagendar esta cita</button>';
+      } else {
+        html+='<div class="resched-msg info">Faltan menos de '+S.resched.minLead+' minutos para esta cita, ya no se puede reagendar en l&#xED;nea.'+(S.biz.phone?' Comun&#xED;cate con el negocio: <strong>'+esc(S.biz.phone)+'</strong>':' Comun&#xED;cate directamente con el negocio.')+'</div>';
+      }
+      html+='</div>';
+    });
+    html+='</div>';
+    html+=reschedMsgHtml();
+  }
+
+  if(R.step==='pick'){
+    var a=R.appt;
+    html+='<div class="resched-current">Tu cita actual: <strong>'+esc(a.serviceName)+'</strong><br>'+esc(cap(a.dateLabel))+' &middot; '+esc(a.startTime)+' &ndash; '+esc(a.endTime)+(a.staffName?' &middot; con '+esc(a.staffName):'')+'</div>';
+    html+='<div id="sect-date"></div>';
+    html+='<div id="sect-summary"></div>';
+    html+=reschedMsgHtml();
+    html+='<button id="resched-btn" class="submit-btn" style="margin-top:16px" disabled onclick="reschedConfirm()">'+(R.busy?'Reagendando&#x2026;':'Confirmar nuevo horario &#x2192;')+'</button>';
+    html+='<div style="font-size:12px;color:#94A3B8;text-align:center;margin-top:10px;line-height:1.5">Al confirmar, tu cita actual se cancela y se aparta el nuevo horario.</div>';
+  }
+
+  html+='<div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div>';
+  html+='</div>';
+  app.innerHTML=html;
+
+  var ph=document.getElementById('rs-phone'), nm=document.getElementById('rs-name');
+  if(ph) ph.addEventListener('input',function(){R.phone=this.value;});
+  if(nm) nm.addEventListener('input',function(){R.name=this.value;});
+  if(R.step==='pick') renderSections();
+}
+function cap(s){ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); }
+function reschedBtnRefresh() {
+  var b=document.getElementById('resched-btn'); if(!b||!S.resched) return;
+  if(S.resched.step==='pick') b.disabled=!S.selectedSlot||S.resched.busy;
+}
+function reschedFind() {
+  var R=S.resched; if(R.busy) return;
+  if(!validPhone(R.phone)){ R.msg={text:'Escribe un tel\u00e9fono v\u00e1lido (10 d\u00edgitos).'}; renderResched(); return; }
+  if(!validName(R.name)){ R.msg={text:'Escribe tu nombre como lo diste al reservar.'}; renderResched(); return; }
+  R.busy=true; R.msg=null; renderResched();
+  reschedCall({action:'lookup'}).then(function(d){
+    R.busy=false;
+    if(!d.found){ R.msg={text:d.message}; renderResched(); return; }
+    R.list=d.appointments||[]; R.minLead=d.minLeadMinutes||100; R.step='choose';
+    renderResched();
+  }).catch(function(e){
+    R.busy=false; R.msg={text:e.message||'No pudimos buscar tu cita. Intenta de nuevo.'}; renderResched();
+  });
+}
+function reschedChoose(id) {
+  var R=S.resched;
+  var a=R.list.find(function(x){return x.id===id;}); if(!a) return;
+  R.appt=a; R.step='pick'; R.msg=null;
+  // Misma duracion y mismo colaborador que la cita original.
+  S.selectedServices=[{id:'resched',name:a.serviceName,duration_minutes:a.durationMinutes,price:a.serviceCost}];
+  S.selectedSlot=null; S.selectedBlockEnd=null;
+  var m=a.staffId?S.staffMembers.find(function(x){return x.id===a.staffId;}):null;
+  var ready=(m&&!m.hours)?loadStaffHours(m.id).then(function(h){m.hours=h;}):Promise.resolve();
+  S.loadingSlots=true;
+  ready.then(function(){
+    S.selectedStaff=m||null;
+    S.selectedDate=nextOpenDay(new Date());
+    renderResched();
+    return loadSlots();
+  }).then(function(){ if(S.resched) renderSections(); });
+  window.scrollTo(0,0);
+}
+function reschedConfirm() {
+  var R=S.resched; if(R.busy||!S.selectedSlot) return;
+  R.busy=true; R.msg=null; reschedBtnRefresh();
+  var b=document.getElementById('resched-btn'); if(b){ b.disabled=true; b.innerHTML='Reagendando&#x2026;'; }
+  reschedCall({action:'reschedule', appointmentId:R.appt.id, date:toDateStr(S.selectedDate), startTime:S.selectedSlot, endTime:S.selectedBlockEnd||null})
+  .then(function(d){
+    R.busy=false; R.result=d; R.step='done';
+    track('rescheduled');
+    renderResched(); window.scrollTo(0,0);
+  }).catch(function(e){
+    R.busy=false;
+    track('resched_error',{error:(e.code||'')+' '+e.message});
+    R.msg={text:e.message||'No pudimos reagendar. Intenta de nuevo.'};
+    if(e.code==='NOT_FOUND'||e.code==='TOO_LATE'||e.code==='ALREADY_CHANGED'){ R.step='find'; renderResched(); return; }
+    S.selectedSlot=null; S.selectedBlockEnd=null; S.loadingSlots=true;
+    renderResched();
+    loadSlots().then(function(){ if(S.resched) renderSections(); });
+  });
+}
+function renderReschedDone() {
+  var R=S.resched, d=R.result||{}, a=R.appt;
+  var pending=d.status==='Solicitud';
+  var html='<div class="success-screen">';
+  html+='<div class="success-icon">&#x1F504;</div>';
+  html+='<div class="success-title">'+(pending?'&#xA1;Solicitud enviada!':'&#xA1;Cita reagendada!')+'</div>';
+  html+='<div class="success-desc">'+(pending
+    ? 'Tu nuevo horario con <strong>'+esc(S.biz.business_name)+'</strong> queda pendiente de que el negocio lo apruebe.'
+    : 'Tu cita con <strong>'+esc(S.biz.business_name)+'</strong> qued&#xF3; en el nuevo horario. &#xA1;Te esperamos!')+'</div>';
+  html+='<div class="success-card">';
+  html+='<div class="success-card-row"><span class="success-card-key">Servicio</span><span class="success-card-val">'+esc(a.serviceName)+'</span></div>';
+  if(a.staffName) html+='<div class="success-card-row"><span class="success-card-key">Con</span><span class="success-card-val">'+esc(a.staffName)+'</span></div>';
+  html+='<div class="success-card-row"><span class="success-card-key">Nueva fecha</span><span class="success-card-val">'+esc(cap(d.dateLabel))+'</span></div>';
+  html+='<div class="success-card-row"><span class="success-card-key">Nueva hora</span><span class="success-card-val">'+esc(d.startTime)+' &mdash; '+esc(d.endTime)+'</span></div>';
+  html+='<div class="success-card-row" style="color:#94A3B8"><span class="success-card-key">Cita anterior</span><span class="success-card-val" style="text-decoration:line-through;color:#94A3B8">'+esc(cap(a.dateLabel))+' '+esc(a.startTime)+'</span></div>';
+  html+='</div>';
+  html+='<div style="font-size:12.5px;color:#64748B;max-width:360px;line-height:1.6">Tu cita anterior qued&#xF3; cancelada. Recibir&#xE1;s la confirmaci&#xF3;n del nuevo horario por WhatsApp.</div>';
+  if(S.biz.phone) html+='<div class="whatsapp-hint">&#x1F4F1; Guarda el n&#xFA;mero: <strong>'+esc(S.biz.phone)+'</strong></div>';
+  html+='<div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div>';
+  html+='</div>';
+  app.innerHTML=html;
+}
+
 function renderSuccess() {
   var staff=S.selectedStaff, slot=S.selectedSlot, date=S.selectedDate;
   var endLbl = S.selectedBlockEnd || endT(slot, svcTotalDur());
@@ -1388,6 +1592,7 @@ function init() {
     return loadSlots();
   }).then(function(){
     LOAD_STEP='pantalla';
+    if(new URLSearchParams(window.location.search).get('reagendar')==='1') S.resched={step:'find',phone:'',name:'',list:[],appt:null,busy:false,msg:null};
     renderFull();
     loaded=true;
     LOAD_STEP='listo';
