@@ -17,6 +17,11 @@
     .spinner { width: 36px; height: 36px; border: 3px solid #E2E8F0; border-top-color: #10B981; border-radius: 50%; animation: spin 0.7s linear infinite; }
     .loader-text { font-size: 14px; color: #94A3B8; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    /* Rescate sin JavaScript (Oct 2026): si a los 10 s sigue el loader, se
+       muestra el boton de recargar aunque el script no haya arrancado. */
+    .loader-help { opacity: 0; pointer-events: none; animation: vyShow 0s 10s forwards; text-align: center; font-size: 13px; color: #64748B; line-height: 1.6; padding: 0 24px; }
+    .loader-help a { display: inline-block; margin-top: 8px; background: #10B981; color: #fff; text-decoration: none; font-weight: 700; padding: 10px 20px; border-radius: 12px; }
+    @keyframes vyShow { to { opacity: 1; pointer-events: auto; } }
     .error-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 32px; text-align: center; gap: 12px; }
     .error-icon { font-size: 48px; }
     .error-title { font-size: 20px; font-weight: 700; color: #0F172A; }
@@ -174,7 +179,7 @@
   </style>
 </head>
 <body>
-<div id="app"><div class="loader"><div class="spinner"></div><span class="loader-text">Cargando...</span></div></div>
+<div id="app"><div class="loader"><div class="spinner"></div><span class="loader-text">Cargando...</span><div class="loader-help">&#xBF;No carga la p&#xE1;gina?<br><a href="" onclick="location.reload();return false;">Toca aqu&#xED; para recargar</a></div></div></div>
 <script>
 var SUPABASE_URL = 'https://nhjmwmkaduiaifgztymi.supabase.co';
 var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oam13bWthZHVpYWlmZ3p0eW1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1ODk3MTYsImV4cCI6MjA4ODE2NTcxNn0.p53BZPf6qygAYw29bIJ0bA5VwZ_lRxw-aocV8LuGB1c';
@@ -315,7 +320,8 @@ function supaRetry(path, attempt) {
 function getSlug() {
   var p = window.location.pathname.split('/').filter(Boolean).pop();
   var q = new URLSearchParams(window.location.search).get('n');
-  return (p && p !== 'book.html') ? p : (q || '');
+  // Los slugs siempre son minusculas: /Cris-Barber debe abrir /cris-barber.
+  return String((p && p !== 'book.html') ? p : (q || '')).toLowerCase();
 }
 function fmtDate(d) {
   var s = d.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
@@ -1518,10 +1524,42 @@ document.addEventListener('keydown', function(e){
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────
+// ── Verificacion de pantalla (Oct 2026) ──────────────────────────────────
+// Que los datos lleguen no garantiza que el cliente vea algo. Tras dibujar,
+// revisamos que haya contenido visible; si no, se registra ('blank') y se
+// muestra la pantalla de reintento en vez de dejarlo en blanco.
+function visibleCount() {
+  var els=document.querySelectorAll('.biz-name,.service-item,.section-title,.error-title,.success-title');
+  var n=0;
+  for(var i=0;i<els.length;i++){
+    var r=els[i].getBoundingClientRect(), cs=window.getComputedStyle(els[i]);
+    if(r.width>0&&r.height>0&&r.bottom>0&&r.top<window.innerHeight&&cs.visibility!=='hidden'&&parseFloat(cs.opacity)>0.05) n++;
+  }
+  return n;
+}
+function checkRendered(tag) {
+  setTimeout(function(){
+    if(document.visibilityState==='hidden') return; // pestaña en segundo plano: no se pinta
+    var n=visibleCount();
+    if(n>0) return;
+    var a=document.getElementById('app');
+    track('blank',{step:tag,error:'visibles=0 appH='+(a?a.offsetHeight:-1)+' scrollY='+Math.round(window.scrollY||0)+' vw='+window.innerWidth+'x'+window.innerHeight});
+    renderError('No pudimos mostrar la p&#xE1;gina','Toca reintentar. Si el problema sigue, escr&#xED;bele al negocio para agendar.', true);
+  },1500);
+}
+
 function init() {
   var slug=getSlug();
+  track('boot');
   if(!slug){renderError('Link inv&#xE1;lido','Este enlace no tiene un negocio asociado.');return;}
   var loaded=false;
+  // Vigilante: si en 30 s no termino ni con exito ni con error, se ofrece reintentar.
+  setTimeout(function(){
+    if(loaded) return;
+    loaded=true;
+    track('load_error',{step:'vigilante_'+LOAD_STEP,error:'sin respuesta en 30s'});
+    renderError('La p&#xE1;gina est&#xE1; tardando demasiado','Revisa tu conexi&#xF3;n e int&#xE9;ntalo de nuevo. Si el problema sigue, escr&#xED;bele al negocio para agendar.', true);
+  },30000);
   // Si tarda, se avisa al cliente para que no cierre pensando que no sirve.
   setTimeout(function(){
     if(loaded) return;
@@ -1593,12 +1631,18 @@ function init() {
   }).then(function(){
     LOAD_STEP='pantalla';
     if(new URLSearchParams(window.location.search).get('reagendar')==='1') S.resched={step:'find',phone:'',name:'',list:[],appt:null,busy:false,msg:null};
+    if(loaded) return; // el vigilante ya mostro el reintento
     renderFull();
     loaded=true;
     LOAD_STEP='listo';
     track('load_ok');
+    checkRendered('carga');
+    // Copia local de la pagina para que los clientes que regresan la abran
+    // aunque su red o GitHub fallen en ese momento (ver sw.js).
+    try { if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(function(){}); } catch(e) {}
   })
   .catch(function(e){
+    if(loaded) return; // el vigilante ya mostro el reintento
     loaded=true;
     if(e==='not found'){ track('load_error',{step:'no_encontrado',error:slug}); return; }
     console.error('[VYLTA]',e);
