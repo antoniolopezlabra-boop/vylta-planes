@@ -645,13 +645,13 @@ function buildBlocks() {
 }
 
 // ── Render completo (primera vez) ───────────────────────────────────────────
-function bizHeaderHtml(extra) {
+function bizHeaderHtml(extra, hideBadge) {
   var biz=S.biz, bizInit=getInitials(biz.business_name);
   var logoHtml=biz.logo_url?'<img src="'+biz.logo_url+'" alt="" id="biz-logo-img" onerror="this.parentNode.textContent=\''+bizInit+'\'" />':bizInit;
   var h='<div class="biz-header"><div class="biz-logo" id="biz-logo-wrap">'+logoHtml+'</div>';
   h+='<div class="biz-name">'+(biz.business_name||'Negocio')+'</div>';
   h+=(biz.business_type?'<div class="biz-type">'+biz.business_type+'</div>':'');
-  h+='<div class="biz-badge"><div class="biz-badge-dot"></div>Acepta citas en l&#xED;nea</div>';
+  if(!hideBadge) h+='<div class="biz-badge"><div class="biz-badge-dot"></div>Acepta citas en l&#xED;nea</div>';
   return h+(extra||'')+'</div>';
 }
 
@@ -1227,6 +1227,31 @@ function cancelPayment() {
   renderFull();
 }
 
+// Agenda en linea no disponible para este negocio (public_booking_available).
+// Mensaje neutral a proposito: el cliente no necesita saber la causa, solo
+// que debe avisar al negocio y agendar directo con el. El boton de WhatsApp
+// le lleva el aviso al dueno con un mensaje ya escrito.
+function renderUnavailable() {
+  var biz=S.biz||{}, name=esc(biz.business_name||'el negocio');
+  var digits=String(biz.phone||'').replace(/\D/g,'');
+  if(digits.length>10) digits=digits.slice(-10);
+  var html='<div id="vylta-container" class="container">';
+  html+=bizHeaderHtml('', true);
+  html+='<div class="card" style="padding:28px 22px;text-align:center">';
+  html+='<div style="font-size:40px;margin-bottom:10px">&#x1F6E0;&#xFE0F;</div>';
+  html+='<div style="font-size:19px;font-weight:800;color:#0F172A;margin-bottom:10px">Agenda en l&#xED;nea no disponible</div>';
+  html+='<div style="font-size:14.5px;color:#64748B;line-height:1.65">Por el momento esta p&#xE1;gina no est&#xE1; funcionando. Te pedimos avisarle a <strong>'+name+'</strong> para que lo revise; mientras tanto puedes agendar tu cita directamente con ellos.</div>';
+  if(digits.length===10){
+    var msg=encodeURIComponent('Hola, quise agendar una cita desde su p\u00e1gina en l\u00ednea pero no est\u00e1 funcionando. \u00bfMe pueden ayudar a agendar?');
+    html+='<a class="submit-btn" style="display:block;text-decoration:none;margin-top:20px;background:#25D366" href="https://wa.me/52'+digits+'?text='+msg+'">Avisar al negocio por WhatsApp</a>';
+    html+='<a href="tel:'+digits+'" style="display:block;margin-top:12px;color:#64748B;font-size:14px;font-weight:600;text-decoration:none">o ll&#xE1;males al '+esc(biz.phone)+'</a>';
+  }
+  html+='</div>';
+  html+='<div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div>';
+  html+='</div>';
+  app.innerHTML=html;
+}
+
 function renderError(title,desc,retry) {
   var h='<div class="error-screen"><div class="error-icon">'+(retry?'&#x1F4F6;':'&#x1F50D;')+'</div>';
   h+='<div class="error-title">'+title+'</div><div class="error-desc">'+desc+'</div>';
@@ -1602,11 +1627,15 @@ function init() {
         supaFetch('staff_members?user_id=eq.'+link.user_id+'&is_active=eq.true&order=sort_order&select=id,name,role,color'),
         supaFetch('time_blocks?user_id=eq.'+link.user_id+'&is_active=eq.true&select=id,staff_id,label,start_time,end_time,is_recurring,day_of_week,specific_date,is_active').catch(function(){return [];}),
         supaFetch('booking_blocks?user_id=eq.'+link.user_id+'&is_active=eq.true&select=id,day_of_week,start_time,end_time,is_active&order=sort_order').catch(function(){return [];}),
-        supaFetch('rpc/public_business_can_multiservice?p_user_id='+link.user_id).catch(function(){return false;})
+        supaFetch('rpc/public_business_can_multiservice?p_user_id='+link.user_id).catch(function(){return false;}),
+        // ¿El negocio puede recibir citas en linea? Si la consulta falla se
+        // deja pasar: el servidor vuelve a validar al confirmar la cita.
+        supaFetch('rpc/public_booking_available?p_slug='+encodeURIComponent(slug)).catch(function(){return true;})
       ]);
     });
   }).then(function(res){
     if(!res) return;
+    if(res[6]===false) throw 'unavailable';
     LOAD_STEP='horarios';
     S.services=res[0]||[]; S.hours=res[1]||[]; S.staffMembers=res[2]||[];
     S.timeBlocks = res[3] || [];
@@ -1645,6 +1674,7 @@ function init() {
     if(loaded) return; // el vigilante ya mostro el reintento
     loaded=true;
     if(e==='not found'){ track('load_error',{step:'no_encontrado',error:slug}); return; }
+    if(e==='unavailable'){ renderUnavailable(); track('unavailable'); return; }
     console.error('[VYLTA]',e);
     track('load_error',{step:LOAD_STEP,error:(e&&(e.name+': '+e.message))||String(e),attempts:e&&e.attempts});
     renderError('No pudimos cargar la p&#xE1;gina','Revisa tu conexi&#xF3;n a internet e int&#xE9;ntalo de nuevo. Si el problema sigue, escr&#xED;bele al negocio para agendar.', true);
