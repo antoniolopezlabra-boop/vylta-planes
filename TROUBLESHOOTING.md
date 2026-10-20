@@ -118,3 +118,22 @@ Reemplazar SLUG con el slug del negocio (ej: `marchitas`, `karen-nails-star-hear
 | Fecha | Causa | Solución |
 |-------|-------|--------|
 | 2026-04-11 | Namecheap suspendió vylta.lat por WHOIS no verificado — Cloudflare perdió control del DNS | Verificar email WHOIS en Namecheap → dominio reactivado → re-verificar en GitHub |
+
+## 20 oct 2026 — Mudanza a Cloudflare Pages (causa raíz de "no abre")
+
+**Diagnóstico:** los clientes que reportaban "no abre / se tarda" no generaban NINGUNA
+petición a Supabase ni el evento `boot` de telemetría (p. ej. 20-oct 8:46 y 8:54), mientras
+Supabase atendía a otros negocios sin errores. La falla estaba antes de nuestro código:
+la descarga del HTML desde GitHub Pages (sin SLA, servidores fuera de México, 6 incidentes
+oficiales ago–oct 2026). Por eso los arreglos dentro de book.html no lo resolvían.
+
+**Cambio:** `book.vylta.lat` (proyecto `vylta-planes`) y `vylta.lat` + `www` (proyecto
+`vylta-web`) se sirven desde **Cloudflare Pages** (POPs en México), desplegados en cada push
+a `main`. Mismas URLs. `www` → `vylta.lat` con Redirect Rule (301, conserva query).
+Cloudflare quita `.html` (308): `getSlug()` ignora `book` además de `book.html`.
+
+**Volver a GitHub Pages (emergencia):** Cloudflare → vylta.lat → DNS: `book` CNAME
+`antoniolopezlabra-boop.github.io` (DNS only); apex: 4 A 185.199.108-111.153. GitHub Pages
+sigue publicando ambos repos como respaldo.
+
+**Al activar un dominio en Pages hay ~1 min de error 522** mientras se emite el certificado.
