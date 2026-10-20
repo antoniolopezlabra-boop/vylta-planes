@@ -321,7 +321,8 @@ function getSlug() {
   var p = window.location.pathname.split('/').filter(Boolean).pop();
   var q = new URLSearchParams(window.location.search).get('n');
   // Los slugs siempre son minusculas: /Cris-Barber debe abrir /cris-barber.
-  return String((p && p !== 'book.html') ? p : (q || '')).toLowerCase();
+  // /book.html y /book (Cloudflare quita el .html) no son negocios: se usa ?n=.
+  return String((p && p !== 'book.html' && p !== 'book') ? p : (q || '')).toLowerCase();
 }
 function fmtDate(d) {
   var s = d.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
