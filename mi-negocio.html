@@ -121,6 +121,9 @@
     .success-card-val { font-weight: 600; color: #0F172A; }
 
     /* ── Tarjeta de lealtad (Ago 2026) ── */
+    .loy-terms { margin-top: 12px; border-top: 1px dashed #FCD34D; padding-top: 10px; font-size: 12.5px; color: #78350F; }
+    .loy-terms summary { cursor: pointer; font-weight: 700; list-style: revert; }
+    .loy-terms-body { margin-top: 8px; line-height: 1.55; color: #92400E; white-space: normal; word-break: break-word; }
     .loy-card { width: 100%; max-width: 360px; background: linear-gradient(135deg,#FFFBEB 0%,#FEF3C7 100%); border: 1px solid #FDE68A; border-radius: 16px; padding: 18px; text-align: left; }
     .loy-card.win { background: linear-gradient(135deg,#F59E0B 0%,#D97706 100%); border-color: #B45309; }
     .loy-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
@@ -1530,6 +1533,11 @@ function loadLoyaltyCard() {
       h+='</div>';
       h+='<div class="loy-dots">'+dots+'</div>';
       h+='<div class="loy-msg">'+msg+'</div>';
+      // Términos y condiciones que el negocio escribe en la app (opcional)
+      if(p.terms){
+        h+='<details class="loy-terms" open><summary>T&#xE9;rminos y condiciones</summary>';
+        h+='<div class="loy-terms-body">'+esc(p.terms).replace(/\n/g,'<br>')+'</div></details>';
+      }
       h+='</div>';
       slot.innerHTML=h;
     })
