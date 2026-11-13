@@ -647,7 +647,7 @@ function buildBlocks() {
         if (!staffCoversBlock(S.selectedStaff, bStart, bEnd)) return;
       } else {
         // "Sin preferencia": basta con que un colaborador activo lo cubra.
-        var anyone = S.staffMembers.some(function(m){ return staffCoversBlock(m, bStart, bEnd); });
+        var anyone = eligibleStaff().some(function(m){ return staffCoversBlock(m, bStart, bEnd); });
         if (!anyone) return;
       }
     } else {
@@ -865,14 +865,34 @@ function renderSvcSection() {
   el.innerHTML=html;
 }
 
+// ── Servicios por colaborador (nov 2026) ──────────────────────────────
+// Un colaborador con serves_all_services=false solo aparece si realiza TODOS
+// los servicios elegidos. Sin servicio elegido, se muestran todos.
+function staffCanDo(m){
+  if(!m) return true;
+  if(m.serves_all_services!==false) return true;
+  var sk=m.skills||{};
+  return S.selectedServices.every(function(sv){ return !!sk[sv.id]; });
+}
+function eligibleStaff(){ return S.staffMembers.filter(staffCanDo); }
+
 function renderStaffSection() {
   var el=document.getElementById('sect-staff'); if(!el) return;
   if(!S.staffMembers.length){el.innerHTML='';return;}
   var staffSel=S.selectedStaff!==undefined;
   var stepNum=2;
   var html='<div class="section-title"><span class="step-badge'+(staffSel?' done':'')+'">'+stepNum+'</span>&#xBF;Con qui&#xE9;n?</div>';
-  html+='<div class="card"><div class="staff-grid">';
-  S.staffMembers.forEach(function(m){
+  var elig=eligibleStaff();
+  html+='<div class="card">';
+  if(S.selectedServices.length && elig.length<S.staffMembers.length){
+    html+='<div style="padding:10px 14px 0;font-size:12px;color:#64748B">'+(elig.length
+      ? 'Mostramos solo a quien realiza '+(S.selectedServices.length>1?'estos servicios':'este servicio')+'.'
+      : (S.selectedServices.length>1
+          ? 'Nadie realiza todos estos servicios juntos. Elige &laquo;Sin preferencia&raquo; o agenda cada servicio por separado.'
+          : 'Elige &laquo;Sin preferencia&raquo; y el negocio te asigna a alguien.'))+'</div>';
+  }
+  html+='<div class="staff-grid">';
+  elig.forEach(function(m){
     var sel=S.selectedStaff&&S.selectedStaff.id===m.id;
     var bg=hexRgba(m.color,0.1);
     html+='<div class="staff-card'+(sel?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(sel?'true':'false')+'" onclick="selectStaff(&quot;'+m.id+'&quot;)" style="'+(sel?'border-color:'+m.color+';background:'+bg+';':'')+'">'
@@ -992,6 +1012,8 @@ function selectSvc(id) {
   else { S.selectedServices=[svc]; }
   var grouped=svcGroupsActive();
   if(grouped && added) S.openGroup=null;
+  // Si el colaborador elegido no realiza la nueva seleccion, se vuelve a elegir.
+  if(S.selectedStaff && !staffCanDo(S.selectedStaff)) S.selectedStaff=undefined;
   S.selectedSlot=null;
   S.selectedBlockEnd=null;
   S.loadingSlots=true;
@@ -1736,7 +1758,7 @@ function init() {
       return Promise.all([
         supaFetch('services?user_id=eq.'+link.user_id+'&is_active=eq.true&order=name'),
         supaFetch('business_hours?user_id=eq.'+link.user_id+'&order=day_of_week'),
-        supaFetch('staff_members?user_id=eq.'+link.user_id+'&is_active=eq.true&order=sort_order&select=id,name,role,color'),
+        supaFetch('staff_members?user_id=eq.'+link.user_id+'&is_active=eq.true&order=sort_order&select=id,name,role,color,serves_all_services'),
         supaFetch('time_blocks?user_id=eq.'+link.user_id+'&is_active=eq.true&select=id,staff_id,label,start_time,end_time,is_recurring,day_of_week,specific_date,is_active').catch(function(){return [];}),
         supaFetch('booking_blocks?user_id=eq.'+link.user_id+'&is_active=eq.true&select=id,day_of_week,start_time,end_time,is_active&order=sort_order').catch(function(){return [];}),
         supaFetch('rpc/public_business_can_multiservice?p_user_id='+link.user_id).catch(function(){return false;}),
@@ -1744,7 +1766,9 @@ function init() {
         // deja pasar: el servidor vuelve a validar al confirmar la cita.
         supaFetch('rpc/public_booking_available?p_slug='+encodeURIComponent(slug)).catch(function(){return true;}),
         // Grupos de servicios (opcional): si falla, se muestra la lista plana.
-        supaFetch('service_groups?user_id=eq.'+link.user_id+'&select=id,name,sort_order&order=sort_order,name').catch(function(){return [];})
+        supaFetch('service_groups?user_id=eq.'+link.user_id+'&select=id,name,sort_order&order=sort_order,name').catch(function(){return [];}),
+        // Servicios por colaborador (quien sabe hacer que). Si falla, todos atienden todo.
+        supaFetch('staff_services?user_id=eq.'+link.user_id+'&select=staff_id,service_id').catch(function(){return [];})
       ]);
     });
   }).then(function(res){
@@ -1756,6 +1780,11 @@ function init() {
     S.bookingBlocks = res[4] || [];
     S.allowMulti = res[5] === true;
     S.groups = Array.isArray(res[7]) ? res[7] : [];
+    var skillRows = Array.isArray(res[8]) ? res[8] : [];
+    S.staffMembers.forEach(function(m){
+      m.skills = {};
+      skillRows.forEach(function(r){ if(r.staff_id===m.id) m.skills[r.service_id]=1; });
+    });
     if(S.staffMembers.length>0) S.selectedStaff=undefined;
     S.selectedDate=nextOpenDay(new Date());
     // En modo bloques con colaboradores, precargamos staff_hours de TODOS para
