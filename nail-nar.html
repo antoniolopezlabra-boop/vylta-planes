@@ -48,6 +48,21 @@
     .service-name { font-size: 15px; font-weight: 600; color: #0F172A; }
     .service-meta { font-size: 12px; color: #94A3B8; margin-top: 2px; }
     .service-price { font-size: 16px; font-weight: 800; color: #10B981; }
+    /* Grupos de servicios (nov 2026): acordeon, un grupo abierto a la vez */
+    .svc-group { display: flex; align-items: center; gap: 12px; padding: 15px 16px; cursor: pointer; border-bottom: 1px solid #F1F5F9; transition: background 0.15s; }
+    .svc-group:hover { background: #F8FAFC; }
+    .svc-group.open { background: #F8FAFC; }
+    .svc-group:focus-visible { outline: 2px solid #10B981; outline-offset: -2px; }
+    .svc-group-name { flex: 1; min-width: 0; font-size: 15px; font-weight: 700; color: #0F172A; }
+    .svc-group-count { font-size: 12px; color: #94A3B8; font-weight: 500; margin-top: 2px; }
+    .svc-group-badge { font-size: 11px; font-weight: 800; color: #fff; background: #10B981; border-radius: 999px; padding: 2px 8px; flex-shrink: 0; }
+    .svc-group-chev { font-size: 14px; color: #94A3B8; flex-shrink: 0; transition: transform 0.2s; }
+    .svc-group.open .svc-group-chev { transform: rotate(90deg); color: #10B981; }
+    .svc-group-body { background: #FCFDFE; border-bottom: 1px solid #F1F5F9; }
+    .svc-group-body .service-item { padding-left: 24px; }
+    .svc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+    .svc-chip { display: inline-flex; align-items: center; gap: 6px; background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; font-size: 13px; font-weight: 600; border-radius: 999px; padding: 6px 6px 6px 12px; }
+    .svc-chip button { border: none; background: #D1FAE5; color: #065F46; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-size: 13px; line-height: 1; }
     .service-check { width: 22px; height: 22px; border-radius: 50%; background: #10B981; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; flex-shrink: 0; }
     .staff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; padding: 14px 16px; }
     .staff-card { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 12px; border-radius: 14px; border: 2px solid #F1F5F9; background: #fff; cursor: pointer; transition: all 0.15s; text-align: center; }
@@ -253,6 +268,8 @@ var S = {
   // Multi-servicio: lista de servicios elegidos (no uno solo). allowMulti se
   // resuelve por plan (Premium+) via RPC public_business_can_multiservice.
   selectedServices: [], allowMulti: false,
+  // Grupos de servicios: si el negocio los usa, se muestran como acordeon.
+  groups: [], openGroup: null,
   selectedDate: new Date(), selectedSlot: null,
   // En modo bloques guardamos tambien el fin del bloque (la cita ocupa todo el bloque).
   selectedBlockEnd: null,
@@ -735,15 +752,97 @@ function renderSections() {
   if(b){if(validName(S.name)&&validPhone(S.phone))b.classList.add('done');else b.classList.remove('done');}
 }
 
+// ── Grupos de servicios (nov 2026) ─────────────────────────────────────
+// Si el negocio agrupo sus servicios, el cliente ve primero los grupos; al
+// tocar uno se despliegan sus servicios (solo un grupo abierto a la vez).
+// Al elegir un servicio el grupo se cierra y bajamos al siguiente paso.
+function svcGroupsActive(){
+  if(!S.groups || !S.groups.length) return false;
+  var ids={}; S.groups.forEach(function(g){ids[g.id]=1;});
+  return S.services.some(function(s){return s.group_id && ids[s.group_id];});
+}
+function svcNorm(t){return String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();}
+// Dentro del grupo "Pestanas", "Pestanas-Clasicas" se muestra como "Clasicas".
+function svcShortName(name, groupName){
+  var n=String(name||''), g=String(groupName||'');
+  if(g && svcNorm(n).indexOf(svcNorm(g))===0){
+    var rest=n.slice(g.length).replace(/^[\s\-–—:\/.]+/,'');
+    if(rest.length>=2) return rest;
+  }
+  return n;
+}
+function svcGroupSections(){
+  var ids={}; S.groups.forEach(function(g){ids[g.id]=1;});
+  var out=S.groups.map(function(g){
+    return {id:g.id, name:g.name, items:S.services.filter(function(s){return s.group_id===g.id;})};
+  }).filter(function(x){return x.items.length>0;});
+  var rest=S.services.filter(function(s){return !s.group_id || !ids[s.group_id];});
+  if(rest.length) out.push({id:'__otros__', name:'Otros servicios', items:rest});
+  return out;
+}
+function renderSvcGroups(){
+  var html='';
+  svcGroupSections().forEach(function(sec){
+    var open=S.openGroup===sec.id;
+    var picked=sec.items.filter(function(s){return svcPicked(s.id);}).length;
+    html+='<div class="svc-group'+(open?' open':'')+'" id="svcg-'+sec.id+'" role="button" tabindex="0" aria-expanded="'+(open?'true':'false')+'" onclick="toggleSvcGroup(&quot;'+sec.id+'&quot;)">';
+    html+='<div class="svc-group-name">'+esc(sec.name)+'<div class="svc-group-count">'+sec.items.length+(sec.items.length===1?' servicio':' servicios')+'</div></div>';
+    if(picked) html+='<span class="svc-group-badge">'+picked+' &#x2713;</span>';
+    html+='<span class="svc-group-chev">&#x276F;</span></div>';
+    if(open){
+      html+='<div class="svc-group-body">';
+      sec.items.forEach(function(s){
+        var sel=svcPicked(s.id);
+        html+='<div class="service-item'+(sel?' selected':'')+'" role="button" tabindex="0" aria-pressed="'+(sel?'true':'false')+'" onclick="selectSvc(&quot;'+s.id+'&quot;)">';
+        html+='<div class="service-icon">'+svcIcon(s.name)+'</div>';
+        html+='<div class="service-info"><div class="service-name">'+esc(sec.id==='__otros__'?s.name:svcShortName(s.name,sec.name))+'</div>';
+        html+='<div class="service-meta">'+durLabel(s.duration_minutes)+(s.description?' &middot; '+esc(s.description):'')+'</div></div>';
+        html+='<div class="service-price">$'+Number(s.price).toLocaleString('es-MX')+'</div>';
+        html+=(sel?'<div class="service-check">&#x2713;</div>':'');
+        html+='</div>';
+      });
+      html+='</div>';
+    }
+  });
+  return html;
+}
+function toggleSvcGroup(id){
+  saveInputs();
+  S.openGroup=(S.openGroup===id)?null:id;
+  renderSvcSection();
+  if(S.openGroup){
+    setTimeout(function(){
+      var h=document.getElementById('svcg-'+id);
+      if(h) h.scrollIntoView({behavior:'smooth',block:'start'});
+    },60);
+  }
+}
+// Tras elegir un servicio dentro de un grupo: cerrar y bajar al siguiente paso.
+function svcScrollNext(){
+  setTimeout(function(){
+    var next=document.getElementById(S.staffMembers.length?'sect-staff':'sect-date');
+    if(next) next.scrollIntoView({behavior:'smooth',block:'start'});
+  },120);
+}
+
 function renderSvcSection() {
   var el=document.getElementById('sect-svc'); if(!el) return;
   var s1=S.selectedServices.length>0;
   var multi=S.allowMulti;
   var html='<div class="section-title"><span class="step-badge'+(s1?' done':'')+'">1</span>'+(multi?'Elige tus servicios':'Elige un servicio')+'</div>';
   if(multi){ html+='<div style="font-size:12px;color:#10B981;font-weight:600;margin:-4px 0 8px">Puedes elegir varios &mdash; se suman duraci&#xF3;n y precio.</div>'; }
+  if(svcGroupsActive() && S.selectedServices.length){
+    html+='<div class="svc-chips">';
+    S.selectedServices.forEach(function(sv){
+      html+='<span class="svc-chip">'+esc(sv.name)+' <button type="button" aria-label="Quitar '+esc(sv.name)+'" onclick="selectSvc(&quot;'+sv.id+'&quot;)">&#x2715;</button></span>';
+    });
+    html+='</div>';
+  }
   html+='<div class="card">';
   if(!S.services.length){
     html+='<div style="padding:20px;text-align:center;color:#94A3B8;font-size:14px">Sin servicios publicados.</div>';
+  } else if(svcGroupsActive()){
+    html+=renderSvcGroups();
   } else {
     S.services.forEach(function(s){
       var sel=svcPicked(s.id);
@@ -887,13 +986,17 @@ function selectSvc(id) {
   var svc=S.services.find(function(s){return s.id===id;});
   if(!svc) return;
   var idx=S.selectedServices.findIndex(function(s){return s.id===id;});
+  var added=idx<0;
   if(idx>=0){ S.selectedServices.splice(idx,1); }
   else if(S.allowMulti){ S.selectedServices.push(svc); }
   else { S.selectedServices=[svc]; }
+  var grouped=svcGroupsActive();
+  if(grouped && added) S.openGroup=null;
   S.selectedSlot=null;
   S.selectedBlockEnd=null;
   S.loadingSlots=true;
   renderSections();
+  if(grouped && added) svcScrollNext();
   loadSlots().then(renderSections);
 }
 
@@ -1551,7 +1654,7 @@ document.addEventListener('keydown', function(e){
   if(e.key!=='Enter' && e.key!==' ' && e.key!=='Spacebar') return;
   var t=e.target;
   if(t && t.getAttribute && t.getAttribute('role')==='button' &&
-     (t.classList.contains('slot')||t.classList.contains('service-item')||t.classList.contains('staff-card')||t.classList.contains('staff-any'))){
+     (t.classList.contains('slot')||t.classList.contains('service-item')||t.classList.contains('svc-group')||t.classList.contains('staff-card')||t.classList.contains('staff-any'))){
     e.preventDefault();
     t.click();
   }
@@ -1639,7 +1742,9 @@ function init() {
         supaFetch('rpc/public_business_can_multiservice?p_user_id='+link.user_id).catch(function(){return false;}),
         // ¿El negocio puede recibir citas en linea? Si la consulta falla se
         // deja pasar: el servidor vuelve a validar al confirmar la cita.
-        supaFetch('rpc/public_booking_available?p_slug='+encodeURIComponent(slug)).catch(function(){return true;})
+        supaFetch('rpc/public_booking_available?p_slug='+encodeURIComponent(slug)).catch(function(){return true;}),
+        // Grupos de servicios (opcional): si falla, se muestra la lista plana.
+        supaFetch('service_groups?user_id=eq.'+link.user_id+'&select=id,name,sort_order&order=sort_order,name').catch(function(){return [];})
       ]);
     });
   }).then(function(res){
@@ -1650,6 +1755,7 @@ function init() {
     S.timeBlocks = res[3] || [];
     S.bookingBlocks = res[4] || [];
     S.allowMulti = res[5] === true;
+    S.groups = Array.isArray(res[7]) ? res[7] : [];
     if(S.staffMembers.length>0) S.selectedStaff=undefined;
     S.selectedDate=nextOpenDay(new Date());
     // En modo bloques con colaboradores, precargamos staff_hours de TODOS para
