@@ -107,6 +107,14 @@
     .summary-key { font-size: 12px; color: #64748B; }
     .summary-val { font-size: 13px; font-weight: 600; color: #F8FAFC; }
     .summary-price { font-size: 18px; font-weight: 800; color: #10B981; }
+    /* Terminos y condiciones del negocio (nov 2026) */
+    .terms-box { background: #FFFBEB; border: 1.5px solid #FCD34D; border-radius: 16px; padding: 14px 16px; margin: 4px 0 16px; text-align: left; }
+    .terms-title { font-size: 14px; font-weight: 800; color: #92400E; margin-bottom: 6px; }
+    .terms-text { font-size: 13.5px; line-height: 1.55; color: #78350F; white-space: normal; word-wrap: break-word; }
+    .terms-accept { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #FCD34D; font-size: 13.5px; font-weight: 700; color: #78350F; cursor: pointer; }
+    .terms-accept input { width: 20px; height: 20px; accent-color: #10B981; flex-shrink: 0; margin: 0; cursor: pointer; }
+    .terms-box.attention { animation: termsPulse 0.6s ease 2; }
+    @keyframes termsPulse { 50% { box-shadow: 0 0 0 4px rgba(245,158,11,0.35); } }
     .submit-btn { width: 100%; padding: 18px; background: #10B981; color: #fff; border: none; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; position: relative; }
     .submit-btn:hover:not(:disabled) { opacity: 0.9; }
     .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -420,12 +428,28 @@ function saveInputs() {
   if(t) S.notes=t.value;
 }
 
+// ── Terminos y condiciones del negocio (nov 2026) ─────────────────────
+// Si el negocio los escribio (business_profiles.booking_terms), se muestran
+// ANTES de confirmar (con casilla obligatoria "Acepto") y DESPUES en la
+// pantalla de cita confirmada.
+function termsBoxHtml(withAccept){
+  var t=esc(S.biz.terms).replace(/\r?\n/g,'<br>');
+  var h='<div class="terms-box" id="terms-box"><div class="terms-title">&#x1F4CB; T&#xE9;rminos y condiciones</div>';
+  h+='<div class="terms-text">'+t+'</div>';
+  if(withAccept){
+    h+='<label class="terms-accept"><input type="checkbox" id="inp-terms"'+(S.termsAccepted?' checked':'')+' onchange="S.termsAccepted=this.checked;refreshBtn();" />';
+    h+='<span>He le&#xED;do y acepto los t&#xE9;rminos y condiciones de '+esc(S.biz.business_name)+'</span></label>';
+  }
+  return h+'</div>';
+}
+
 function refreshBtn() {
   var btn=document.getElementById('submit-btn');
   if(!btn) return;
   var staffOk=S.staffMembers.length===0||S.selectedStaff!==undefined;
   var phoneOk=validPhone(S.phone);
-  var ok=S.selectedServices.length>0&&staffOk&&S.selectedSlot&&validName(S.name)&&phoneOk;
+  var termsOk=!(S.biz&&S.biz.terms)||!!S.termsAccepted;
+  var ok=S.selectedServices.length>0&&staffOk&&S.selectedSlot&&validName(S.name)&&phoneOk&&termsOk;
   // FIX doble-submit: si submitLocked es true, el botón queda deshabilitado permanentemente hasta éxito/error
   btn.disabled=!ok||S.submitting||S.submitLocked;
 }
@@ -701,6 +725,9 @@ function renderFull() {
   html+='</div></div>';
   html+='<div id="sect-summary"></div>';
   // FIX doble-submit: onclick llama submitBooking que tiene su propio guard interno
+  if(S.biz && S.biz.terms){
+    html+=termsBoxHtml(true);
+  }
   html+='<button id="submit-btn" class="submit-btn" disabled onclick="submitBooking()">Confirmar cita &#x2192;</button>';
   html+='<div class="powered">Agendas gestionadas con <a href="https://vylta.lat" target="_blank">VYLTA</a></div>';
   html+='</div>';
@@ -1097,6 +1124,11 @@ function submitBooking() {
   var staff=S.selectedStaff, slot=S.selectedSlot, date=S.selectedDate;
   var name=S.name, phone=S.phone, notes=S.notes;
   if(!S.selectedServices.length||!slot||!validName(name)||!phone.trim()) return;
+  if(S.biz && S.biz.terms && !S.termsAccepted){
+    var tb=document.getElementById('terms-box');
+    if(tb){ tb.scrollIntoView({behavior:'smooth',block:'center'}); tb.classList.remove('attention'); void tb.offsetWidth; tb.classList.add('attention'); }
+    return;
+  }
 
   // Validacion de telefono con feedback visual
   if(!validPhone(phone)){
@@ -1592,6 +1624,9 @@ function renderSuccess() {
   if(S.paidAmount){
     html+='<div style="font-size:12.5px;color:#64748B;max-width:360px;line-height:1.6">Tu comprobante de pago llegar&#xE1; por correo desde Stripe.'+(S.receiptUrl?' Tambi&#xE9;n puedes <a href="'+S.receiptUrl+'" target="_blank" style="color:#6366F1">verlo aqu&#xED;</a>.':'')+'</div>';
   }
+  if(S.biz && S.biz.terms){
+    html+='<div style="width:100%;max-width:400px">'+termsBoxHtml(false)+'</div>';
+  }
   // Contenedor de la tarjeta de lealtad — se rellena async (ver loadLoyaltyCard)
   html+='<div id="loyalty-slot"></div>';
   if(S.biz.phone) html+='<div class="whatsapp-hint">&#x1F4F1; Guarda el n&#xFA;mero: <strong>'+S.biz.phone+'</strong></div>';
@@ -1733,10 +1768,10 @@ function init() {
     var link=links[0];
     S.bookingMode = link.booking_mode || 'normal';
     LOAD_STEP='perfil';
-    return supaFetch('public_business_profiles?user_id=eq.'+link.user_id+'&select=business_name,business_type,logo_url,phone')
+    return supaFetch('public_business_profiles?user_id=eq.'+link.user_id+'&select=business_name,business_type,logo_url,phone,booking_terms')
     .then(function(profiles){
       var p=(profiles&&profiles[0])||{};
-      S.biz={business_name:p.business_name,business_type:p.business_type,logo_url:(p.logo_url&&apiIdx?String(p.logo_url).replace(SUPABASE_URL,API_BASES[1]):p.logo_url),phone:p.phone,linkId:link.id,userId:link.user_id};
+      S.biz={business_name:p.business_name,business_type:p.business_type,logo_url:(p.logo_url&&apiIdx?String(p.logo_url).replace(SUPABASE_URL,API_BASES[1]):p.logo_url),phone:p.phone,terms:String(p.booking_terms||'').trim(),linkId:link.id,userId:link.user_id};
       // Config de cobro anticipado (silenciosa: si falla, el flujo sigue sin pago)
       fetch(api()+'/rest/v1/rpc/get_prepay_config_public',{
         method:'POST',
